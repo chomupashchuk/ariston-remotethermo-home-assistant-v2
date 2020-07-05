@@ -11,11 +11,12 @@ You may read more about API (`ariston.py`) on the website: https://github.com/ch
   - Ariston Clas Evo
   - Ariston Genus One with Ariston BCH cylinder
   - Ariston Nimbus Flex
-You may check possible support of your boiler by logging into https://www.ariston-net.remotethermo.com and if climate and water heater parts (like temperatures) are available on the home page, then intergation should potentially work.
 
 ## Integration was tested and does not work with:
   - Ariston Velis Wifi
-Website https://www.ariston-net.remotethermo.com does not provide required data for this kind of a boiler.
+
+## How to check if intergation supports your model
+You may check possible support of your boiler by logging into https://www.ariston-net.remotethermo.com and if climate and water heater parts (like temperatures) are available on the home page, then intergation should potentially work.
 
 ## Integration installation
 In `/config` folder create `custom_components` folder and folder `ariston` with its contents in it.
