@@ -113,7 +113,7 @@ class AristonHandler():
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
     _GITHUB_LATEST_RELEASE = \
-        'https://api.github.com/repos/chomupashchuk/ariston-remotethermo-home-assistant/releases/latest'
+        'https://api.github.com/repos/chomupashchuk/ariston-remotethermo-api/releases/latest'
 
     _DEFAULT_HVAC = VAL_SUMMER
     _DEFAULT_POWER_ON = VAL_SUMMER
