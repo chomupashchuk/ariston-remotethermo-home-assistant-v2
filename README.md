@@ -34,7 +34,7 @@ All optional attributes are described in **Integration attributes**
     **! It is recommended for security purposes to not use your common password, just in case !**
   - `name` - friendly name for integration, default is `Ariston`
   - `hvac_off_present` - indicates if `HVAC OFF` shall be present in climate entity. Default value is `false`.
-  - `hvac_off` - indicates how to treat `HVAC OFF` action in climate. Options are `off` and `summer`. By default it is `summer`, which means that turning off would keep DHW water heating on (e.g. summer mode). Presets in climate allow switching between `off`, `summer` and `winter`.
+  - `hvac_off` - indicates how to treat `HVAC OFF` action in climate (use depends on `hvac_off_present`). Options are `off` and `summer`. By default it is `summer`, which means that turning off would keep DHW water heating on (e.g. summer mode). Presets in climate allow switching between `off`, `summer` and `winter`.
   - `store_config_files` - `true` or `false` indicating if configuration `json` files to be stored in `/config/custom_components/ariston` folder. Can be used for troubleshooting purposes. Default value is `false`.
   - `units` - which uniots to be used. Values are: `metric` (°C-bar-kW...), `imperial` (°F-psi-kBtu/h...), `auto` (detect automatically, which takes additional time). Default is `metric`. Note that use of `auto` requires additional request to be used, which would result in slower update of other sensors.
 
