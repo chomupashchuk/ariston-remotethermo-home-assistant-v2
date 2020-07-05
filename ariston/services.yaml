@@ -1,0 +1,54 @@
+set_data:
+  description: Set Ariston Data via HTTP
+  fields:
+    entity_id:
+      description: "(Mandatory) Climate 'enity_id' for Ariston heater"
+      example: climate.ariston
+    mode:
+      description: "(Optional) General mode: 'winter' or 'summer' or 'off' or 'heating_only'. Values depend on model."
+      example: winter
+    ch_auto_function:
+      description: "(Optional) CH AUTO function (boolean)"
+      example: true
+    ch_mode:
+      description: "(Optional) CH mode: 'manual' or 'program'."
+      example: manual
+    ch_set_temperature:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_economy_temperature:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    dhw_mode:
+      description: "(Optional) DHW mode: 'manual' or 'program'. Support depends on model."
+      example: manual
+    dhw_comfort_function:
+      description: "(Optional) DHW Comfort Function: 'disabled' or 'time_based' or 'always_active'"
+      example: 'disabled'
+    dhw_set_temperature:
+      description: "(Optional) Set currently used DHW temperature in steps of '1.0'. Value range depends on model."
+      example: 46
+    dhw_comfort_temperature:
+      description: "(Optional) Set DHW Comfort temperature in steps of '1.0'. Value range depends on model."
+      example: 46
+    dhw_economy_temperature:
+      description: "(Optional) Set DHW Economy temperature in steps of '1.0'. Value range depends on model."
+      example: 46
+    dhw_thermal_cleanse_cycle:
+      description: "(Optional) Thermal Cleanse Cycle in hours."
+      example: 240
+    dhw_thermal_cleanse_function:
+      description: "(Optional) Thermal Cleanse Function (boolean)."
+      example: true
+    internet_time:
+      description: "(Optional) enable or disable time from internet (boolean)."
+      example: true
+    internet_weather:
+      description: "(Optional) enable or disable weather from internet (boolean)."
+      example: true
+    units:
+      description: "(Optional) Units of measurement: 'metric' or 'imperial'."
+      example: 'metric'
