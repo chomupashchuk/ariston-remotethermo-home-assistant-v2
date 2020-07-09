@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 class AristonHandler():
     """Ariston checker"""
 
-    VERSION = "1.0.0"
+    VERSION = "1.0.4"
 
     PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
@@ -113,7 +113,7 @@ class AristonHandler():
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
     _GITHUB_LATEST_RELEASE = \
-        'https://api.github.com/repos/chomupashchuk/ariston-remotethermo-api/releases/latest'
+        'https://pypi.python.org/pypi/aristonremotethermo/json'
 
     _DEFAULT_HVAC = VAL_SUMMER
     _DEFAULT_POWER_ON = VAL_SUMMER
@@ -1446,14 +1446,10 @@ class AristonHandler():
                             if int(web_version[symbol]) > int(installed_version[symbol]):
                                 self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = True
                                 break
-                        self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = False
+                        else:
+                            self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = False
                     else:
-                        # same amount of symbols to check, update available if web has higher value
-                        # or if symbols match but web has additional last symbol
-                        for symbol in range(0, installed_symbols):
-                            if int(web_version[symbol]) > int(installed_version[symbol]):
-                                self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = True
-                                break
+                        # update available if web has higher value
                         self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = True
                 else:
                     self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = None
@@ -1995,7 +1991,7 @@ class AristonHandler():
 
         elif request_type == self._REQUEST_GET_VERSION:
             try:
-                self._version = resp.json()["tag_name"]
+                self._version = resp.json()["info"]["version"]
             except:
                 self._version = ""
                 _LOGGER.warning("%s Invalid version fetched", self)
