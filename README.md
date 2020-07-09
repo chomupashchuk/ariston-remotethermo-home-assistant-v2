@@ -5,7 +5,7 @@ Cimate has presets to switch between `off`, `summer` and `winter` in order to be
 
 ## Integration slow nature
 Intergation uses api developed by me based on assumptions and test results. It continiously fetches the data from the site with periods determined during tests to have not as many interference with other applications (like Ariston NET application or Google Home application) but be quick enough to get information as soon as possible.
-You may read more about API (`ariston.py`) on the website: https://github.com/chomupashchuk/ariston-remotethermo-api .
+You may read more about API (`ariston.py`) on the website: https://pypi.org/project/aristonremotethermo/.
 
 ## Integration was tested on and works with:
   - Ariston Clas Evo
