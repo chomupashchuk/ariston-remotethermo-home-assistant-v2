@@ -12,111 +12,187 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AristonHandler():
-    """Ariston checker"""
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    VERSION = "1.0.4"
+    Ariston NET Remotethermo API
 
-    PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
-    PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
-    PARAM_ACCOUNT_DHW_GAS = "account_dhw_gas"
-    PARAM_ACCOUNT_DHW_ELECTRICITY = "account_dhw_electricity"
-    PARAM_CH_ANTIFREEZE_TEMPERATURE = "ch_antifreeze_temperature"
-    PARAM_CH_MODE = "ch_mode"
-    PARAM_CH_SET_TEMPERATURE = "ch_set_temperature"
-    PARAM_CH_COMFORT_TEMPERATURE = "ch_comfort_temperature"
-    PARAM_CH_ECONOMY_TEMPERATURE = "ch_economy_temperature"
-    PARAM_CH_DETECTED_TEMPERATURE = "ch_detected_temperature"
-    PARAM_CH_PROGRAM = "ch_program"
-    PARAM_ERRORS = "errors"
-    PARAM_ERRORS_COUNT = "errors_count"
-    PARAM_DHW_COMFORT_FUNCTION = "dhw_comfort_function"
-    PARAM_DHW_MODE = "dhw_mode"
-    PARAM_DHW_PROGRAM = "dhw_program"
-    PARAM_DHW_SET_TEMPERATURE = "dhw_set_temperature"
-    PARAM_DHW_STORAGE_TEMPERATURE = "dhw_storage_temperature"
-    PARAM_DHW_COMFORT_TEMPERATURE = "dhw_comfort_temperature"
-    PARAM_DHW_ECONOMY_TEMPERATURE = "dhw_economy_temperature"
-    PARAM_HEATING_LAST_24H = "heating_last_24h"
-    PARAM_HEATING_LAST_7D = "heating_last_7d"
-    PARAM_HEATING_LAST_30D = "heating_last_30d"
-    PARAM_HEATING_LAST_365D = "heating_last_365d"
-    PARAM_HEATING_LAST_24H_LIST = "heating_last_24h_list"
-    PARAM_HEATING_LAST_7D_LIST = "heating_last_7d_list"
-    PARAM_HEATING_LAST_30D_LIST = "heating_last_30d_list"
-    PARAM_HEATING_LAST_365D_LIST = "heating_last_365d_list"
-    PARAM_MODE = "mode"
-    PARAM_OUTSIDE_TEMPERATURE = "outside_temperature"
-    PARAM_SIGNAL_STRENGTH = "signal_strength"
-    PARAM_WATER_LAST_24H = "water_last_24h"
-    PARAM_WATER_LAST_7D = "water_last_7d"
-    PARAM_WATER_LAST_30D = "water_last_30d"
-    PARAM_WATER_LAST_365D = "water_last_365d"
-    PARAM_WATER_LAST_24H_LIST = "water_last_24h_list"
-    PARAM_WATER_LAST_7D_LIST = "water_last_7d_list"
-    PARAM_WATER_LAST_30D_LIST = "water_last_30d_list"
-    PARAM_WATER_LAST_365D_LIST = "water_last_365d_list"
-    PARAM_UNITS = "units"
-    PARAM_THERMAL_CLEANSE_CYCLE = "dhw_thermal_cleanse_cycle"
-    PARAM_GAS_TYPE = "gas_type"
-    PARAM_GAS_COST = "gas_cost"
-    PARAM_ELECTRICITY_COST = "electricity_cost"
-    PARAM_CH_AUTO_FUNCTION = "ch_auto_function"
-    PARAM_CH_FLAME = "ch_flame"
-    PARAM_DHW_FLAME = "dhw_flame"
-    PARAM_FLAME = "flame"
-    PARAM_HEAT_PUMP = "heat_pump"
-    PARAM_HOLIDAY_MODE = "holiday_mode"
-    PARAM_INTERNET_TIME = "internet_time"
-    PARAM_INTERNET_WEATHER = "internet_weather"
-    PARAM_THERMAL_CLEANSE_FUNCTION = "dhw_thermal_cleanse_function"
-    PARAM_CH_PILOT = "ch_pilot"
-    PARAM_UPDATE = "update"
-    PARAM_ONLINE_VERSION = "online_version"
+    'username' - mandatory username;
+
+    'password' - mandatory password;
+
+    'sensors' - list of wanted sensors to be monitored.
+    API automatically filters out requests based on this list to reduce amount of unique requests towards the server
+    and thus reduce a period to update the data.
+     from the allowed list of sensors:
+        - 'account_ch_gas' - gas use for CH.
+        - 'account_ch_electricity' - electricity use for CH.
+        - 'account_dhw_gas' - gas use for DHW.
+        - 'account_dhw_electricity' - electricity use for DHW.
+        - 'ch_antifreeze_temperature' - atifreeze temperature for CH.
+        - 'ch_mode' - CH mode.
+        - 'ch_set_temperature' - CH temperature set as a target.
+        - 'ch_comfort_temperature' - CH comfort temperature.
+        - 'ch_economy_temperature' - CH economy temperature.
+        - 'ch_detected_temperature' - CH detected room temperature.
+        - 'ch_program' - CH program information.
+        - 'ch_pilot' - CH pilot status.
+        - 'ch_auto_function' - CH auto function.
+        - 'ch_flame' - CH flame.
+        - 'errors' - list of active errors.
+        - 'errors_count' - number of active errors
+        - 'dhw_comfort_function' - DHW comfort function.
+        - 'dhw_mode' - DHW mode.
+        - 'dhw_program' - DHW program information.
+        - 'dhw_set_temperature' - DHW temperature set as a target.
+        - 'dhw_storage_temperature' - DHW storeage probe temperature.
+        - 'dhw_comfort_temperature' - DHW comfort temperature.
+        - 'dhw_economy_temperature' - DHW economy temperature.
+        - 'dhw_thermal_cleanse_function' - DHW thermal cleanse function.
+        - 'dhw_thermal_cleanse_cycle' - DHW thermal cleanse cycle.
+        - 'dhw_flame' - approximated DHW flame status.
+        - 'heating_last_24h' - energy use for CH in a day.
+        - 'heating_last_7d' - energy use for CH in a week.
+        - 'heating_last_30d' - energy use for CH in a month.
+        - 'heating_last_365d' - energy use for CH in a year.
+        - 'heating_last_24h_list' - energy use for CH in a day with periods.
+        - 'heating_last_7d_list' - energy use for CH in a week with periods.
+        - 'heating_last_30d_list' - energy use for CH in a month with periods.
+        - 'heating_last_365d_list' - energy use for CH in a year with periods.
+        - 'mode' - general mode.
+        - 'outside_temperature' - outside temperature.
+        - 'signal_strength' - signal strength.
+        - 'water_last_24h' - energy use for DHW in a day.
+        - 'water_last_7d' - energy use for DHW in a week.
+        - 'water_last_30d' - energy use for DHW in a month.
+        - 'water_last_365d' - energy use for DHW in a year.
+        - 'water_last_24h_list' - energy use for DHW in a day with periods.
+        - 'water_last_7d_list' - energy use for DHW in a week with periods.
+        - 'water_last_30d_list' - energy use for DHW in a month with periods.
+        - 'water_last_365d_list' - energy use for DHW in a year with periods.
+        - 'units' - indicates if metric or imperial units to be used.
+        - 'gas_type' - type of gas.
+        - 'gas_cost' - gas cost.
+        - 'electricity_cost' - electricity cost.
+        - 'flame' - CH or DHW flame detcted.
+        - 'heat_pump' - heating pump.
+        - 'holiday_mode' - holiday mode.
+        - 'internet_time' - internet time.
+        - 'internet_weather' - internet weather.
+        - API specific 'update' - API update is available.
+        - API specific 'online_version' - API version available.
+
+    'retries' - number of retries to set the data;
+
+    'polling' - defines multiplication factor for waiting periods to get or set the data;
+
+    'store_file' - indicates if HTTP and internal data to be stored as files for troubleshooting purposes;
+
+    'units' - 'metric' or 'imperial' or 'auto'.
+    Value 'auto' creates additional request towards the server and as a result increases period to update other sensors.
+
+    'ch_and_dhw' - indicates if CH and DHW heating can work at the same time (usually valve allows to use one);
+
+    'dhw_unknown_as_on' - indicates if to assume 'dhw_flame' as being True if cannot be identified.
+
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    _VERSION = "1.0.5"
+
+    _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
+    _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
+    _PARAM_ACCOUNT_DHW_GAS = "account_dhw_gas"
+    _PARAM_ACCOUNT_DHW_ELECTRICITY = "account_dhw_electricity"
+    _PARAM_CH_ANTIFREEZE_TEMPERATURE = "ch_antifreeze_temperature"
+    _PARAM_CH_MODE = "ch_mode"
+    _PARAM_CH_SET_TEMPERATURE = "ch_set_temperature"
+    _PARAM_CH_COMFORT_TEMPERATURE = "ch_comfort_temperature"
+    _PARAM_CH_ECONOMY_TEMPERATURE = "ch_economy_temperature"
+    _PARAM_CH_DETECTED_TEMPERATURE = "ch_detected_temperature"
+    _PARAM_CH_PROGRAM = "ch_program"
+    _PARAM_ERRORS = "errors"
+    _PARAM_ERRORS_COUNT = "errors_count"
+    _PARAM_DHW_COMFORT_FUNCTION = "dhw_comfort_function"
+    _PARAM_DHW_MODE = "dhw_mode"
+    _PARAM_DHW_PROGRAM = "dhw_program"
+    _PARAM_DHW_SET_TEMPERATURE = "dhw_set_temperature"
+    _PARAM_DHW_STORAGE_TEMPERATURE = "dhw_storage_temperature"
+    _PARAM_DHW_COMFORT_TEMPERATURE = "dhw_comfort_temperature"
+    _PARAM_DHW_ECONOMY_TEMPERATURE = "dhw_economy_temperature"
+    _PARAM_HEATING_LAST_24H = "heating_last_24h"
+    _PARAM_HEATING_LAST_7D = "heating_last_7d"
+    _PARAM_HEATING_LAST_30D = "heating_last_30d"
+    _PARAM_HEATING_LAST_365D = "heating_last_365d"
+    _PARAM_HEATING_LAST_24H_LIST = "heating_last_24h_list"
+    _PARAM_HEATING_LAST_7D_LIST = "heating_last_7d_list"
+    _PARAM_HEATING_LAST_30D_LIST = "heating_last_30d_list"
+    _PARAM_HEATING_LAST_365D_LIST = "heating_last_365d_list"
+    _PARAM_MODE = "mode"
+    _PARAM_OUTSIDE_TEMPERATURE = "outside_temperature"
+    _PARAM_SIGNAL_STRENGTH = "signal_strength"
+    _PARAM_WATER_LAST_24H = "water_last_24h"
+    _PARAM_WATER_LAST_7D = "water_last_7d"
+    _PARAM_WATER_LAST_30D = "water_last_30d"
+    _PARAM_WATER_LAST_365D = "water_last_365d"
+    _PARAM_WATER_LAST_24H_LIST = "water_last_24h_list"
+    _PARAM_WATER_LAST_7D_LIST = "water_last_7d_list"
+    _PARAM_WATER_LAST_30D_LIST = "water_last_30d_list"
+    _PARAM_WATER_LAST_365D_LIST = "water_last_365d_list"
+    _PARAM_UNITS = "units"
+    _PARAM_THERMAL_CLEANSE_CYCLE = "dhw_thermal_cleanse_cycle"
+    _PARAM_GAS_TYPE = "gas_type"
+    _PARAM_GAS_COST = "gas_cost"
+    _PARAM_ELECTRICITY_COST = "electricity_cost"
+    _PARAM_CH_AUTO_FUNCTION = "ch_auto_function"
+    _PARAM_CH_FLAME = "ch_flame"
+    _PARAM_DHW_FLAME = "dhw_flame"
+    _PARAM_FLAME = "flame"
+    _PARAM_HEAT_PUMP = "heat_pump"
+    _PARAM_HOLIDAY_MODE = "holiday_mode"
+    _PARAM_INTERNET_TIME = "internet_time"
+    _PARAM_INTERNET_WEATHER = "internet_weather"
+    _PARAM_THERMAL_CLEANSE_FUNCTION = "dhw_thermal_cleanse_function"
+    _PARAM_CH_PILOT = "ch_pilot"
+    _PARAM_UPDATE = "update"
+    _PARAM_ONLINE_VERSION = "online_version"
 
     # Units of measurement
-    UNIT_METRIC = "metric"
-    UNIT_IMPERIAL = "imperial"
-    UNIT_AUTO = "auto"
+    _UNIT_METRIC = "metric"
+    _UNIT_IMPERIAL = "imperial"
+    _UNIT_AUTO = "auto"
 
-    VALUE = "value"
-    UNITS = "units"
+    _VALUE = "value"
+    _UNITS = "units"
 
     # parameter values
-    VAL_HOLIDAY = "holiday"
-    VAL_WINTER = "winter"
-    VAL_SUMMER = "summer"
-    VAL_OFF = "off"
-    VAL_HEATING_ONLY = "heating_only"
-    VAL_SUMMER_MANUAL = "summer_manual"
-    VAL_SUMMER_PROGRAM = "summer_program"
-    VAL_WINTER_MANUAL = "winter_manual"
-    VAL_WINTER_PROGRAM = "winter_program"
-    VAL_MANUAL = "manual"
-    VAL_PROGRAM = "program"
-    VAL_LEARNING = "pilot"
-    VAL_UNKNOWN = "unknown"
-    VAL_OFFLINE = "offline"
-    VAL_NOT_READY = "initiating"
-    VAL_UNSUPPORTED = "unsupported"
-    VAL_AVAILABLE = "available"
-    VAL_DISABLED = "disabled"
-    VAL_TIME_BASED = "time_based"
-    VAL_ALWAYS_ACTIVE = "always_active"
-    VAL_METRIC = "metric"
-    VAL_IMPERIAL = "imperial"
-    VAL_AUTO = "auto"
-    VAL_NORMAL = "normal"
-    VAL_LONG = "long"
-    VAL_DEFAULT = "default"
-
-    """ STARTING FROM THIS POINT WE HAVE ONLY INTERNAL DATA """
+    _VAL_WINTER = "winter"
+    _VAL_SUMMER = "summer"
+    _VAL_OFF = "off"
+    _VAL_HEATING_ONLY = "heating_only"
+    _VAL_MANUAL = "manual"
+    _VAL_PROGRAM = "program"
+    _VAL_UNKNOWN = "unknown"
+    _VAL_OFFLINE = "offline"
+    _VAL_UNSUPPORTED = "unsupported"
+    _VAL_AVAILABLE = "available"
+    _VAL_DISABLED = "disabled"
+    _VAL_TIME_BASED = "time_based"
+    _VAL_ALWAYS_ACTIVE = "always_active"
+    _VAL_METRIC = "metric"
+    _VAL_IMPERIAL = "imperial"
+    _VAL_AUTO = "auto"
+    _VAL_DEFAULT = "default"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
     _GITHUB_LATEST_RELEASE = \
         'https://pypi.python.org/pypi/aristonremotethermo/json'
 
-    _DEFAULT_HVAC = VAL_SUMMER
-    _DEFAULT_POWER_ON = VAL_SUMMER
+    _DELAY_NORMAL = "normal"
+    _DELAY_LONG = "long"
+
+    _DEFAULT_HVAC = _VAL_SUMMER
+    _DEFAULT_POWER_ON = _VAL_SUMMER
     _DEFAULT_NAME = "Ariston"
     _DEFAULT_MAX_RETRIES = 1
     _DEFAULT_TIME = "00:00"
@@ -135,16 +211,16 @@ class AristonHandler():
     _HTTP_PARAM_DELAY = 30.0
 
     # Conversions between parameters
-    _MODE_TO_VALUE = {VAL_WINTER: 1, VAL_SUMMER: 0, VAL_OFF: 5, VAL_HEATING_ONLY: 2}
-    _VALUE_TO_MODE = {1: VAL_WINTER, 0: VAL_SUMMER, 5: VAL_OFF, 2: VAL_HEATING_ONLY}
-    _CH_MODE_TO_VALUE = {VAL_MANUAL: 2, VAL_PROGRAM: 3, VAL_UNKNOWN: 0}
-    _VALUE_TO_CH_MODE = {2: VAL_MANUAL, 3: VAL_PROGRAM, 0: VAL_UNKNOWN}
-    _DHW_MODE_TO_VALUE = {VAL_MANUAL: 2, VAL_PROGRAM: 1, VAL_DEFAULT: 0}
-    _VALUE_TO_DHW_MODE = {2: VAL_MANUAL, 1: VAL_PROGRAM, 0: VAL_DEFAULT, -1: VAL_UNSUPPORTED}
-    _DHW_COMFORT_FUNCT_TO_VALUE = {VAL_DISABLED: 0, VAL_TIME_BASED: 1, VAL_ALWAYS_ACTIVE: 2}
-    _DHW_COMFORT_VALUE_TO_FUNCT = {0: VAL_DISABLED, 1: VAL_TIME_BASED, 2: VAL_ALWAYS_ACTIVE}
-    _UNIT_TO_VALUE = {VAL_METRIC: 0, VAL_IMPERIAL: 1}
-    _VALUE_TO_UNIT = {0: VAL_METRIC, 1: VAL_IMPERIAL}
+    _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2}
+    _VALUE_TO_MODE = {1: _VAL_WINTER, 0: _VAL_SUMMER, 5: _VAL_OFF, 2: _VAL_HEATING_ONLY}
+    _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_UNKNOWN: 0}
+    _VALUE_TO_CH_MODE = {2: _VAL_MANUAL, 3: _VAL_PROGRAM, 0: _VAL_UNKNOWN}
+    _DHW_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 1, _VAL_DEFAULT: 0}
+    _VALUE_TO_DHW_MODE = {2: _VAL_MANUAL, 1: _VAL_PROGRAM, 0: _VAL_DEFAULT, -1: _VAL_UNSUPPORTED}
+    _DHW_COMFORT_FUNCT_TO_VALUE = {_VAL_DISABLED: 0, _VAL_TIME_BASED: 1, _VAL_ALWAYS_ACTIVE: 2}
+    _DHW_COMFORT_VALUE_TO_FUNCT = {0: _VAL_DISABLED, 1: _VAL_TIME_BASED, 2: _VAL_ALWAYS_ACTIVE}
+    _UNIT_TO_VALUE = {_VAL_METRIC: 0, _VAL_IMPERIAL: 1}
+    _VALUE_TO_UNIT = {0: _VAL_METRIC, 1: _VAL_IMPERIAL}
     _PARAM_STRING_TO_VALUE = {"true": 1, "false": 0}
 
     _UNKNOWN_TEMP = 0.0
@@ -195,78 +271,78 @@ class AristonHandler():
 
     # Mapping of parameter to request
     _GET_REQUEST_CH_PROGRAM = {
-        PARAM_CH_PROGRAM
+        _PARAM_CH_PROGRAM
     }
     _GET_REQUEST_CURRENCY = {
-        PARAM_GAS_TYPE,
-        PARAM_GAS_COST,
-        PARAM_ELECTRICITY_COST
+        _PARAM_GAS_TYPE,
+        _PARAM_GAS_COST,
+        _PARAM_ELECTRICITY_COST
     }
     _GET_REQUEST_DHW_PROGRAM = {
-        PARAM_DHW_PROGRAM
+        _PARAM_DHW_PROGRAM
     }
     _GET_REQUEST_ERRORS = {
-        PARAM_ERRORS,
-        PARAM_ERRORS_COUNT
+        _PARAM_ERRORS,
+        _PARAM_ERRORS_COUNT
     }
     _GET_REQUEST_GAS = {
-        PARAM_ACCOUNT_CH_GAS,
-        PARAM_ACCOUNT_CH_ELECTRICITY,
-        PARAM_ACCOUNT_DHW_GAS,
-        PARAM_ACCOUNT_DHW_ELECTRICITY,
-        PARAM_HEATING_LAST_24H,
-        PARAM_HEATING_LAST_7D,
-        PARAM_HEATING_LAST_30D,
-        PARAM_HEATING_LAST_365D,
-        PARAM_HEATING_LAST_24H_LIST,
-        PARAM_HEATING_LAST_7D_LIST,
-        PARAM_HEATING_LAST_30D_LIST,
-        PARAM_HEATING_LAST_365D_LIST,
-        PARAM_WATER_LAST_24H,
-        PARAM_WATER_LAST_7D,
-        PARAM_WATER_LAST_30D,
-        PARAM_WATER_LAST_365D,
-        PARAM_WATER_LAST_24H_LIST,
-        PARAM_WATER_LAST_7D_LIST,
-        PARAM_WATER_LAST_30D_LIST,
-        PARAM_WATER_LAST_365D_LIST
+        _PARAM_ACCOUNT_CH_GAS,
+        _PARAM_ACCOUNT_CH_ELECTRICITY,
+        _PARAM_ACCOUNT_DHW_GAS,
+        _PARAM_ACCOUNT_DHW_ELECTRICITY,
+        _PARAM_HEATING_LAST_24H,
+        _PARAM_HEATING_LAST_7D,
+        _PARAM_HEATING_LAST_30D,
+        _PARAM_HEATING_LAST_365D,
+        _PARAM_HEATING_LAST_24H_LIST,
+        _PARAM_HEATING_LAST_7D_LIST,
+        _PARAM_HEATING_LAST_30D_LIST,
+        _PARAM_HEATING_LAST_365D_LIST,
+        _PARAM_WATER_LAST_24H,
+        _PARAM_WATER_LAST_7D,
+        _PARAM_WATER_LAST_30D,
+        _PARAM_WATER_LAST_365D,
+        _PARAM_WATER_LAST_24H_LIST,
+        _PARAM_WATER_LAST_7D_LIST,
+        _PARAM_WATER_LAST_30D_LIST,
+        _PARAM_WATER_LAST_365D_LIST
     }
     _GET_REQUEST_MAIN = {
-        PARAM_CH_DETECTED_TEMPERATURE,
-        PARAM_CH_ANTIFREEZE_TEMPERATURE,
-        PARAM_CH_MODE,
-        PARAM_CH_SET_TEMPERATURE,
-        PARAM_DHW_SET_TEMPERATURE,
-        PARAM_MODE,
-        PARAM_DHW_COMFORT_TEMPERATURE,
-        PARAM_DHW_ECONOMY_TEMPERATURE,
-        PARAM_DHW_STORAGE_TEMPERATURE,
-        PARAM_OUTSIDE_TEMPERATURE,
-        PARAM_DHW_MODE,
-        PARAM_HOLIDAY_MODE,
-        PARAM_HEAT_PUMP,
-        PARAM_CH_PILOT,
-        PARAM_CH_FLAME,
-        PARAM_DHW_FLAME,
-        PARAM_FLAME
+        _PARAM_CH_DETECTED_TEMPERATURE,
+        _PARAM_CH_ANTIFREEZE_TEMPERATURE,
+        _PARAM_CH_MODE,
+        _PARAM_CH_SET_TEMPERATURE,
+        _PARAM_DHW_SET_TEMPERATURE,
+        _PARAM_MODE,
+        _PARAM_DHW_COMFORT_TEMPERATURE,
+        _PARAM_DHW_ECONOMY_TEMPERATURE,
+        _PARAM_DHW_STORAGE_TEMPERATURE,
+        _PARAM_OUTSIDE_TEMPERATURE,
+        _PARAM_DHW_MODE,
+        _PARAM_HOLIDAY_MODE,
+        _PARAM_HEAT_PUMP,
+        _PARAM_CH_PILOT,
+        _PARAM_CH_FLAME,
+        _PARAM_DHW_FLAME,
+        _PARAM_FLAME
     }
     _GET_REQUEST_PARAM = {
-        PARAM_INTERNET_TIME,
-        PARAM_INTERNET_WEATHER,
-        PARAM_THERMAL_CLEANSE_FUNCTION,
-        PARAM_CH_AUTO_FUNCTION,
-        PARAM_DHW_COMFORT_FUNCTION,
-        PARAM_CH_COMFORT_TEMPERATURE,
-        PARAM_CH_ECONOMY_TEMPERATURE,
-        PARAM_SIGNAL_STRENGTH,
-        PARAM_THERMAL_CLEANSE_CYCLE
+        _PARAM_INTERNET_TIME,
+        _PARAM_INTERNET_WEATHER,
+        _PARAM_THERMAL_CLEANSE_FUNCTION,
+        _PARAM_CH_AUTO_FUNCTION,
+        _PARAM_DHW_COMFORT_FUNCTION,
+        _PARAM_CH_COMFORT_TEMPERATURE,
+        _PARAM_CH_ECONOMY_TEMPERATURE,
+        _PARAM_SIGNAL_STRENGTH,
+        _PARAM_THERMAL_CLEANSE_CYCLE
     }
     _GET_REQUEST_UNITS = {
-        PARAM_UNITS
+        _PARAM_UNITS
     }
     _GET_REQUEST_VERSION = {
-        PARAM_UPDATE,
-        PARAM_ONLINE_VERSION
+        _PARAM_UPDATE,
+        _PARAM_ONLINE_VERSION
     }
 
     # Supported sensors list
@@ -281,55 +357,55 @@ class AristonHandler():
                     *_GET_REQUEST_VERSION}
 
     _SET_REQUEST_MAIN = {
-        PARAM_CH_DETECTED_TEMPERATURE,
-        PARAM_CH_ANTIFREEZE_TEMPERATURE,
-        PARAM_CH_MODE,
-        PARAM_CH_SET_TEMPERATURE,
-        PARAM_DHW_SET_TEMPERATURE,
-        PARAM_MODE,
-        PARAM_DHW_STORAGE_TEMPERATURE,
-        PARAM_OUTSIDE_TEMPERATURE,
-        PARAM_DHW_MODE,
-        PARAM_HOLIDAY_MODE,
-        PARAM_HEAT_PUMP,
-        PARAM_CH_PILOT,
-        PARAM_CH_FLAME,
-        PARAM_FLAME
+        _PARAM_CH_DETECTED_TEMPERATURE,
+        _PARAM_CH_ANTIFREEZE_TEMPERATURE,
+        _PARAM_CH_MODE,
+        _PARAM_CH_SET_TEMPERATURE,
+        _PARAM_DHW_SET_TEMPERATURE,
+        _PARAM_MODE,
+        _PARAM_DHW_STORAGE_TEMPERATURE,
+        _PARAM_OUTSIDE_TEMPERATURE,
+        _PARAM_DHW_MODE,
+        _PARAM_HOLIDAY_MODE,
+        _PARAM_HEAT_PUMP,
+        _PARAM_CH_PILOT,
+        _PARAM_CH_FLAME,
+        _PARAM_FLAME
     }
     _SET_REQUEST_PARAM = {
-        PARAM_INTERNET_TIME,
-        PARAM_INTERNET_WEATHER,
-        PARAM_THERMAL_CLEANSE_FUNCTION,
-        PARAM_CH_AUTO_FUNCTION,
-        PARAM_DHW_COMFORT_FUNCTION,
-        PARAM_DHW_COMFORT_TEMPERATURE,
-        PARAM_DHW_ECONOMY_TEMPERATURE,
-        PARAM_CH_COMFORT_TEMPERATURE,
-        PARAM_CH_ECONOMY_TEMPERATURE,
-        PARAM_SIGNAL_STRENGTH,
-        PARAM_THERMAL_CLEANSE_CYCLE
+        _PARAM_INTERNET_TIME,
+        _PARAM_INTERNET_WEATHER,
+        _PARAM_THERMAL_CLEANSE_FUNCTION,
+        _PARAM_CH_AUTO_FUNCTION,
+        _PARAM_DHW_COMFORT_FUNCTION,
+        _PARAM_DHW_COMFORT_TEMPERATURE,
+        _PARAM_DHW_ECONOMY_TEMPERATURE,
+        _PARAM_CH_COMFORT_TEMPERATURE,
+        _PARAM_CH_ECONOMY_TEMPERATURE,
+        _PARAM_SIGNAL_STRENGTH,
+        _PARAM_THERMAL_CLEANSE_CYCLE
     }
     _SET_REQUEST_UNITS = {
-        PARAM_UNITS
+        _PARAM_UNITS
     }
 
     _SENSOR_SET_LIST = {
-        PARAM_MODE,
-        PARAM_CH_MODE,
-        PARAM_CH_SET_TEMPERATURE,
-        PARAM_CH_COMFORT_TEMPERATURE,
-        PARAM_CH_ECONOMY_TEMPERATURE,
-        PARAM_CH_AUTO_FUNCTION,
-        PARAM_DHW_SET_TEMPERATURE,
-        PARAM_DHW_COMFORT_TEMPERATURE,
-        PARAM_DHW_ECONOMY_TEMPERATURE,
-        PARAM_DHW_MODE,
-        PARAM_DHW_COMFORT_FUNCTION,
-        PARAM_INTERNET_TIME,
-        PARAM_INTERNET_WEATHER,
-        PARAM_UNITS,
-        PARAM_THERMAL_CLEANSE_CYCLE,
-        PARAM_THERMAL_CLEANSE_FUNCTION
+        _PARAM_MODE,
+        _PARAM_CH_MODE,
+        _PARAM_CH_SET_TEMPERATURE,
+        _PARAM_CH_COMFORT_TEMPERATURE,
+        _PARAM_CH_ECONOMY_TEMPERATURE,
+        _PARAM_CH_AUTO_FUNCTION,
+        _PARAM_DHW_SET_TEMPERATURE,
+        _PARAM_DHW_COMFORT_TEMPERATURE,
+        _PARAM_DHW_ECONOMY_TEMPERATURE,
+        _PARAM_DHW_MODE,
+        _PARAM_DHW_COMFORT_FUNCTION,
+        _PARAM_INTERNET_TIME,
+        _PARAM_INTERNET_WEATHER,
+        _PARAM_UNITS,
+        _PARAM_THERMAL_CLEANSE_CYCLE,
+        _PARAM_THERMAL_CLEANSE_FUNCTION
     }
 
     def _get_request_for_parameter(self, data):
@@ -359,75 +435,77 @@ class AristonHandler():
         return self._REQUEST_SET_MAIN
 
     def _update_units(self):
-        if self._ariston_sensors[self.PARAM_UNITS][self.VALUE] == self.VAL_IMPERIAL:
-            self._ariston_sensors[self.PARAM_CH_ANTIFREEZE_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_CH_DETECTED_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_DHW_STORAGE_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_DHW_COMFORT_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_DHW_ECONOMY_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_OUTSIDE_TEMPERATURE][self.UNITS] = '°F'
-            self._ariston_sensors[self.PARAM_ACCOUNT_CH_GAS][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_DHW_GAS][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_CH_ELECTRICITY][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_DHW_ELECTRICITY][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_24H][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_7D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_30D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_365D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_24H][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_7D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_30D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_365D][self.UNITS] = 'kBtuh'
-            self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.UNITS] = '%'
-            self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.UNITS] = 'h'
-        elif self._ariston_sensors[self.PARAM_UNITS][self.VALUE] == self.VAL_METRIC:
-            self._ariston_sensors[self.PARAM_CH_ANTIFREEZE_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_CH_DETECTED_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_DHW_STORAGE_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_DHW_COMFORT_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_DHW_ECONOMY_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_OUTSIDE_TEMPERATURE][self.UNITS] = '°C'
-            self._ariston_sensors[self.PARAM_ACCOUNT_CH_GAS][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_DHW_GAS][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_CH_ELECTRICITY][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_ACCOUNT_DHW_ELECTRICITY][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_24H][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_7D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_30D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_HEATING_LAST_365D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_24H][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_7D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_30D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_WATER_LAST_365D][self.UNITS] = 'kWh'
-            self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.UNITS] = '%'
-            self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.UNITS] = 'h'
+        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_IMPERIAL:
+            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
+            self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
+        elif self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_METRIC:
+            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
+            self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
 
     def __init__(self,
-                 username,  # mandatory username
-                 password,  # mandatory password
-                 sensors=[],  # list of sensor names
-                 retries=5,  # number of retries to set data
-                 polling=1,  # polling rate (higher value the slower the system)
-                 store_file=False,  # if to store data in JSON format
-                 store_folder="",  # folder path to store files in
-                 units=UNIT_METRIC,  # Unit of measurement
-                 ch_and_dhw=False,  # Can DHW and CH work together (probably not due to valve use, but just in case)
-                 dhw_unknown_as_on=True,  # When DHW is unknown treat as ON
+                 username,
+                 password,
+                 sensors=[],
+                 retries=5,
+                 polling=1,
+                 store_file=False,
+                 store_folder="",
+                 units=_UNIT_METRIC,
+                 ch_and_dhw=False,
+                 dhw_unknown_as_on=True,
                  ):
-        """Initialize."""
+        """
+        Initialize API.
+        """
 
         if units not in {
-            self.UNIT_METRIC,
-            self.UNIT_IMPERIAL,
-            self.UNIT_AUTO
+            self._UNIT_METRIC,
+            self._UNIT_IMPERIAL,
+            self._UNIT_AUTO
         }:
             raise
 
@@ -458,11 +536,11 @@ class AristonHandler():
         self._ariston_sensors = {}
         for sensor in self._SENSOR_LIST:
             self._ariston_sensors[sensor] = {}
-            self._ariston_sensors[sensor][self.VALUE] = None
-            self._ariston_sensors[sensor][self.UNITS] = None
+            self._ariston_sensors[sensor][self._VALUE] = None
+            self._ariston_sensors[sensor][self._UNITS] = None
 
-        if units in {self.UNIT_METRIC, self.UNIT_IMPERIAL}:
-            self._ariston_sensors[self.PARAM_UNITS][self.VALUE] = units
+        if units in {self._UNIT_METRIC, self._UNIT_IMPERIAL}:
+            self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = units
 
         # clear configuration data
         self._ariston_data = {}
@@ -507,14 +585,14 @@ class AristonHandler():
             self._REQUEST_GET_VERSION: 0
         }
         self._get_zero_temperature = {
-            self.PARAM_CH_SET_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_CH_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_CH_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_CH_DETECTED_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_DHW_SET_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_DHW_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_DHW_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
-            self.PARAM_DHW_STORAGE_TEMPERATURE: self._UNKNOWN_TEMP
+            self._PARAM_CH_SET_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_CH_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_CH_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_CH_DETECTED_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_DHW_SET_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_DHW_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_DHW_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
+            self._PARAM_DHW_STORAGE_TEMPERATURE: self._UNKNOWN_TEMP
         }
         self._lock = threading.Lock()
         self._login = False
@@ -576,7 +654,7 @@ class AristonHandler():
         if sensors:
             for item in sensors:
                 self._valid_requests[self._get_request_for_parameter(item)] = True
-        if self._units == self.UNIT_AUTO:
+        if self._units == self._UNIT_AUTO:
             self._valid_requests[self._REQUEST_GET_UNITS] = True
         # prepare lists of requests
         # prepare list of higher priority
@@ -611,7 +689,7 @@ class AristonHandler():
         self._timeout_short = self._HTTP_TIMEOUT_GET_SHORT * polling
 
         # initiate timer between set request attempts
-        self._timer_between_set = self.VAL_NORMAL
+        self._timer_between_set = self._DELAY_NORMAL
 
         self._started = False
 
@@ -676,87 +754,119 @@ class AristonHandler():
 
     @property
     def ch_available(self):
-        """Return if Aristons's API is responding."""
-        if self._ariston_sensors[self.PARAM_UNITS][self.VALUE] not in {self.VAL_METRIC, self.VAL_IMPERIAL}:
+        """Return if Aristons's API is responding and if there is data available for the CH."""
+        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             return False
         return self.available and self._ariston_data["zone"]["mode"]["allowedOptions"] != []
 
     @property
     def dhw_available(self):
-        """Return if Aristons's API is responding."""
-        if self._ariston_sensors[self.PARAM_UNITS][self.VALUE] not in {self.VAL_METRIC, self.VAL_IMPERIAL}:
+        """Return if Aristons's API is responding and if there is data available for the DHW."""
+        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             return False
         return self.available
 
     @property
     def version(self):
-        return self.VERSION
-
-    @property
-    def supported_sensors_get(self):
-        return self._SENSOR_LIST
-
-    @property
-    def supported_sensors_set(self):
-        return self._SENSOR_SET_LIST
+        """Return version of the API in use."""
+        return self._VERSION
 
     @property
     def sensor_values(self):
+        """
+        Return dictionary of sensors and their values.
+
+        'value' key is used to fetch value of the specific sensor/parameter.
+        Some sensors/parameters might return dictionaries.
+
+        'units' key is used to fetch units of measurement for specific sensor/parameter.
+
+        """
         return self._ariston_sensors
 
     @property
     def setting_data(self):
+        """Return if setting of data is in progress."""
         return self._set_param != {}
 
     @property
+    def supported_sensors_get(self):
+        """
+        Return set of all supported sensors/parameters in API.
+        Note that it is sensors supported by API, not the server, so some might never have valid values.
+        """
+        return self._SENSOR_LIST
+
+    @property
+    def supported_sensors_set(self):
+        """
+        Return set of all parameters that potentially can be set by API.
+        Note that it is parameters supported by API, not the server, so some might be impossible to be set.
+        use property 'supported_sensors_set_values' to find allowed values to be set.
+        """
+
+        return self._SENSOR_SET_LIST
+
+    @property
     def supported_sensors_set_values(self):
+        """
+        Return dictionary of sensors/parameters to be set and allowed values.
+        Allowed values can be returned as:
+            - set of allowed options;
+            - dictionary with following keys:
+                - 'min' is used to indicate minimum value in the range;
+                - 'max' is used to indicate maximum value in the range;
+                - 'step' is used to indicate step;
+
+        data from this property is used for 'set_http_data' method.
+        """
         sensors_dictionary = {}
         for parameter in self._SENSOR_SET_LIST:
-            if parameter == self.PARAM_MODE:
+            if parameter == self._PARAM_MODE:
                 param_values = set()
                 if self._ariston_data != {}:
                     for value in self._ariston_data["allowedModes"]:
                         if value in self._VALUE_TO_MODE:
                             param_values.add(self._VALUE_TO_MODE[value])
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_CH_MODE:
+            elif parameter == self._PARAM_CH_MODE:
                 param_values = set()
                 if self._ariston_data != {}:
                     for value in self._ariston_data["zone"]["mode"]["allowedOptions"]:
                         if value in self._VALUE_TO_CH_MODE:
                             param_values.add(self._VALUE_TO_CH_MODE[value])
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_CH_SET_TEMPERATURE:
+            elif parameter == self._PARAM_CH_SET_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = self._ariston_data["zone"]["comfortTemp"]["min"]
                     param_values["max"] = self._ariston_data["zone"]["comfortTemp"]["max"]
                     param_values["step"] = 0.5
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_CH_COMFORT_TEMPERATURE:
+            elif parameter == self._PARAM_CH_COMFORT_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = self._ariston_data["zone"]["comfortTemp"]["min"]
                     param_values["max"] = self._ariston_data["zone"]["comfortTemp"]["max"]
                     param_values["step"] = 0.5
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_CH_ECONOMY_TEMPERATURE:
+            elif parameter == self._PARAM_CH_ECONOMY_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = self._ariston_data["zone"]["comfortTemp"]["min"]
                     param_values["max"] = self._ariston_data["zone"]["comfortTemp"]["max"]
                     param_values["step"] = 0.5
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_CH_AUTO_FUNCTION:
+            elif parameter == self._PARAM_CH_AUTO_FUNCTION:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif parameter == self.PARAM_DHW_SET_TEMPERATURE:
+            elif parameter == self._PARAM_DHW_SET_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = self._ariston_data["dhwTemp"]["min"]
                     param_values["max"] = self._ariston_data["dhwTemp"]["max"]
                     param_values["step"] = 1
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_DHW_COMFORT_TEMPERATURE:
+            elif parameter == self._PARAM_DHW_COMFORT_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = max(self._ariston_data["dhwTemp"]["min"],
@@ -765,28 +875,28 @@ class AristonHandler():
                                               self._ariston_data["dhwTimeProgComfortTemp"]["max"])
                     param_values["step"] = 1
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_DHW_ECONOMY_TEMPERATURE:
+            elif parameter == self._PARAM_DHW_ECONOMY_TEMPERATURE:
                 param_values = {}
                 if self._ariston_data != {}:
                     param_values["min"] = self._ariston_data["dhwTemp"]["min"]
                     param_values["max"] = self._ariston_data["dhwTemp"]["max"]
                     param_values["step"] = 1
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_DHW_MODE:
+            elif parameter == self._PARAM_DHW_MODE:
                 param_values = set()
                 if self._ariston_data != {}:
                     if not self._ariston_data["dhwModeNotChangeable"]:
-                        param_values = {self.VAL_MANUAL, self.VAL_PROGRAM}
+                        param_values = {self._VAL_MANUAL, self._VAL_PROGRAM}
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_DHW_COMFORT_FUNCTION:
+            elif parameter == self._PARAM_DHW_COMFORT_FUNCTION:
                 sensors_dictionary[parameter] = [*self._DHW_COMFORT_FUNCT_TO_VALUE]
-            elif parameter == self.PARAM_INTERNET_TIME:
+            elif parameter == self._PARAM_INTERNET_TIME:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif parameter == self.PARAM_INTERNET_WEATHER:
+            elif parameter == self._PARAM_INTERNET_WEATHER:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif parameter == self.PARAM_UNITS:
+            elif parameter == self._PARAM_UNITS:
                 sensors_dictionary[parameter] = [*self._UNIT_TO_VALUE]
-            elif parameter == self.PARAM_THERMAL_CLEANSE_CYCLE:
+            elif parameter == self._PARAM_THERMAL_CLEANSE_CYCLE:
                 param_values = {}
                 if self._ariston_other_data != {}:
                     for param_item in self._ariston_other_data:
@@ -795,7 +905,7 @@ class AristonHandler():
                             param_values["max"] = param_item["max"]
                             param_values["step"] = 1.
                 sensors_dictionary[parameter] = param_values
-            elif parameter == self.PARAM_THERMAL_CLEANSE_FUNCTION:
+            elif parameter == self._PARAM_THERMAL_CLEANSE_FUNCTION:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
         return sensors_dictionary
 
@@ -853,168 +963,168 @@ class AristonHandler():
             if self.available and self._ariston_data != {}:
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_DETECTED_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["zone"]["roomTemp"]
                 except:
-                    self._ariston_sensors[self.PARAM_CH_DETECTED_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_ANTIFREEZE_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["zone"]["antiFreezeTemp"]
                 except:
-                    self._ariston_sensors[self.PARAM_CH_ANTIFREEZE_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_MODE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_MODE][self._VALUE] = \
                         self._VALUE_TO_CH_MODE[self._ariston_data["zone"]["mode"]["value"]]
                 except:
-                    self._ariston_sensors[self.PARAM_CH_MODE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_MODE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["zone"]["comfortTemp"]["value"]
                 except:
-                    self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["dhwTemp"]["value"]
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_MODE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_MODE][self._VALUE] = \
                         self._VALUE_TO_MODE[self._ariston_data["mode"]]
                 except:
-                    self._ariston_sensors[self.PARAM_MODE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_MODE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_STORAGE_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["dhwStorageTemp"]
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_STORAGE_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_OUTSIDE_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["outsideTemp"]
                 except:
-                    self._ariston_sensors[self.PARAM_OUTSIDE_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_COMFORT_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["dhwTimeProgComfortTemp"]["value"]
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_COMFORT_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_ECONOMY_TEMPERATURE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._VALUE] = \
                         self._ariston_data["dhwTimeProgEconomyTemp"]["value"]
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_ECONOMY_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_MODE][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_DHW_MODE][self._VALUE] = \
                         self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]]
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_MODE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_MODE][self._VALUE] = None
                     pass
 
                 try:
                     if self._ariston_data["zone"]["comfortTemp"]["value"] == \
                             self._ariston_data["zone"]["antiFreezeTemp"] or self._ariston_data["holidayEnabled"]:
-                        self._ariston_sensors[self.PARAM_HOLIDAY_MODE][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_HOLIDAY_MODE][self._VALUE] = True
                     else:
-                        self._ariston_sensors[self.PARAM_HOLIDAY_MODE][self.VALUE] = False
+                        self._ariston_sensors[self._PARAM_HOLIDAY_MODE][self._VALUE] = False
                 except:
-                    self._ariston_sensors[self.PARAM_HOLIDAY_MODE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HOLIDAY_MODE][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_FLAME][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_FLAME][self._VALUE] = \
                         self._ariston_data["flameSensor"]
                 except:
-                    self._ariston_sensors[self.PARAM_FLAME][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_FLAME][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_HEAT_PUMP][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_HEAT_PUMP][self._VALUE] = \
                         self._ariston_data["heatingPumpOn"]
                 except:
-                    self._ariston_sensors[self.PARAM_HEAT_PUMP][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEAT_PUMP][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_PILOT][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_PILOT][self._VALUE] = \
                         self._ariston_data["zone"]["pilotOn"]
                 except:
-                    self._ariston_sensors[self.PARAM_CH_PILOT][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_PILOT][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_FLAME][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] = \
                         self._ariston_data["zone"]["heatRequest"]
                     if self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP \
                             and self._dhw_trend_up \
-                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in {self.VAL_SUMMER, self.VAL_WINTER} \
+                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in {self._VAL_SUMMER, self._VAL_WINTER}\
                             and self._ariston_data["flameSensor"] and not self._ch_and_dhw:
-                        self._ariston_sensors[self.PARAM_CH_FLAME][self.VALUE] = False
+                        self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] = False
                 except:
-                    self._ariston_sensors[self.PARAM_CH_FLAME][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] = None
                     pass
 
                 try:
                     if not self._ariston_data["zone"]["heatRequest"] and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
                     elif self._ariston_data["flameForDhw"]:
-                        self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
                     elif self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP \
                             and self._dhw_trend_up \
-                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in [self.VAL_SUMMER, self.VAL_WINTER] \
+                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in [self._VAL_SUMMER, self._VAL_WINTER]\
                             and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
                     elif self._dhw_unknown_as_on and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
                     else:
-                        self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = False
+                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = False
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_CH_DETECTED_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_ANTIFREEZE_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_MODE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_MODE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_STORAGE_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_OUTSIDE_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_COMFORT_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_ECONOMY_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_MODE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HOLIDAY_MODE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_FLAME][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEAT_PUMP][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_PILOT][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_FLAME][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_FLAME][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_MODE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_MODE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_MODE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HOLIDAY_MODE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_FLAME][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEAT_PUMP][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_PILOT][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_CH:
 
             if self.available and self._ariston_ch_data != {}:
 
                 try:
-                    self._ariston_sensors[self.PARAM_CH_PROGRAM][self.VALUE] = {}
+                    self._ariston_sensors[self._PARAM_CH_PROGRAM][self._VALUE] = {}
                     for day_of_week in self._DAYS_OF_WEEK:
                         if day_of_week in self._ariston_ch_data:
                             for day_slices in self._ariston_ch_data[day_of_week]["slices"]:
@@ -1023,21 +1133,21 @@ class AristonHandler():
                                     attribute_value = "Comfort"
                                 else:
                                     attribute_value = "Economy"
-                                self._ariston_sensors[self.PARAM_CH_PROGRAM][self.VALUE][attribute_name] = \
+                                self._ariston_sensors[self._PARAM_CH_PROGRAM][self._VALUE][attribute_name] = \
                                     attribute_value
                 except:
-                    self._ariston_sensors[self.PARAM_CH_PROGRAM][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_PROGRAM][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_CH_PROGRAM][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_PROGRAM][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_DHW:
 
             if self.available and self._ariston_dhw_data != {}:
 
                 try:
-                    self._ariston_sensors[self.PARAM_DHW_PROGRAM][self.VALUE] = {}
+                    self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = {}
                     for day_of_week in self._DAYS_OF_WEEK:
                         if day_of_week in self._ariston_dhw_data:
                             for day_slices in self._ariston_dhw_data[day_of_week]["slices"]:
@@ -1046,194 +1156,198 @@ class AristonHandler():
                                     attribute_value = "Comfort"
                                 else:
                                     attribute_value = "Economy"
-                                self._ariston_sensors[self.PARAM_DHW_PROGRAM][self.VALUE][attribute_name] = \
+                                self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE][attribute_name] = \
                                     attribute_value
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_PROGRAM][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_DHW_PROGRAM][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_ERROR:
 
             if self.available and self._ariston_error_data != {}:
 
                 try:
-                    self._ariston_sensors[self.PARAM_ERRORS_COUNT][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = \
                         self._ariston_error_data["count"]
                 except:
-                    self._ariston_sensors[self.PARAM_ERRORS_COUNT][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_ERRORS][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = \
                         self._ariston_error_data["result"]
                 except:
-                    self._ariston_sensors[self.PARAM_ERRORS][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_ERRORS][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ERRORS_COUNT][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_GAS:
 
             if self.available and self._ariston_gas_data != {}:
 
                 try:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_CH_GAS][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._VALUE] = \
                         self._ariston_gas_data["account"]["gasHeat"]
                 except:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_CH_GAS][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_DHW_GAS][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._VALUE] = \
                         self._ariston_gas_data["account"]["gasDhw"]
                 except:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_DHW_GAS][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_CH_ELECTRICITY][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._VALUE] = \
                         self._ariston_gas_data["account"]["elecHeat"]
                 except:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_CH_ELECTRICITY][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._VALUE] = None
                     pass
 
                 try:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_DHW_ELECTRICITY][self.VALUE] = \
+                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = \
                         self._ariston_gas_data["account"]["elecDhw"]
                 except:
-                    self._ariston_sensors[self.PARAM_ACCOUNT_DHW_ELECTRICITY][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_24H_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_HEATING_LAST_24H_LIST][self.VALUE][
+                        self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE][
                             "Period" + str(iteration)] = item["y2"]
-                        sum = sum + item["y2"]
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_24H][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y2"]
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_24H][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_24H_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_WATER_LAST_24H_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_WATER_LAST_24H_LIST][self.VALUE][
+                        self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE][
                             "Period" + str(iteration)] = item["y"]
-                        sum = sum + item["y"]
-                    self._ariston_sensors[self.PARAM_WATER_LAST_24H][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y"]
+                    self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_WATER_LAST_24H][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_WATER_LAST_24H_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_7D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_HEATING_LAST_7D_LIST][self.VALUE]["Period" + str(iteration)] = \
+                        self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE]["Period" +
+                                                                                             str(iteration)] = \
                             item["y2"]
-                        sum = sum + item["y2"]
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_7D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y2"]
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_7D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_7D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_WATER_LAST_7D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_WATER_LAST_7D_LIST][self.VALUE]["Period" + str(iteration)] = \
+                        self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE]["Period" +
+                                                                                           str(iteration)] = \
                             item["y"]
-                        sum = sum + item["y"]
-                    self._ariston_sensors[self.PARAM_WATER_LAST_7D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y"]
+                    self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_WATER_LAST_7D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_WATER_LAST_7D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_30D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_HEATING_LAST_30D_LIST][self.VALUE][
+                        self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE][
                             "Period" + str(iteration)] = item["y2"]
-                        sum = sum + item["y2"]
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_30D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y2"]
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_30D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_30D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_WATER_LAST_30D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_WATER_LAST_30D_LIST][self.VALUE]["Period" + str(iteration)] = \
+                        self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE]["Period" +
+                                                                                            str(iteration)] = \
                             item["y"]
-                        sum = sum + item["y"]
-                    self._ariston_sensors[self.PARAM_WATER_LAST_30D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y"]
+                    self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_WATER_LAST_30D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_WATER_LAST_30D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_365D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_HEATING_LAST_365D_LIST][self.VALUE][
+                        self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE][
                             "Period" + str(iteration)] = item["y2"]
-                        sum = sum + item["y2"]
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_365D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y2"]
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_365D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_HEATING_LAST_365D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = None
                     pass
 
                 try:
-                    sum = 0
-                    self._ariston_sensors[self.PARAM_WATER_LAST_365D_LIST][self.VALUE] = {}
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
-                        self._ariston_sensors[self.PARAM_WATER_LAST_365D_LIST][self.VALUE]["Period" + str(iteration)] = \
+                        self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE]["Period" +
+                                                                                             str(iteration)] = \
                             item["y"]
-                        sum = sum + item["y"]
-                    self._ariston_sensors[self.PARAM_WATER_LAST_365D][self.VALUE] = round(sum, 3)
+                        sum_obj = sum_obj + item["y"]
+                    self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = round(sum_obj, 3)
                 except:
-                    self._ariston_sensors[self.PARAM_WATER_LAST_365D][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_WATER_LAST_365D_LIST][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_ACCOUNT_CH_GAS][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ACCOUNT_DHW_GAS][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ACCOUNT_CH_ELECTRICITY][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ACCOUNT_DHW_ELECTRICITY][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_24H][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_24H][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_7D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_7D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_30D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_30D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_365D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_365D][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_24H_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_24H_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_7D_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_7D_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_30D_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_30D_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_HEATING_LAST_365D_LIST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_WATER_LAST_365D_LIST][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_OTHER:
 
@@ -1242,141 +1356,145 @@ class AristonHandler():
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                            self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.VALUE] = param_item["value"]
+                            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = \
+                                param_item["value"]
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                            self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.VALUE] = param_item["value"]
+                            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE] = \
+                                param_item["value"]
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_DHW_COMFORT_FUNCTION:
-                            self._ariston_sensors[self.PARAM_DHW_COMFORT_FUNCTION][self.VALUE] = \
+                            self._ariston_sensors[self._PARAM_DHW_COMFORT_FUNCTION][self._VALUE] = \
                                 self._DHW_COMFORT_VALUE_TO_FUNCT[param_item["value"]]
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_DHW_COMFORT_FUNCTION][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_DHW_COMFORT_FUNCTION][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_DHW_COMFORT_FUNCTION][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_DHW_COMFORT_FUNCTION][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_SIGNAL_STRENGHT:
-                            self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.VALUE] = param_item["value"]
+                            self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._VALUE] = \
+                                param_item["value"]
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_CYCLE:
-                            self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.VALUE] = param_item["value"]
+                            self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._VALUE] = \
+                                param_item["value"]
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_INTERNET_TIME:
                             if param_item["value"] == 1:
-                                self._ariston_sensors[self.PARAM_INTERNET_TIME][self.VALUE] = True
+                                self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = True
                             else:
-                                self._ariston_sensors[self.PARAM_INTERNET_TIME][self.VALUE] = False
+                                self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = False
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_INTERNET_TIME][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_INTERNET_TIME][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_INTERNET_WEATHER:
                             if param_item["value"] == 1:
-                                self._ariston_sensors[self.PARAM_INTERNET_WEATHER][self.VALUE] = True
+                                self._ariston_sensors[self._PARAM_INTERNET_WEATHER][self._VALUE] = True
                             else:
-                                self._ariston_sensors[self.PARAM_INTERNET_WEATHER][self.VALUE] = False
+                                self._ariston_sensors[self._PARAM_INTERNET_WEATHER][self._VALUE] = False
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_INTERNET_WEATHER][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_INTERNET_WEATHER][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_INTERNET_WEATHER][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_INTERNET_WEATHER][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_CH_AUTO_FUNCTION:
                             if param_item["value"] == 1:
-                                self._ariston_sensors[self.PARAM_CH_AUTO_FUNCTION][self.VALUE] = True
+                                self._ariston_sensors[self._PARAM_CH_AUTO_FUNCTION][self._VALUE] = True
                             else:
-                                self._ariston_sensors[self.PARAM_CH_AUTO_FUNCTION][self.VALUE] = False
+                                self._ariston_sensors[self._PARAM_CH_AUTO_FUNCTION][self._VALUE] = False
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_CH_AUTO_FUNCTION][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_CH_AUTO_FUNCTION][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_CH_AUTO_FUNCTION][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_CH_AUTO_FUNCTION][self._VALUE] = None
                     pass
 
                 try:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_FUNCTION:
                             if param_item["value"] == 1:
-                                self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_FUNCTION][self.VALUE] = True
+                                self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_FUNCTION][self._VALUE] = True
                             else:
-                                self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_FUNCTION][self.VALUE] = False
+                                self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_FUNCTION][self._VALUE] = False
                             break
                     else:
-                        self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_FUNCTION][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_FUNCTION][self._VALUE] = None
                 except:
-                    self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_FUNCTION][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_FUNCTION][self._VALUE] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_CH_COMFORT_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_ECONOMY_TEMPERATURE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_DHW_COMFORT_FUNCTION][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_SIGNAL_STRENGTH][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_CYCLE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_INTERNET_TIME][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_INTERNET_WEATHER][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_CH_AUTO_FUNCTION][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_THERMAL_CLEANSE_FUNCTION][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_DHW_COMFORT_FUNCTION][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_INTERNET_WEATHER][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_AUTO_FUNCTION][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_FUNCTION][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_UNITS:
 
-            if self._units == self.UNIT_AUTO:
+            if self._units == self._UNIT_AUTO:
                 if self.available and self._ariston_units != {}:
                     try:
-                        self._ariston_sensors[self.PARAM_UNITS][self.VALUE] = \
+                        self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = \
                             self._VALUE_TO_UNIT[self._ariston_units["measurementSystem"]]
                         self._update_units()
                     except:
-                        self._ariston_sensors[self.PARAM_UNITS][self.VALUE] = None
+                        self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = None
                         pass
                 else:
-                    self._ariston_sensors[self.PARAM_UNITS][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = None
             else:
-                self._ariston_sensors[self.PARAM_UNITS][self.VALUE] = self._units
+                self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = self._units
 
         if request_type == self._REQUEST_GET_CURRENCY:
 
@@ -1387,11 +1505,11 @@ class AristonHandler():
                                        item["value"] == self._ariston_currency["gasType"]), {})
                     currency_fetch = next((item for item in self._ariston_currency["gasEnergyUnitOptions"] if
                                            item["value"] == self._ariston_currency["gasEnergyUnit"]), {})
-                    self._ariston_sensors[self.PARAM_GAS_TYPE][self.VALUE] = type_fetch["text"]
-                    self._ariston_sensors[self.PARAM_GAS_TYPE][self.UNITS] = currency_fetch["text"]
+                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = type_fetch["text"]
+                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._UNITS] = currency_fetch["text"]
                 except:
-                    self._ariston_sensors[self.PARAM_GAS_TYPE][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_GAS_TYPE][self.UNITS] = None
+                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._UNITS] = None
                     pass
 
                 try:
@@ -1400,14 +1518,15 @@ class AristonHandler():
                     currency_description = next((item for item in self._ariston_currency["currencyOptions"] if
                                                  item["value"] == self._ariston_currency["currency"]), {})
                     if self._ariston_currency["gasCost"] is None:
-                        self._ariston_sensors[self.PARAM_GAS_COST][self.VALUE] = None
-                        self._ariston_sensors[self.PARAM_GAS_COST][self.UNITS] = None
+                        self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
+                        self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = None
                     else:
-                        self._ariston_sensors[self.PARAM_GAS_COST][self.VALUE] = str(self._ariston_currency["gasCost"])
-                        self._ariston_sensors[self.PARAM_GAS_COST][self.UNITS] = currency_symbol["Value"]
+                        self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = \
+                            str(self._ariston_currency["gasCost"])
+                        self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = currency_symbol["Value"]
                 except:
-                    self._ariston_sensors[self.PARAM_GAS_COST][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_GAS_COST][self.UNITS] = None
+                    self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = None
                     pass
 
                 try:
@@ -1416,48 +1535,48 @@ class AristonHandler():
                     currency_description = next((item for item in self._ariston_currency["currencyOptions"] if
                                                  item["value"] == self._ariston_currency["currency"]), {})
                     if self._ariston_currency["gasCost"] == None:
-                        self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.VALUE] = None
-                        self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.UNITS] = None
+                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
+                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = None
                     else:
-                        self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.VALUE] = \
+                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = \
                             str(self._ariston_currency["electricityCost"])
-                        self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.UNITS] = currency_symbol["Value"]
+                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = currency_symbol["Value"]
                 except:
-                    self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.UNITS] = None
+                    self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = None
                     pass
 
             else:
-                self._ariston_sensors[self.PARAM_GAS_TYPE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_GAS_COST][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ELECTRICITY_COST][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_VERSION:
             try:
                 if self._version != "":
-                    self._ariston_sensors[self.PARAM_ONLINE_VERSION][self.VALUE] = self._version
+                    self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = self._version
                     web_version = self._version.split(".")
-                    installed_version = self.VERSION.split(".")
+                    installed_version = self._VERSION.split(".")
                     web_symbols = len(web_version)
                     installed_symbols = len(installed_version)
                     if web_symbols <= installed_symbols:
                         # same amount of symbols to check, update available if web has higher value
                         for symbol in range(0, web_symbols):
                             if int(web_version[symbol]) > int(installed_version[symbol]):
-                                self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = True
+                                self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = True
                                 break
                         else:
-                            self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = False
+                            self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = False
                     else:
                         # update available if web has higher value
-                        self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = True
+                        self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = True
                 else:
-                    self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = None
-                    self._ariston_sensors[self.PARAM_ONLINE_VERSION][self.VALUE] = None
+                    self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = None
 
             except:
-                self._ariston_sensors[self.PARAM_UPDATE][self.VALUE] = None
-                self._ariston_sensors[self.PARAM_ONLINE_VERSION][self.VALUE] = None
+                self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = None
                 pass
 
     def _set_visible_data(self):
@@ -1469,25 +1588,25 @@ class AristonHandler():
                         if parameter in self._ariston_sensors \
                                 and self._valid_requests[self._get_request_for_parameter(parameter)]:
 
-                            if parameter == self.PARAM_MODE:
+                            if parameter == self._PARAM_MODE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = self._VALUE_TO_MODE[value]
+                                self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_MODE[value]
 
-                            elif parameter == self.PARAM_CH_MODE:
+                            elif parameter == self._PARAM_CH_MODE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = self._VALUE_TO_CH_MODE[value]
+                                self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_CH_MODE[value]
 
-                            elif parameter == self.PARAM_CH_SET_TEMPERATURE:
+                            elif parameter == self._PARAM_CH_SET_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
 
-                            elif parameter == self.PARAM_CH_COMFORT_TEMPERATURE:
+                            elif parameter == self._PARAM_CH_COMFORT_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
                                 is_current_comfort = False
                                 try:
                                     if self._VALUE_TO_CH_MODE[self._ariston_data["zone"]["mode"]["value"]] == \
-                                            self.VAL_PROGRAM:
+                                            self._VAL_PROGRAM:
                                         is_current_comfort = True
                                         for param_item in self._ariston_other_data:
                                             if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
@@ -1501,97 +1620,97 @@ class AristonHandler():
                                 except:
                                     pass
                                 if is_current_comfort:
-                                    self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.VALUE] = value
+                                    self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = value
 
-                            elif parameter == self.PARAM_CH_ECONOMY_TEMPERATURE:
+                            elif parameter == self._PARAM_CH_ECONOMY_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
                                 try:
                                     if self._VALUE_TO_CH_MODE[self._ariston_data["zone"]["mode"]["value"]] == \
-                                            self.VAL_PROGRAM:
+                                            self._VAL_PROGRAM:
                                         for param_item in self._ariston_other_data:
                                             if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
                                                 if math.isclose(
                                                         self._ariston_data["zone"]["comfortTemp"]["value"],
                                                         param_item["value"],
                                                         abs_tol=0.01):
-                                                    self._ariston_sensors[self.PARAM_CH_SET_TEMPERATURE][self.VALUE] = \
-                                                        value
+                                                    self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][
+                                                        self._VALUE] = value
                                                     break
                                 except:
                                     pass
 
-                            elif parameter == self.PARAM_DHW_SET_TEMPERATURE:
+                            elif parameter == self._PARAM_DHW_SET_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
 
-                            elif parameter == self.PARAM_DHW_COMFORT_TEMPERATURE:
+                            elif parameter == self._PARAM_DHW_COMFORT_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
                                 is_economy = False
                                 try:
-                                    if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self.VAL_PROGRAM:
+                                    if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self._VAL_PROGRAM:
                                         if not self._ariston_data["dhwTimeProgComfortActive"]:
                                             is_economy = True
                                 except:
                                     pass
                                 if not is_economy:
-                                    self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.VALUE] = value
+                                    self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] = value
 
-                            elif parameter == self.PARAM_DHW_ECONOMY_TEMPERATURE:
+                            elif parameter == self._PARAM_DHW_ECONOMY_TEMPERATURE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
                                 try:
-                                    if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self.VAL_PROGRAM:
+                                    if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self._VAL_PROGRAM:
                                         if not self._ariston_data["dhwTimeProgComfortActive"]:
-                                            self._ariston_sensors[self.PARAM_DHW_SET_TEMPERATURE][self.VALUE] = value
+                                            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] = value
                                 except:
                                     pass
 
-                            elif parameter == self.PARAM_DHW_MODE:
+                            elif parameter == self._PARAM_DHW_MODE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = self._VALUE_TO_DHW_MODE[value]
+                                self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_DHW_MODE[value]
 
-                            elif parameter == self.PARAM_DHW_COMFORT_FUNCTION:
+                            elif parameter == self._PARAM_DHW_COMFORT_FUNCTION:
 
-                                self._ariston_sensors[parameter][self.VALUE] = self._DHW_COMFORT_VALUE_TO_FUNCT[value]
+                                self._ariston_sensors[parameter][self._VALUE] = self._DHW_COMFORT_VALUE_TO_FUNCT[value]
 
-                            elif parameter == self.PARAM_INTERNET_TIME:
-
-                                if value == 1:
-                                    self._ariston_sensors[parameter][self.VALUE] = True
-                                else:
-                                    self._ariston_sensors[parameter][self.VALUE] = False
-
-                            elif parameter == self.PARAM_INTERNET_WEATHER:
+                            elif parameter == self._PARAM_INTERNET_TIME:
 
                                 if value == 1:
-                                    self._ariston_sensors[parameter][self.VALUE] = True
+                                    self._ariston_sensors[parameter][self._VALUE] = True
                                 else:
-                                    self._ariston_sensors[parameter][self.VALUE] = False
+                                    self._ariston_sensors[parameter][self._VALUE] = False
 
-                            elif parameter == self.PARAM_CH_AUTO_FUNCTION:
+                            elif parameter == self._PARAM_INTERNET_WEATHER:
 
                                 if value == 1:
-                                    self._ariston_sensors[parameter][self.VALUE] = True
+                                    self._ariston_sensors[parameter][self._VALUE] = True
                                 else:
-                                    self._ariston_sensors[parameter][self.VALUE] = False
+                                    self._ariston_sensors[parameter][self._VALUE] = False
 
-                            elif parameter == self.PARAM_UNITS:
+                            elif parameter == self._PARAM_CH_AUTO_FUNCTION:
 
-                                self._ariston_sensors[parameter][self.VALUE] = self._VALUE_TO_UNIT[value]
+                                if value == 1:
+                                    self._ariston_sensors[parameter][self._VALUE] = True
+                                else:
+                                    self._ariston_sensors[parameter][self._VALUE] = False
+
+                            elif parameter == self._PARAM_UNITS:
+
+                                self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_UNIT[value]
                                 self._update_units()
 
-                            elif parameter == self.PARAM_THERMAL_CLEANSE_CYCLE:
+                            elif parameter == self._PARAM_THERMAL_CLEANSE_CYCLE:
 
-                                self._ariston_sensors[parameter][self.VALUE] = value
+                                self._ariston_sensors[parameter][self._VALUE] = value
 
-                            elif parameter == self.PARAM_THERMAL_CLEANSE_FUNCTION:
+                            elif parameter == self._PARAM_THERMAL_CLEANSE_FUNCTION:
 
                                 if value == 1:
-                                    self._ariston_sensors[parameter][self.VALUE] = True
+                                    self._ariston_sensors[parameter][self._VALUE] = True
                                 else:
-                                    self._ariston_sensors[parameter][self.VALUE] = False
+                                    self._ariston_sensors[parameter][self._VALUE] = False
 
                 except:
                     continue
@@ -1637,52 +1756,52 @@ class AristonHandler():
                     self._ariston_data["allowedModes"]
                 allowed_ch_modes = \
                     self._ariston_data["zone"]["mode"]["allowedOptions"]
-                last_temp[self.PARAM_DHW_STORAGE_TEMPERATURE] = \
+                last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] = \
                     self._ariston_data["dhwStorageTemp"]
-                last_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgComfortTemp"]["value"]
-                last_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = \
+                last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgEconomyTemp"]["value"]
-                last_temp[self.PARAM_DHW_SET_TEMPERATURE] = \
+                last_temp[self._PARAM_DHW_SET_TEMPERATURE] = \
                     self._ariston_data["dhwTemp"]["value"]
-                last_temp[self.PARAM_CH_DETECTED_TEMPERATURE] = \
+                last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] = \
                     self._ariston_data["zone"]["roomTemp"]
-                last_temp[self.PARAM_CH_SET_TEMPERATURE] = \
+                last_temp[self._PARAM_CH_SET_TEMPERATURE] = \
                     self._ariston_data["zone"]["comfortTemp"]["value"]
-                last_temp_min[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgComfortTemp"]["min"]
-                last_temp_min[self.PARAM_DHW_ECONOMY_TEMPERATURE] = \
+                last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgEconomyTemp"]["min"]
-                last_temp_min[self.PARAM_DHW_SET_TEMPERATURE] = \
+                last_temp_min[self._PARAM_DHW_SET_TEMPERATURE] = \
                     self._ariston_data["dhwTemp"]["min"]
-                last_temp_min[self.PARAM_CH_SET_TEMPERATURE] = \
+                last_temp_min[self._PARAM_CH_SET_TEMPERATURE] = \
                     self._ariston_data["zone"]["comfortTemp"]["min"]
-                last_temp_max[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                last_temp_max[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgComfortTemp"]["max"]
-                last_temp_max[self.PARAM_DHW_ECONOMY_TEMPERATURE] = \
+                last_temp_max[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgEconomyTemp"]["max"]
-                last_temp_max[self.PARAM_DHW_SET_TEMPERATURE] = \
+                last_temp_max[self._PARAM_DHW_SET_TEMPERATURE] = \
                     self._ariston_data["dhwTemp"]["max"]
-                last_temp_max[self.PARAM_CH_SET_TEMPERATURE] = \
+                last_temp_max[self._PARAM_CH_SET_TEMPERATURE] = \
                     self._ariston_data["zone"]["comfortTemp"]["max"]
             except:
                 # Reading failed or no data was present in the first place
                 allowed_modes = []
                 allowed_ch_modes = []
-                last_temp[self.PARAM_DHW_STORAGE_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_CH_DETECTED_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
                 pass
             try:
                 self._ariston_data = copy.deepcopy(resp.json())
@@ -1704,67 +1823,67 @@ class AristonHandler():
                         self._ariston_data["zone"]["mode"]["allowedOptions"] = allowed_ch_modes
                 # keep latest DHW storage temperature if received invalid
                 if self._ariston_data["dhwStorageTemp"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_DHW_STORAGE_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_DHW_STORAGE_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_DHW_STORAGE_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["dhwStorageTemp"] = last_temp[self.PARAM_DHW_STORAGE_TEMPERATURE]
+                        if self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                            self._ariston_data["dhwStorageTemp"] = last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_DHW_STORAGE_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] = 0
                 # keep latest DHW comfort temperature if received invalid
                 if self._ariston_data["dhwTimeProgComfortTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_min[
-                        self.PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_max[
-                        self.PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_DHW_COMFORT_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_min[
+                        self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_max[
+                        self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_DHW_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_data["dhwTimeProgComfortTemp"]["value"] = last_temp[
-                                self.PARAM_DHW_COMFORT_TEMPERATURE]
+                                self._PARAM_DHW_COMFORT_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_DHW_COMFORT_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
                 # keep latest DHW economy temperature if received invalid
                 if self._ariston_data["dhwTimeProgEconomyTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_min[
-                        self.PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_max[
-                        self.PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_DHW_ECONOMY_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_min[
+                        self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and last_temp_max[
+                        self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_DHW_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_data["dhwTimeProgEconomyTemp"]["value"] = last_temp[
-                                self.PARAM_DHW_ECONOMY_TEMPERATURE]
+                                self._PARAM_DHW_ECONOMY_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_DHW_ECONOMY_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
                 # keep latest DHW set temperature if received invalid
                 if self._ariston_data["dhwTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_DHW_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_DHW_SET_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_DHW_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_DHW_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_data["dhwTemp"]["value"] = last_temp[
-                                self.PARAM_DHW_SET_TEMPERATURE]
+                                self._PARAM_DHW_SET_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_DHW_SET_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] = 0
                 # keep latest CH detected temperature if received invalid
                 if self._ariston_data["zone"]["roomTemp"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_CH_DETECTED_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_CH_DETECTED_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_CH_DETECTED_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_data["zone"]["roomTemp"] = last_temp[
-                                self.PARAM_CH_DETECTED_TEMPERATURE]
+                                self._PARAM_CH_DETECTED_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_CH_DETECTED_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] = 0
                 # keep latest CH set temperature if received invalid
                 if self._ariston_data["zone"]["comfortTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_CH_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_CH_SET_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_CH_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_CH_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_data["zone"]["comfortTemp"]["value"] = last_temp[
-                                self.PARAM_CH_SET_TEMPERATURE]
+                                self._PARAM_CH_SET_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_CH_SET_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] = 0
             except:
                 self._ariston_data = {}
                 _LOGGER.warning("%s Invalid data received for Main", self)
@@ -1802,19 +1921,19 @@ class AristonHandler():
             If this happens then use last valid value.
             """
             try:
-                last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["value"]
-                last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["value"]
-                last_temp_min[self.PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["min"]
-                last_temp_min[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["min"]
-                last_temp_max[self.PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["max"]
-                last_temp_max[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["max"]
+                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["value"]
+                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["value"]
+                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["min"]
+                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["min"]
+                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._ariston_ch_data["comfortTemp"]["max"]
+                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._ariston_ch_data["economyTemp"]["max"]
             except:
-                last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
                 pass
             try:
                 self._ariston_ch_data = copy.deepcopy(resp.json())
@@ -1825,24 +1944,24 @@ class AristonHandler():
             try:
                 # keep latest CH comfort temperature if received invalid
                 if self._ariston_ch_data["comfortTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_ch_data["comfortTemp"]["value"] = last_temp[
-                                self.PARAM_CH_COMFORT_TEMPERATURE]
+                                self._PARAM_CH_COMFORT_TEMPERATURE]
                 else:
-                    self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] = 0
+                    self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] = 0
                 # keep latest CH comfort temperature if received invalid
                 if self._ariston_ch_data["economyTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] += 1
+                    if last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
+                        self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] += 1
                         store_none_zero = True
-                        if self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
+                        if self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
                             self._ariston_ch_data["economyTemp"]["value"] = last_temp[
-                                self.PARAM_CH_ECONOMY_TEMPERATURE]
+                                self._PARAM_CH_ECONOMY_TEMPERATURE]
                     else:
-                        self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] = 0
+                        self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] = 0
             except:
                 _LOGGER.warning("%s Invalid data received for CH", self)
                 raise Exception("Corruption at reading data of the request {}".format(request_type))
@@ -1880,28 +1999,28 @@ class AristonHandler():
             If this happens then use last valid value.
             """
             try:
-                last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
                 for param_item in self._ariston_other_data:
                     try:
                         # Copy latest DHW temperatures
                         if param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                            last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] = param_item["value"]
+                            last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = param_item["value"]
                         elif param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                            last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] = param_item["value"]
+                            last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = param_item["value"]
                     except:
                         continue
             except:
-                last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self.PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
                 pass
             try:
                 self._ariston_other_data = copy.deepcopy(resp.json())
@@ -1928,27 +2047,27 @@ class AristonHandler():
                     elif param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
                         # keep latest CH comfort temperature if received invalid
                         if param_item["value"] == self._UNKNOWN_TEMP:
-                            if last_temp[self.PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                                self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] += 1
+                            if last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
+                                self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] += 1
                                 store_none_zero = True
-                                if self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] < \
+                                if self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] < \
                                         self._MAX_ZERO_TOLERANCE:
                                     self._ariston_other_data[item]["value"] = last_temp[
-                                        self.PARAM_CH_COMFORT_TEMPERATURE]
+                                        self._PARAM_CH_COMFORT_TEMPERATURE]
                         else:
-                            self._get_zero_temperature[self.PARAM_CH_COMFORT_TEMPERATURE] = 0
+                            self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] = 0
                     elif param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
                         # keep latest CH economy temperature if received invalid
                         if param_item["value"] == self._UNKNOWN_TEMP:
-                            if last_temp[self.PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                                self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] += 1
+                            if last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
+                                self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] += 1
                                 store_none_zero = True
-                                if self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] < \
+                                if self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] < \
                                         self._MAX_ZERO_TOLERANCE:
                                     self._ariston_other_data[item]["value"] = last_temp[
-                                        self.PARAM_CH_ECONOMY_TEMPERATURE]
+                                        self._PARAM_CH_ECONOMY_TEMPERATURE]
                             else:
-                                self._get_zero_temperature[self.PARAM_CH_ECONOMY_TEMPERATURE] = 0
+                                self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] = 0
                 except:
                     continue
 
@@ -2152,12 +2271,12 @@ class AristonHandler():
             if self._errors >= self._MAX_ERRORS_TIMER_EXTEND:
                 # give a little rest to the system if too many errors
                 retry_in = self._timer_between_param_delay * self._HTTP_DELAY_MULTIPLY
-                self._timer_between_set = self.VAL_LONG
+                self._timer_between_set = self._DELAY_LONG
                 _LOGGER.warning('%s Retrying in %s seconds', self, retry_in)
             else:
                 # work as usual
                 retry_in = self._timer_between_param_delay
-                self._timer_between_set = self.VAL_NORMAL
+                self._timer_between_set = self._DELAY_NORMAL
                 _LOGGER.debug('%s Fetching data in %s seconds', self, retry_in)
             self._timer_periodic_read.cancel()
             if self._started:
@@ -2368,483 +2487,487 @@ class AristonHandler():
                 dhw_temp = {}
                 dhw_temp_time = {}
                 try:
-                    dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE] = 0
-                    dhw_temp_time[self.PARAM_DHW_ECONOMY_TEMPERATURE] = 0
+                    dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                    dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                    dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
+                    dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
                     if self._get_time_end[self._REQUEST_GET_MAIN] > self._get_time_end[self._REQUEST_GET_OTHER] and \
-                            self._get_zero_temperature[self.PARAM_DHW_COMFORT_TEMPERATURE] == 0:
+                            self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] == 0:
                         if set_data["NewValue"]["dhwTimeProgSupported"]:
-                            dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                            dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                                 set_data["NewValue"]["dhwTimeProgComfortTemp"]["value"]
-                            dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                            dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                                 self._get_time_end[self._REQUEST_GET_MAIN]
                         else:
-                            dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = set_data["NewValue"]["dhwTemp"]["value"]
-                            dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                            dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = set_data["NewValue"]["dhwTemp"]["value"]
+                            dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                                 self._get_time_end[self._REQUEST_GET_MAIN]
                     else:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_DHW_TIME_PROG_COMFORT:
-                                dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = param_item["value"]
-                                dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE] = \
+                                dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = param_item["value"]
+                                dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                                     self._get_time_end[self._REQUEST_GET_OTHER]
 
                     if self._get_time_end[self._REQUEST_GET_MAIN] > self._get_time_end[self._REQUEST_GET_OTHER] and \
-                            self._get_zero_temperature[self.PARAM_DHW_ECONOMY_TEMPERATURE] == 0 \
+                            self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] == 0 \
                             and set_data["NewValue"]["dhwTimeProgSupported"]:
-                        dhw_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = set_data["NewValue"]["dhwTimeProgEconomyTemp"][
+                        dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = set_data["NewValue"]["dhwTimeProgEconomyTemp"][
                             "value"]
-                        dhw_temp_time[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._get_time_end[self._REQUEST_GET_MAIN]
+                        dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._get_time_end[self._REQUEST_GET_MAIN]
                     else:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_DHW_TIME_PROG_ECONOMY:
-                                dhw_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = param_item["value"]
-                                dhw_temp_time[self.PARAM_DHW_ECONOMY_TEMPERATURE] = \
+                                dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = param_item["value"]
+                                dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
                                     self._get_time_end[self._REQUEST_GET_OTHER]
 
                 except:
-                    dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE] = 0
-                    dhw_temp_time[self.PARAM_DHW_ECONOMY_TEMPERATURE] = 0
+                    dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
+                    dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
+                    dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
+                    dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
                     pass
 
                 # prepare setting of parameter data dictionary
                 set_param_data = []
 
-                if self.PARAM_MODE in self._set_param:
-                    if set_data["NewValue"]["mode"] == self._set_param[self.PARAM_MODE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_MODE)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_MODE)]:
+                if self._PARAM_MODE in self._set_param:
+                    if set_data["NewValue"]["mode"] == self._set_param[self._PARAM_MODE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_MODE)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_MODE)]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_MODE]
+                            del self._set_param[self._PARAM_MODE]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_MODE)][
-                                self._get_request_for_parameter(self.PARAM_MODE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_MODE)][
+                                self._get_request_for_parameter(self._PARAM_MODE)] = True
                     else:
-                        set_data["NewValue"]["mode"] = self._set_param[self.PARAM_MODE]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_MODE)][
-                            self._get_request_for_parameter(self.PARAM_MODE)] = True
+                        set_data["NewValue"]["mode"] = self._set_param[self._PARAM_MODE]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_MODE)][
+                            self._get_request_for_parameter(self._PARAM_MODE)] = True
 
-                if self.PARAM_DHW_SET_TEMPERATURE in self._set_param:
-                    if set_data["NewValue"]["dhwTemp"]["value"] == self._set_param[self.PARAM_DHW_SET_TEMPERATURE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)] \
-                                and self._get_zero_temperature[self.PARAM_DHW_SET_TEMPERATURE] == 0:
+                if self._PARAM_DHW_SET_TEMPERATURE in self._set_param:
+                    if set_data["NewValue"]["dhwTemp"]["value"] == self._set_param[self._PARAM_DHW_SET_TEMPERATURE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] \
+                                and self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] == 0:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_DHW_SET_TEMPERATURE]
+                            del self._set_param[self._PARAM_DHW_SET_TEMPERATURE]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)][
-                                self._get_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)][
+                                self._get_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] = True
                     else:
-                        set_data["NewValue"]["dhwTemp"]["value"] = self._set_param[self.PARAM_DHW_SET_TEMPERATURE]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_DHW_SET_TEMPERATURE)] = True
+                        set_data["NewValue"]["dhwTemp"]["value"] = self._set_param[self._PARAM_DHW_SET_TEMPERATURE]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] = True
 
-                if self.PARAM_DHW_COMFORT_TEMPERATURE in self._set_param:
-                    if dhw_temp[self.PARAM_DHW_COMFORT_TEMPERATURE] == \
-                            self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_DHW_COMFORT_TEMPERATURE)] < \
-                                dhw_temp_time[self.PARAM_DHW_COMFORT_TEMPERATURE]:
+                if self._PARAM_DHW_COMFORT_TEMPERATURE in self._set_param:
+                    if dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] == \
+                            self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)] <\
+                                dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE]
+                            del self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE]
                         else:
                             # assume data was not yet changed
                             param_data = {
                                 "id": self._ARISTON_DHW_TIME_PROG_COMFORT,
-                                "newValue": self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE],
+                                "newValue": self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE],
                                 "oldValue": set_data["NewValue"]["dhwTimeProgComfortTemp"]["value"]}
                             set_param_data.append(param_data)
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_COMFORT_TEMPERATURE)][
-                                self._get_request_for_parameter(self.PARAM_DHW_COMFORT_TEMPERATURE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)][
+                                self._get_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)] = True
                     else:
                         param_data = {
                             "id": self._ARISTON_DHW_TIME_PROG_COMFORT,
-                            "newValue": self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE],
+                            "newValue": self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE],
                             "oldValue": set_data["NewValue"]["dhwTimeProgComfortTemp"]["value"]}
                         set_param_data.append(param_data)
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_COMFORT_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_DHW_COMFORT_TEMPERATURE)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)] = True
 
-                if self.PARAM_DHW_ECONOMY_TEMPERATURE in self._set_param:
-                    if dhw_temp[self.PARAM_DHW_ECONOMY_TEMPERATURE] == \
-                            self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_DHW_ECONOMY_TEMPERATURE)] < \
-                                dhw_temp_time[self.PARAM_DHW_ECONOMY_TEMPERATURE]:
+                if self._PARAM_DHW_ECONOMY_TEMPERATURE in self._set_param:
+                    if dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] == \
+                            self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)] <\
+                                dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE]
+                            del self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE]
                         else:
                             # assume data was not yet changed
                             param_data = {
                                 "id": self._ARISTON_DHW_TIME_PROG_ECONOMY,
-                                "newValue": self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE],
+                                "newValue": self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE],
                                 "oldValue": set_data["NewValue"]["dhwTimeProgEconomyTemp"]["value"]}
                             set_param_data.append(param_data)
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_ECONOMY_TEMPERATURE)][
-                                self._get_request_for_parameter(self.PARAM_DHW_ECONOMY_TEMPERATURE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)][
+                                self._get_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)] = True
                     else:
                         param_data = {
                             "id": self._ARISTON_DHW_TIME_PROG_ECONOMY,
-                            "newValue": self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE],
+                            "newValue": self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE],
                             "oldValue": set_data["NewValue"]["dhwTimeProgEconomyTemp"]["value"]}
                         set_param_data.append(param_data)
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_ECONOMY_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_DHW_ECONOMY_TEMPERATURE)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)] = True
 
-                if self.PARAM_DHW_COMFORT_FUNCTION in self._set_param:
+                if self._PARAM_DHW_COMFORT_FUNCTION in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_DHW_COMFORT_FUNCTION:
-                                if param_item["value"] == self._set_param[self.PARAM_DHW_COMFORT_FUNCTION]:
+                                if param_item["value"] == self._set_param[self._PARAM_DHW_COMFORT_FUNCTION]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_DHW_COMFORT_FUNCTION)] < \
+                                            self._PARAM_DHW_COMFORT_FUNCTION)] < \
                                             self._get_time_end[self._get_request_for_parameter(
-                                                self.PARAM_DHW_COMFORT_FUNCTION)]:
+                                                self._PARAM_DHW_COMFORT_FUNCTION)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_DHW_COMFORT_FUNCTION]
+                                        del self._set_param[self._PARAM_DHW_COMFORT_FUNCTION]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_DHW_COMFORT_FUNCTION,
-                                            "newValue": self._set_param[self.PARAM_DHW_COMFORT_FUNCTION],
+                                            "newValue": self._set_param[self._PARAM_DHW_COMFORT_FUNCTION],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
                                         changed_parameter[self._set_request_for_parameter(
-                                            self.PARAM_DHW_COMFORT_FUNCTION)][self._get_request_for_parameter(
-                                            self.PARAM_DHW_COMFORT_FUNCTION)] = True
+                                            self._PARAM_DHW_COMFORT_FUNCTION)][self._get_request_for_parameter(
+                                            self._PARAM_DHW_COMFORT_FUNCTION)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_DHW_COMFORT_FUNCTION,
-                                        "newValue": self._set_param[self.PARAM_DHW_COMFORT_FUNCTION],
+                                        "newValue": self._set_param[self._PARAM_DHW_COMFORT_FUNCTION],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
-                                    changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_COMFORT_FUNCTION)][
-                                        self._get_request_for_parameter(self.PARAM_DHW_COMFORT_FUNCTION)] = True
+                                    changed_parameter[self._set_request_for_parameter(
+                                        self._PARAM_DHW_COMFORT_FUNCTION)][
+                                        self._get_request_for_parameter(self._PARAM_DHW_COMFORT_FUNCTION)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_COMFORT_FUNCTION)][
-                            self._get_request_for_parameter(self.PARAM_DHW_COMFORT_FUNCTION)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_COMFORT_FUNCTION)][
+                            self._get_request_for_parameter(self._PARAM_DHW_COMFORT_FUNCTION)] = True
                         pass
 
-                if self.PARAM_INTERNET_TIME in self._set_param:
+                if self._PARAM_INTERNET_TIME in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_INTERNET_TIME:
-                                if param_item["value"] == self._set_param[self.PARAM_INTERNET_TIME]:
+                                if param_item["value"] == self._set_param[self._PARAM_INTERNET_TIME]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_INTERNET_TIME)] < \
+                                            self._PARAM_INTERNET_TIME)] < \
                                             self._get_time_end[self._get_request_for_parameter(
-                                                self.PARAM_INTERNET_TIME)]:
+                                                self._PARAM_INTERNET_TIME)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_INTERNET_TIME]
+                                        del self._set_param[self._PARAM_INTERNET_TIME]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_INTERNET_TIME,
-                                            "newValue": self._set_param[self.PARAM_INTERNET_TIME],
+                                            "newValue": self._set_param[self._PARAM_INTERNET_TIME],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
-                                        changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_TIME)][
-                                            self._get_request_for_parameter(self.PARAM_INTERNET_TIME)] = True
+                                        changed_parameter[self._set_request_for_parameter(self._PARAM_INTERNET_TIME)][
+                                            self._get_request_for_parameter(self._PARAM_INTERNET_TIME)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_INTERNET_TIME,
-                                        "newValue": self._set_param[self.PARAM_INTERNET_TIME],
+                                        "newValue": self._set_param[self._PARAM_INTERNET_TIME],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
-                                    changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_TIME)][
-                                        self._get_request_for_parameter(self.PARAM_INTERNET_TIME)] = True
+                                    changed_parameter[self._set_request_for_parameter(self._PARAM_INTERNET_TIME)][
+                                        self._get_request_for_parameter(self._PARAM_INTERNET_TIME)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_TIME)][
-                            self._get_request_for_parameter(self.PARAM_INTERNET_TIME)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_INTERNET_TIME)][
+                            self._get_request_for_parameter(self._PARAM_INTERNET_TIME)] = True
                         pass
 
-                if self.PARAM_INTERNET_WEATHER in self._set_param:
+                if self._PARAM_INTERNET_WEATHER in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_INTERNET_WEATHER:
-                                if param_item["value"] == self._set_param[self.PARAM_INTERNET_WEATHER]:
+                                if param_item["value"] == self._set_param[self._PARAM_INTERNET_WEATHER]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_INTERNET_WEATHER)] < \
+                                            self._PARAM_INTERNET_WEATHER)] < \
                                             self._get_time_end[self._get_request_for_parameter(
-                                                self.PARAM_INTERNET_WEATHER)]:
+                                                self._PARAM_INTERNET_WEATHER)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_INTERNET_WEATHER]
+                                        del self._set_param[self._PARAM_INTERNET_WEATHER]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_INTERNET_WEATHER,
-                                            "newValue": self._set_param[self.PARAM_INTERNET_WEATHER],
+                                            "newValue": self._set_param[self._PARAM_INTERNET_WEATHER],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
-                                        changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_WEATHER)][
-                                            self._get_request_for_parameter(self.PARAM_INTERNET_WEATHER)] = True
+                                        changed_parameter[self._set_request_for_parameter(
+                                            self._PARAM_INTERNET_WEATHER)][
+                                            self._get_request_for_parameter(self._PARAM_INTERNET_WEATHER)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_INTERNET_WEATHER,
-                                        "newValue": self._set_param[self.PARAM_INTERNET_WEATHER],
+                                        "newValue": self._set_param[self._PARAM_INTERNET_WEATHER],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
-                                    changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_WEATHER)][
-                                        self._get_request_for_parameter(self.PARAM_INTERNET_WEATHER)] = True
+                                    changed_parameter[self._set_request_for_parameter(self._PARAM_INTERNET_WEATHER)][
+                                        self._get_request_for_parameter(self._PARAM_INTERNET_WEATHER)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_INTERNET_WEATHER)][
-                            self._get_request_for_parameter(self.PARAM_INTERNET_WEATHER)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_INTERNET_WEATHER)][
+                            self._get_request_for_parameter(self._PARAM_INTERNET_WEATHER)] = True
                         pass
 
-                if self.PARAM_THERMAL_CLEANSE_CYCLE in self._set_param:
+                if self._PARAM_THERMAL_CLEANSE_CYCLE in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_CYCLE:
-                                if param_item["value"] == self._set_param[self.PARAM_THERMAL_CLEANSE_CYCLE]:
+                                if param_item["value"] == self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_THERMAL_CLEANSE_CYCLE)] < \
+                                            self._PARAM_THERMAL_CLEANSE_CYCLE)] < \
                                             self._get_time_end[
-                                                self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_CYCLE)]:
+                                                self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_THERMAL_CLEANSE_CYCLE]
+                                        del self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_THERMAL_CLEANSE_CYCLE,
-                                            "newValue": self._set_param[self.PARAM_THERMAL_CLEANSE_CYCLE],
+                                            "newValue": self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
                                         changed_parameter[self._set_request_for_parameter(
-                                            self.PARAM_THERMAL_CLEANSE_CYCLE)][
-                                            self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_CYCLE)] = True
+                                            self._PARAM_THERMAL_CLEANSE_CYCLE)][
+                                            self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_THERMAL_CLEANSE_CYCLE,
-                                        "newValue": self._set_param[self.PARAM_THERMAL_CLEANSE_CYCLE],
+                                        "newValue": self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
                                     changed_parameter[self._set_request_for_parameter(
-                                        self.PARAM_THERMAL_CLEANSE_CYCLE)][
-                                        self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_CYCLE)] = True
+                                        self._PARAM_THERMAL_CLEANSE_CYCLE)][
+                                        self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_THERMAL_CLEANSE_CYCLE)][
-                            self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_CYCLE)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)][
+                            self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)] = True
                         pass
 
-                if self.PARAM_THERMAL_CLEANSE_FUNCTION in self._set_param:
+                if self._PARAM_THERMAL_CLEANSE_FUNCTION in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_FUNCTION:
-                                if param_item["value"] == self._set_param[self.PARAM_THERMAL_CLEANSE_FUNCTION]:
+                                if param_item["value"] == self._set_param[self._PARAM_THERMAL_CLEANSE_FUNCTION]:
                                     if self._set_time_start[
-                                        self._set_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)] < \
+                                        self._set_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)] < \
                                             self._get_time_end[
-                                                self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)]:
+                                                self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_THERMAL_CLEANSE_FUNCTION]
+                                        del self._set_param[self._PARAM_THERMAL_CLEANSE_FUNCTION]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_THERMAL_CLEANSE_FUNCTION,
-                                            "newValue": self._set_param[self.PARAM_THERMAL_CLEANSE_FUNCTION],
+                                            "newValue": self._set_param[self._PARAM_THERMAL_CLEANSE_FUNCTION],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
                                         changed_parameter[self._set_request_for_parameter(
-                                            self.PARAM_THERMAL_CLEANSE_FUNCTION)][
-                                            self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)] = True
+                                            self._PARAM_THERMAL_CLEANSE_FUNCTION)][
+                                            self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)] = \
+                                            True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_THERMAL_CLEANSE_FUNCTION,
-                                        "newValue": self._set_param[self.PARAM_THERMAL_CLEANSE_FUNCTION],
+                                        "newValue": self._set_param[self._PARAM_THERMAL_CLEANSE_FUNCTION],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
                                     changed_parameter[self._set_request_for_parameter(
-                                        self.PARAM_THERMAL_CLEANSE_FUNCTION)][
-                                        self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)] = True
+                                        self._PARAM_THERMAL_CLEANSE_FUNCTION)][
+                                        self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)][
-                            self._get_request_for_parameter(self.PARAM_THERMAL_CLEANSE_FUNCTION)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)][
+                            self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_FUNCTION)] = True
                         pass
 
-                if self.PARAM_CH_AUTO_FUNCTION in self._set_param:
+                if self._PARAM_CH_AUTO_FUNCTION in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_CH_AUTO_FUNCTION:
-                                if param_item["value"] == self._set_param[self.PARAM_CH_AUTO_FUNCTION]:
+                                if param_item["value"] == self._set_param[self._PARAM_CH_AUTO_FUNCTION]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_CH_AUTO_FUNCTION)] < \
+                                            self._PARAM_CH_AUTO_FUNCTION)] < \
                                             self._get_time_end[self._get_request_for_parameter(
-                                                self.PARAM_CH_AUTO_FUNCTION)]:
+                                                self._PARAM_CH_AUTO_FUNCTION)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_CH_AUTO_FUNCTION]
+                                        del self._set_param[self._PARAM_CH_AUTO_FUNCTION]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_CH_AUTO_FUNCTION,
-                                            "newValue": self._set_param[self.PARAM_CH_AUTO_FUNCTION],
+                                            "newValue": self._set_param[self._PARAM_CH_AUTO_FUNCTION],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
-                                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)][
-                                            self._get_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)] = True
+                                        changed_parameter[self._set_request_for_parameter(
+                                            self._PARAM_CH_AUTO_FUNCTION)][
+                                            self._get_request_for_parameter(self._PARAM_CH_AUTO_FUNCTION)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_CH_AUTO_FUNCTION,
-                                        "newValue": self._set_param[self.PARAM_CH_AUTO_FUNCTION],
+                                        "newValue": self._set_param[self._PARAM_CH_AUTO_FUNCTION],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
-                                    changed_parameter[self._set_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)][
-                                        self._get_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)] = True
+                                    changed_parameter[self._set_request_for_parameter(self._PARAM_CH_AUTO_FUNCTION)][
+                                        self._get_request_for_parameter(self._PARAM_CH_AUTO_FUNCTION)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)][
-                            self._get_request_for_parameter(self.PARAM_CH_AUTO_FUNCTION)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_AUTO_FUNCTION)][
+                            self._get_request_for_parameter(self._PARAM_CH_AUTO_FUNCTION)] = True
                         pass
 
-                if self.PARAM_CH_SET_TEMPERATURE in self._set_param:
+                if self._PARAM_CH_SET_TEMPERATURE in self._set_param:
                     if set_data["NewValue"]["zone"]["comfortTemp"]["value"] == \
-                            self._set_param[self.PARAM_CH_SET_TEMPERATURE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)] and \
-                                self._get_zero_temperature[self.PARAM_CH_SET_TEMPERATURE] == 0:
+                            self._set_param[self._PARAM_CH_SET_TEMPERATURE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] and\
+                                self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] == 0:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_CH_SET_TEMPERATURE]
+                            del self._set_param[self._PARAM_CH_SET_TEMPERATURE]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)][
-                                self._get_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)][
+                                self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] = True
                     else:
                         set_data["NewValue"]["zone"]["comfortTemp"]["value"] = \
-                            self._set_param[self.PARAM_CH_SET_TEMPERATURE]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_CH_SET_TEMPERATURE)] = True
+                            self._set_param[self._PARAM_CH_SET_TEMPERATURE]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] = True
 
-                if self.PARAM_CH_COMFORT_TEMPERATURE in self._set_param:
+                if self._PARAM_CH_COMFORT_TEMPERATURE in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                                if param_item["value"] == self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE]:
+                                if param_item["value"] == self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_CH_COMFORT_TEMPERATURE)] < \
+                                            self._PARAM_CH_COMFORT_TEMPERATURE)] < \
                                             self._get_time_end[
-                                                self._get_request_for_parameter(self.PARAM_CH_COMFORT_TEMPERATURE)]:
+                                                self._get_request_for_parameter(self._PARAM_CH_COMFORT_TEMPERATURE)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE]
+                                        del self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_CH_COMFORT_TEMP,
-                                            "newValue": self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE],
+                                            "newValue": self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
                                         changed_parameter[self._set_request_for_parameter(
-                                            self.PARAM_CH_COMFORT_TEMPERATURE)][
-                                            self._get_request_for_parameter(self.PARAM_CH_COMFORT_TEMPERATURE)] = True
+                                            self._PARAM_CH_COMFORT_TEMPERATURE)][
+                                            self._get_request_for_parameter(self._PARAM_CH_COMFORT_TEMPERATURE)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_CH_COMFORT_TEMP,
-                                        "newValue": self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE],
+                                        "newValue": self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
                                     changed_parameter[self._set_request_for_parameter(
-                                        self.PARAM_CH_COMFORT_TEMPERATURE)][
-                                        self._get_request_for_parameter(self.PARAM_CH_COMFORT_TEMPERATURE)] = True
+                                        self._PARAM_CH_COMFORT_TEMPERATURE)][
+                                        self._get_request_for_parameter(self._PARAM_CH_COMFORT_TEMPERATURE)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_COMFORT_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_CH_COMFORT_TEMPERATURE)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_COMFORT_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_CH_COMFORT_TEMPERATURE)] = True
                         pass
 
-                if self.PARAM_CH_ECONOMY_TEMPERATURE in self._set_param:
+                if self._PARAM_CH_ECONOMY_TEMPERATURE in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                                if param_item["value"] == self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE]:
+                                if param_item["value"] == self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE]:
                                     if self._set_time_start[self._set_request_for_parameter(
-                                            self.PARAM_CH_ECONOMY_TEMPERATURE)] < \
+                                            self._PARAM_CH_ECONOMY_TEMPERATURE)] < \
                                             self._get_time_end[
-                                                self._get_request_for_parameter(self.PARAM_CH_ECONOMY_TEMPERATURE)]:
+                                                self._get_request_for_parameter(self._PARAM_CH_ECONOMY_TEMPERATURE)]:
                                         # value should be up to date and match to remove from setting
-                                        del self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE]
+                                        del self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE]
                                     else:
                                         # assume data was not yet changed
                                         param_data = {
                                             "id": self._ARISTON_CH_ECONOMY_TEMP,
-                                            "newValue": self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE],
+                                            "newValue": self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE],
                                             "oldValue": param_item["value"]}
                                         set_param_data.append(param_data)
                                         changed_parameter[self._set_request_for_parameter(
-                                            self.PARAM_CH_ECONOMY_TEMPERATURE)][
-                                            self._get_request_for_parameter(self.PARAM_CH_ECONOMY_TEMPERATURE)] = True
+                                            self._PARAM_CH_ECONOMY_TEMPERATURE)][
+                                            self._get_request_for_parameter(self._PARAM_CH_ECONOMY_TEMPERATURE)] = True
                                     break
                                 else:
                                     param_data = {
                                         "id": self._ARISTON_CH_ECONOMY_TEMP,
-                                        "newValue": self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE],
+                                        "newValue": self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE],
                                         "oldValue": param_item["value"]}
                                     set_param_data.append(param_data)
                                     changed_parameter[self._set_request_for_parameter(
-                                        self.PARAM_CH_ECONOMY_TEMPERATURE)][
-                                        self._get_request_for_parameter(self.PARAM_CH_ECONOMY_TEMPERATURE)] = True
+                                        self._PARAM_CH_ECONOMY_TEMPERATURE)][
+                                        self._get_request_for_parameter(self._PARAM_CH_ECONOMY_TEMPERATURE)] = True
                                     break
                     except:
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_ECONOMY_TEMPERATURE)][
-                            self._get_request_for_parameter(self.PARAM_CH_ECONOMY_TEMPERATURE)] = True
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_ECONOMY_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_CH_ECONOMY_TEMPERATURE)] = True
                         pass
 
-                if self.PARAM_CH_MODE in self._set_param:
-                    if set_data["NewValue"]["zone"]["mode"]["value"] == self._set_param[self.PARAM_CH_MODE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_CH_MODE)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_CH_MODE)]:
+                if self._PARAM_CH_MODE in self._set_param:
+                    if set_data["NewValue"]["zone"]["mode"]["value"] == self._set_param[self._PARAM_CH_MODE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_CH_MODE)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_CH_MODE)]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_CH_MODE]
+                            del self._set_param[self._PARAM_CH_MODE]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_CH_MODE)][
-                                self._get_request_for_parameter(self.PARAM_CH_MODE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_CH_MODE)][
+                                self._get_request_for_parameter(self._PARAM_CH_MODE)] = True
                     else:
-                        set_data["NewValue"]["zone"]["mode"]["value"] = self._set_param[self.PARAM_CH_MODE]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_CH_MODE)][
-                            self._get_request_for_parameter(self.PARAM_CH_MODE)] = True
+                        set_data["NewValue"]["zone"]["mode"]["value"] = self._set_param[self._PARAM_CH_MODE]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_MODE)][
+                            self._get_request_for_parameter(self._PARAM_CH_MODE)] = True
 
-                if self.PARAM_DHW_MODE in self._set_param:
-                    if set_data["NewValue"]["dhwMode"] == self._set_param[self.PARAM_DHW_MODE]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_DHW_MODE)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_DHW_MODE)]:
+                if self._PARAM_DHW_MODE in self._set_param:
+                    if set_data["NewValue"]["dhwMode"] == self._set_param[self._PARAM_DHW_MODE]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_MODE)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_DHW_MODE)]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_DHW_MODE]
+                            del self._set_param[self._PARAM_DHW_MODE]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_MODE)][
-                                self._get_request_for_parameter(self.PARAM_DHW_MODE)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_MODE)][
+                                self._get_request_for_parameter(self._PARAM_DHW_MODE)] = True
                     else:
-                        set_data["NewValue"]["dhwMode"] = self._set_param[self.PARAM_DHW_MODE]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_DHW_MODE)][
-                            self._get_request_for_parameter(self.PARAM_DHW_MODE)] = True
+                        set_data["NewValue"]["dhwMode"] = self._set_param[self._PARAM_DHW_MODE]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_DHW_MODE)][
+                            self._get_request_for_parameter(self._PARAM_DHW_MODE)] = True
 
-                if self.PARAM_UNITS in self._set_param:
-                    if set_units_data["measurementSystem"] == self._set_param[self.PARAM_UNITS]:
-                        if self._set_time_start[self._set_request_for_parameter(self.PARAM_UNITS)] < \
-                                self._get_time_end[self._get_request_for_parameter(self.PARAM_UNITS)]:
+                if self._PARAM_UNITS in self._set_param:
+                    if set_units_data["measurementSystem"] == self._set_param[self._PARAM_UNITS]:
+                        if self._set_time_start[self._set_request_for_parameter(self._PARAM_UNITS)] < \
+                                self._get_time_end[self._get_request_for_parameter(self._PARAM_UNITS)]:
                             # value should be up to date and match to remove from setting
-                            del self._set_param[self.PARAM_UNITS]
+                            del self._set_param[self._PARAM_UNITS]
                         else:
                             # assume data was not yet changed
-                            changed_parameter[self._set_request_for_parameter(self.PARAM_UNITS)][
-                                self._get_request_for_parameter(self.PARAM_UNITS)] = True
+                            changed_parameter[self._set_request_for_parameter(self._PARAM_UNITS)][
+                                self._get_request_for_parameter(self._PARAM_UNITS)] = True
                     else:
-                        set_units_data["measurementSystem"] = self._set_param[self.PARAM_UNITS]
-                        changed_parameter[self._set_request_for_parameter(self.PARAM_UNITS)][
-                            self._get_request_for_parameter(self.PARAM_UNITS)] = True
+                        set_units_data["measurementSystem"] = self._set_param[self._PARAM_UNITS]
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_UNITS)][
+                            self._get_request_for_parameter(self._PARAM_UNITS)] = True
 
                 for request_item in self._set_param_group:
                     self._set_param_group[request_item] = False
@@ -2853,7 +2976,7 @@ class AristonHandler():
                     if value != {} and self._set_retry[key] < self._set_max_retries:
                         if not self._set_scheduled:
                             # retry again after enough time
-                            if self._timer_between_set == self.VAL_NORMAL:
+                            if self._timer_between_set == self._DELAY_NORMAL:
                                 retry_in = self._timer_between_param_delay + self._HTTP_TIMER_SET_WAIT
                             else:
                                 retry_in = self._timer_between_param_delay * self._HTTP_DELAY_MULTIPLY + \
@@ -2931,7 +3054,7 @@ class AristonHandler():
                 if not self._set_scheduled:
                     if self._set_retry[self._REQUEST_SET_MAIN] < self._set_max_retries:
                         # retry again after enough time to fetch data twice
-                        if self._timer_between_set == self.VAL_NORMAL:
+                        if self._timer_between_set == self._DELAY_NORMAL:
                             retry_in = self._timer_between_param_delay + self._HTTP_TIMER_SET_WAIT
                         else:
                             retry_in = self._timer_between_param_delay * self._HTTP_DELAY_MULTIPLY + \
@@ -2953,7 +3076,31 @@ class AristonHandler():
                         raise Exception("Unstable connection to set the data")
 
     def set_http_data(self, **parameter_list):
-        """Set Ariston data over http after data verification"""
+        """
+        Set data over http, where **parameter_list excepts parameters and wanted values.
+
+        Supported parameters:
+            - 'mode'
+            - 'ch_mode'
+            - 'ch_set_temperature'
+            - 'ch_comfort_temperature'
+            - 'ch_economy_temperature'
+            - 'ch_auto_function'
+            - 'dhw_mode'
+            - 'dhw_set_temperature'
+            - 'dhw_comfort_temperature'
+            - 'dhw_economy_temperature'
+            - 'dhw_comfort_function'
+            - 'internet_time'
+            - 'internet_weather'
+            - 'dhw_thermal_cleanse_function'
+            - 'dhw_thermal_cleanse_cycle'
+            - 'units'
+
+        Supported values must be viewed in the property 'supported_sensors_set_values',
+        which are generated dynamically based on reported values.
+
+        """
 
         if self._ariston_data != {}:
             with self._data_lock:
@@ -2966,27 +3113,27 @@ class AristonHandler():
                     try:
                         good_parameter = False
                         if parameter in {
-                            self.PARAM_MODE,
-                            self.PARAM_CH_MODE,
-                            self.PARAM_CH_AUTO_FUNCTION,
-                            self.PARAM_DHW_MODE,
-                            self.PARAM_DHW_COMFORT_FUNCTION,
-                            self.PARAM_INTERNET_TIME,
-                            self.PARAM_INTERNET_WEATHER,
-                            self.PARAM_THERMAL_CLEANSE_FUNCTION,
-                            self.PARAM_UNITS
+                            self._PARAM_MODE,
+                            self._PARAM_CH_MODE,
+                            self._PARAM_CH_AUTO_FUNCTION,
+                            self._PARAM_DHW_MODE,
+                            self._PARAM_DHW_COMFORT_FUNCTION,
+                            self._PARAM_INTERNET_TIME,
+                            self._PARAM_INTERNET_WEATHER,
+                            self._PARAM_THERMAL_CLEANSE_FUNCTION,
+                            self._PARAM_UNITS
                         }:
                             if value in allowed_values[parameter]:
                                 good_values[parameter] = value
                                 good_parameter = True
                         elif parameter in {
-                            self.PARAM_CH_SET_TEMPERATURE,
-                            self.PARAM_CH_COMFORT_TEMPERATURE,
-                            self.PARAM_CH_ECONOMY_TEMPERATURE,
-                            self.PARAM_DHW_SET_TEMPERATURE,
-                            self.PARAM_DHW_COMFORT_TEMPERATURE,
-                            self.PARAM_DHW_ECONOMY_TEMPERATURE,
-                            self.PARAM_THERMAL_CLEANSE_CYCLE
+                            self._PARAM_CH_SET_TEMPERATURE,
+                            self._PARAM_CH_COMFORT_TEMPERATURE,
+                            self._PARAM_CH_ECONOMY_TEMPERATURE,
+                            self._PARAM_DHW_SET_TEMPERATURE,
+                            self._PARAM_DHW_COMFORT_TEMPERATURE,
+                            self._PARAM_DHW_ECONOMY_TEMPERATURE,
+                            self._PARAM_THERMAL_CLEANSE_CYCLE
                         }:
                             value = float(value)
                             if allowed_values[parameter]["min"] - 0.01 <= value \
@@ -3000,25 +3147,25 @@ class AristonHandler():
                         pass
 
                 # check mode and set it
-                if self.PARAM_MODE in good_values:
+                if self._PARAM_MODE in good_values:
                     try:
-                        self._set_param[self.PARAM_MODE] = self._MODE_TO_VALUE[good_values[self.PARAM_MODE]]
-                        _LOGGER.info('%s New mode %s', self, good_values[self.PARAM_MODE])
+                        self._set_param[self._PARAM_MODE] = self._MODE_TO_VALUE[good_values[self._PARAM_MODE]]
+                        _LOGGER.info('%s New mode %s', self, good_values[self._PARAM_MODE])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported mode or key error: %s', self,
-                                        good_values[self.PARAM_MODE])
-                        bad_values[self.PARAM_MODE] = good_values[self.PARAM_MODE]
+                                        good_values[self._PARAM_MODE])
+                        bad_values[self._PARAM_MODE] = good_values[self._PARAM_MODE]
                         pass
 
                 # check CH temperature
-                if self.PARAM_CH_SET_TEMPERATURE in good_values:
+                if self._PARAM_CH_SET_TEMPERATURE in good_values:
                     try:
                         # round to nearest 0.5
-                        temperature = round(float(good_values[self.PARAM_CH_SET_TEMPERATURE]) * 2.0) / 2.0
+                        temperature = round(float(good_values[self._PARAM_CH_SET_TEMPERATURE]) * 2.0) / 2.0
                         temp_set = False
                         try:
                             if self._VALUE_TO_CH_MODE[self._ariston_data["zone"]["mode"]["value"]] == \
-                                    self.VAL_PROGRAM:
+                                    self._VAL_PROGRAM:
                                 if self._ariston_other_data != {}:
                                     for param_item in self._ariston_other_data:
                                         if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
@@ -3026,225 +3173,230 @@ class AristonHandler():
                                                     self._ariston_data["zone"]["comfortTemp"]["value"],
                                                     param_item["value"],
                                                     abs_tol=0.01):
-                                                self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE] = temperature
+                                                self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE] = temperature
                                                 temp_set = True
                                                 break
-                                    self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE] = temperature
+                                    self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE] = temperature
                                     temp_set = True
                         except:
                             pass
                         if not temp_set:
-                            self._set_param[self.PARAM_CH_SET_TEMPERATURE] = temperature
+                            self._set_param[self._PARAM_CH_SET_TEMPERATURE] = temperature
                         _LOGGER.info('%s New CH temperature %s', self, temperature)
                     except:
                         _LOGGER.warning('%s Not supported CH temperature value: %s', self,
-                                        good_values[self.PARAM_CH_SET_TEMPERATURE])
-                        bad_values[self.PARAM_CH_SET_TEMPERATURE] = good_values[self.PARAM_CH_SET_TEMPERATURE]
+                                        good_values[self._PARAM_CH_SET_TEMPERATURE])
+                        bad_values[self._PARAM_CH_SET_TEMPERATURE] = good_values[self._PARAM_CH_SET_TEMPERATURE]
                         pass
 
                 # check dhw temperature
-                if self.PARAM_DHW_SET_TEMPERATURE in good_values:
+                if self._PARAM_DHW_SET_TEMPERATURE in good_values:
                     try:
                         # round to nearest 1
-                        temperature = round(float(good_values[self.PARAM_DHW_SET_TEMPERATURE]))
+                        temperature = round(float(good_values[self._PARAM_DHW_SET_TEMPERATURE]))
                         temp_set = False
                         try:
-                            if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self.VAL_PROGRAM:
+                            if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self._VAL_PROGRAM:
                                 if not self._ariston_data["dhwTimeProgComfortActive"]:
                                     # economy temperature is being used
-                                    self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE] = temperature
+                                    self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE] = temperature
                                     temp_set = True
                         except:
                             pass
                         if not temp_set:
-                            self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE] = temperature
+                            self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE] = temperature
                         _LOGGER.info('%s New DHW temperature %s', self, temperature)
                     except:
                         _LOGGER.warning('%s Not supported DHW temperature value: %s', self,
-                                        good_values[self.PARAM_DHW_SET_TEMPERATURE])
-                        bad_values[self.PARAM_DHW_SET_TEMPERATURE] = good_values[self.PARAM_DHW_SET_TEMPERATURE]
+                                        good_values[self._PARAM_DHW_SET_TEMPERATURE])
+                        bad_values[self._PARAM_DHW_SET_TEMPERATURE] = good_values[self._PARAM_DHW_SET_TEMPERATURE]
                         pass
 
                 # check dhw comfort temperature
-                if self.PARAM_DHW_COMFORT_TEMPERATURE in good_values:
+                if self._PARAM_DHW_COMFORT_TEMPERATURE in good_values:
                     try:
                         # round to nearest 1
-                        temperature = round(float(good_values[self.PARAM_DHW_COMFORT_TEMPERATURE]))
-                        self._set_param[self.PARAM_DHW_COMFORT_TEMPERATURE] = temperature
+                        temperature = round(float(good_values[self._PARAM_DHW_COMFORT_TEMPERATURE]))
+                        self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE] = temperature
                         _LOGGER.info('%s New DHW scheduled comfort temperature %s', self,
-                                     good_values[self.PARAM_DHW_COMFORT_TEMPERATURE])
+                                     good_values[self._PARAM_DHW_COMFORT_TEMPERATURE])
                     except:
                         _LOGGER.warning('%s Not supported DHW scheduled comfort temperature value: %s', self,
-                                        good_values[self.PARAM_DHW_COMFORT_TEMPERATURE])
-                        bad_values[self.PARAM_DHW_COMFORT_TEMPERATURE] = good_values[self.PARAM_DHW_COMFORT_TEMPERATURE]
+                                        good_values[self._PARAM_DHW_COMFORT_TEMPERATURE])
+                        bad_values[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
+                            good_values[self._PARAM_DHW_COMFORT_TEMPERATURE]
                         pass
 
                 # check dhw economy temperature
-                if self.PARAM_DHW_ECONOMY_TEMPERATURE in good_values:
+                if self._PARAM_DHW_ECONOMY_TEMPERATURE in good_values:
                     try:
                         # round to nearest 1
-                        temperature = round(float(good_values[self.PARAM_DHW_ECONOMY_TEMPERATURE]))
-                        self._set_param[self.PARAM_DHW_ECONOMY_TEMPERATURE] = temperature
+                        temperature = round(float(good_values[self._PARAM_DHW_ECONOMY_TEMPERATURE]))
+                        self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE] = temperature
                         _LOGGER.info('%s New DHW scheduled economy temperature %s', self, temperature)
                     except:
                         _LOGGER.warning('%s Not supported DHW scheduled economy temperature value: %s', self,
-                                        good_values[self.PARAM_DHW_ECONOMY_TEMPERATURE])
-                        bad_values[self.PARAM_DHW_ECONOMY_TEMPERATURE] = good_values[self.PARAM_DHW_ECONOMY_TEMPERATURE]
+                                        good_values[self._PARAM_DHW_ECONOMY_TEMPERATURE])
+                        bad_values[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
+                            good_values[self._PARAM_DHW_ECONOMY_TEMPERATURE]
                         pass
 
                 # check CH comfort scheduled temperature
-                if self.PARAM_CH_COMFORT_TEMPERATURE in good_values:
+                if self._PARAM_CH_COMFORT_TEMPERATURE in good_values:
                     try:
                         # round to nearest 0.5
-                        temperature = round(float(good_values[self.PARAM_CH_COMFORT_TEMPERATURE]) * 2.0) / 2.0
-                        self._set_param[self.PARAM_CH_COMFORT_TEMPERATURE] = temperature
+                        temperature = round(float(good_values[self._PARAM_CH_COMFORT_TEMPERATURE]) * 2.0) / 2.0
+                        self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE] = temperature
                         _LOGGER.info('%s New CH temperature %s', self, temperature)
                     except:
                         _LOGGER.warning('%s Not supported CH comfort scheduled temperature value: %s', self,
-                                        good_values[self.PARAM_CH_COMFORT_TEMPERATURE])
-                        bad_values[self.PARAM_CH_COMFORT_TEMPERATURE] = good_values[self.PARAM_CH_COMFORT_TEMPERATURE]
+                                        good_values[self._PARAM_CH_COMFORT_TEMPERATURE])
+                        bad_values[self._PARAM_CH_COMFORT_TEMPERATURE] = \
+                            good_values[self._PARAM_CH_COMFORT_TEMPERATURE]
                         pass
 
                 # check CH economy scheduled temperature
-                if self.PARAM_CH_ECONOMY_TEMPERATURE in good_values:
+                if self._PARAM_CH_ECONOMY_TEMPERATURE in good_values:
                     try:
                         # round to nearest 0.5
-                        temperature = round(float(good_values[self.PARAM_CH_ECONOMY_TEMPERATURE]) * 2.0) / 2.0
-                        self._set_param[self.PARAM_CH_ECONOMY_TEMPERATURE] = temperature
+                        temperature = round(float(good_values[self._PARAM_CH_ECONOMY_TEMPERATURE]) * 2.0) / 2.0
+                        self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE] = temperature
                         _LOGGER.info('%s New CH temperature %s', self, temperature)
                     except:
                         _LOGGER.warning('%s Not supported CH economy scheduled temperature value: %s', self,
-                                        good_values[self.PARAM_CH_ECONOMY_TEMPERATURE])
-                        bad_values[self.PARAM_CH_ECONOMY_TEMPERATURE] = good_values[self.PARAM_CH_ECONOMY_TEMPERATURE]
+                                        good_values[self._PARAM_CH_ECONOMY_TEMPERATURE])
+                        bad_values[self._PARAM_CH_ECONOMY_TEMPERATURE] = \
+                            good_values[self._PARAM_CH_ECONOMY_TEMPERATURE]
                         pass
 
                 # check CH mode
-                if self.PARAM_CH_MODE in good_values:
+                if self._PARAM_CH_MODE in good_values:
                     try:
-                        self._set_param[self.PARAM_CH_MODE] = self._CH_MODE_TO_VALUE[good_values[self.PARAM_CH_MODE]]
-                        _LOGGER.info('%s New CH mode %s', self, good_values[self.PARAM_CH_MODE])
+                        self._set_param[self._PARAM_CH_MODE] = self._CH_MODE_TO_VALUE[good_values[self._PARAM_CH_MODE]]
+                        _LOGGER.info('%s New CH mode %s', self, good_values[self._PARAM_CH_MODE])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported CH mode or key error: %s', self,
-                                        good_values[self.PARAM_CH_MODE])
-                        bad_values[self.PARAM_CH_MODE] = good_values[self.PARAM_CH_MODE]
+                                        good_values[self._PARAM_CH_MODE])
+                        bad_values[self._PARAM_CH_MODE] = good_values[self._PARAM_CH_MODE]
                         pass
 
                 # check DHW mode
-                if self.PARAM_DHW_MODE in good_values:
+                if self._PARAM_DHW_MODE in good_values:
                     try:
-                        self._set_param[self.PARAM_DHW_MODE] = self._DHW_MODE_TO_VALUE[self.PARAM_DHW_MODE]
-                        _LOGGER.info('%s New DHW mode %s', self, good_values[self.PARAM_DHW_MODE])
+                        self._set_param[self._PARAM_DHW_MODE] = self._DHW_MODE_TO_VALUE[self._PARAM_DHW_MODE]
+                        _LOGGER.info('%s New DHW mode %s', self, good_values[self._PARAM_DHW_MODE])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported DHW mode or key error: %s', self,
-                                        good_values[self.PARAM_DHW_MODE])
-                        bad_values[self.PARAM_DHW_MODE] = good_values[self.PARAM_DHW_MODE]
+                                        good_values[self._PARAM_DHW_MODE])
+                        bad_values[self._PARAM_DHW_MODE] = good_values[self._PARAM_DHW_MODE]
                         pass
 
                 # check DHW Comfort mode
-                if self.PARAM_DHW_COMFORT_FUNCTION in good_values:
+                if self._PARAM_DHW_COMFORT_FUNCTION in good_values:
                     try:
-                        self._set_param[self.PARAM_DHW_COMFORT_FUNCTION] = \
-                            self._DHW_COMFORT_FUNCT_TO_VALUE[good_values[self.PARAM_DHW_COMFORT_FUNCTION]]
+                        self._set_param[self._PARAM_DHW_COMFORT_FUNCTION] = \
+                            self._DHW_COMFORT_FUNCT_TO_VALUE[good_values[self._PARAM_DHW_COMFORT_FUNCTION]]
                         _LOGGER.info('%s New DHW Comfort function %s', self,
-                                     good_values[self.PARAM_DHW_COMFORT_FUNCTION])
+                                     good_values[self._PARAM_DHW_COMFORT_FUNCTION])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported DHW Comfort function or key error: %s', self,
-                                        good_values[self.PARAM_DHW_COMFORT_FUNCTION])
-                        bad_values[self.PARAM_DHW_COMFORT_FUNCTION] = good_values[self.PARAM_DHW_COMFORT_FUNCTION]
+                                        good_values[self._PARAM_DHW_COMFORT_FUNCTION])
+                        bad_values[self._PARAM_DHW_COMFORT_FUNCTION] = good_values[self._PARAM_DHW_COMFORT_FUNCTION]
                         pass
 
                 # check internet time
-                if self.PARAM_INTERNET_TIME in good_values:
+                if self._PARAM_INTERNET_TIME in good_values:
                     try:
-                        self._set_param[self.PARAM_INTERNET_TIME] = \
-                            self._PARAM_STRING_TO_VALUE[good_values[self.PARAM_INTERNET_TIME]]
-                        _LOGGER.info('%s New Internet time is %s', self, good_values[self.PARAM_INTERNET_TIME])
+                        self._set_param[self._PARAM_INTERNET_TIME] = \
+                            self._PARAM_STRING_TO_VALUE[good_values[self._PARAM_INTERNET_TIME]]
+                        _LOGGER.info('%s New Internet time is %s', self, good_values[self._PARAM_INTERNET_TIME])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported Internet time or key error: %s', self,
-                                        good_values[self.PARAM_INTERNET_TIME])
-                        bad_values[self.PARAM_INTERNET_TIME] = good_values[self.PARAM_INTERNET_TIME]
+                                        good_values[self._PARAM_INTERNET_TIME])
+                        bad_values[self._PARAM_INTERNET_TIME] = good_values[self._PARAM_INTERNET_TIME]
                         pass
 
                 # check internet time
-                if self.PARAM_INTERNET_WEATHER in good_values:
+                if self._PARAM_INTERNET_WEATHER in good_values:
                     try:
-                        self._set_param[self.PARAM_INTERNET_WEATHER] = \
-                            self._PARAM_STRING_TO_VALUE[good_values[self.PARAM_INTERNET_WEATHER]]
-                        _LOGGER.info('%s New Internet weather is %s', self, good_values[self.PARAM_INTERNET_WEATHER])
+                        self._set_param[self._PARAM_INTERNET_WEATHER] = \
+                            self._PARAM_STRING_TO_VALUE[good_values[self._PARAM_INTERNET_WEATHER]]
+                        _LOGGER.info('%s New Internet weather is %s', self, good_values[self._PARAM_INTERNET_WEATHER])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported Internet weather or key error: %s', self,
-                                        good_values[self.PARAM_INTERNET_WEATHER])
-                        bad_values[self.PARAM_INTERNET_WEATHER] = good_values[self.PARAM_INTERNET_WEATHER]
+                                        good_values[self._PARAM_INTERNET_WEATHER])
+                        bad_values[self._PARAM_INTERNET_WEATHER] = good_values[self._PARAM_INTERNET_WEATHER]
                         pass
 
                 # check cleanse cycle
-                if self.PARAM_THERMAL_CLEANSE_CYCLE in good_values:
+                if self._PARAM_THERMAL_CLEANSE_CYCLE in good_values:
                     try:
                         item_present = False
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_CYCLE:
-                                self._set_param[self.PARAM_THERMAL_CLEANSE_CYCLE] = \
-                                    good_values[self.PARAM_THERMAL_CLEANSE_CYCLE]
+                                self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE] = \
+                                    good_values[self._PARAM_THERMAL_CLEANSE_CYCLE]
                                 item_present = True
                                 _LOGGER.info('%s New Thermal Cleanse Cycle is %s', self,
-                                             good_values[self.PARAM_THERMAL_CLEANSE_CYCLE])
+                                             good_values[self._PARAM_THERMAL_CLEANSE_CYCLE])
                                 break
                         if not item_present:
                             _LOGGER.warning('%s Can not set Thermal Cleanse Cycle: %s', self,
-                                            good_values[self.PARAM_THERMAL_CLEANSE_CYCLE])
-                            bad_values[self.PARAM_THERMAL_CLEANSE_CYCLE] = good_values[self.PARAM_THERMAL_CLEANSE_CYCLE]
+                                            good_values[self._PARAM_THERMAL_CLEANSE_CYCLE])
+                            bad_values[self._PARAM_THERMAL_CLEANSE_CYCLE] = \
+                                good_values[self._PARAM_THERMAL_CLEANSE_CYCLE]
                     except:
                         _LOGGER.warning('%s Unknown or unsupported Thermal Cleanse Cycle or key error: %s', self,
-                                        good_values[self.PARAM_THERMAL_CLEANSE_CYCLE])
-                        bad_values[self.PARAM_THERMAL_CLEANSE_CYCLE] = good_values[self.PARAM_THERMAL_CLEANSE_CYCLE]
+                                        good_values[self._PARAM_THERMAL_CLEANSE_CYCLE])
+                        bad_values[self._PARAM_THERMAL_CLEANSE_CYCLE] = good_values[self._PARAM_THERMAL_CLEANSE_CYCLE]
                         pass
 
                 # check cleanse function
-                if self.PARAM_THERMAL_CLEANSE_FUNCTION in good_values:
+                if self._PARAM_THERMAL_CLEANSE_FUNCTION in good_values:
                     try:
                         item_present = False
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_FUNCTION:
-                                self._set_param[self.PARAM_THERMAL_CLEANSE_FUNCTION] = \
-                                    self._PARAM_STRING_TO_VALUE[good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION]]
+                                self._set_param[self._PARAM_THERMAL_CLEANSE_FUNCTION] = \
+                                    self._PARAM_STRING_TO_VALUE[good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION]]
                                 item_present = True
                                 _LOGGER.info('%s New Thermal Cleanse Function is %s', self,
-                                             good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION])
+                                             good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION])
                                 break
                         if not item_present:
                             _LOGGER.warning('%s Can not set Thermal Cleanse Function: %s', self,
-                                            good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION])
-                            bad_values[self.PARAM_THERMAL_CLEANSE_FUNCTION] = \
-                                good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION]
+                                            good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION])
+                            bad_values[self._PARAM_THERMAL_CLEANSE_FUNCTION] = \
+                                good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION]
                     except:
                         _LOGGER.warning('%s Unknown or unsupported Thermal Cleanse Function or key error: %s', self,
-                                        good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION])
-                        bad_values[self.PARAM_THERMAL_CLEANSE_FUNCTION] = \
-                            good_values[self.PARAM_THERMAL_CLEANSE_FUNCTION]
+                                        good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION])
+                        bad_values[self._PARAM_THERMAL_CLEANSE_FUNCTION] = \
+                            good_values[self._PARAM_THERMAL_CLEANSE_FUNCTION]
                         pass
 
                 # check CH auto function
-                if self.PARAM_CH_AUTO_FUNCTION in good_values:
+                if self._PARAM_CH_AUTO_FUNCTION in good_values:
                     try:
-                        self._set_param[self.PARAM_CH_AUTO_FUNCTION] = \
-                            self._PARAM_STRING_TO_VALUE[good_values[self.PARAM_CH_AUTO_FUNCTION]]
+                        self._set_param[self._PARAM_CH_AUTO_FUNCTION] = \
+                            self._PARAM_STRING_TO_VALUE[good_values[self._PARAM_CH_AUTO_FUNCTION]]
                         _LOGGER.info('%s New Internet weather is %s', self,
-                                     good_values[self.PARAM_CH_AUTO_FUNCTION])
+                                     good_values[self._PARAM_CH_AUTO_FUNCTION])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported Internet weather or key error: %s', self,
-                                        good_values[self.PARAM_CH_AUTO_FUNCTION])
-                        bad_values[self.PARAM_CH_AUTO_FUNCTION] = good_values[self.PARAM_CH_AUTO_FUNCTION]
+                                        good_values[self._PARAM_CH_AUTO_FUNCTION])
+                        bad_values[self._PARAM_CH_AUTO_FUNCTION] = good_values[self._PARAM_CH_AUTO_FUNCTION]
                         pass
 
                 # check units of measurement
-                if self.PARAM_UNITS in good_values:
+                if self._PARAM_UNITS in good_values:
                     try:
-                        self._set_param[self.PARAM_UNITS] = self._UNIT_TO_VALUE[good_values[self.PARAM_UNITS]]
-                        _LOGGER.info('%s New units of measurement is %s', self, good_values[self.PARAM_UNITS])
+                        self._set_param[self._PARAM_UNITS] = self._UNIT_TO_VALUE[good_values[self._PARAM_UNITS]]
+                        _LOGGER.info('%s New units of measurement is %s', self, good_values[self._PARAM_UNITS])
                     except:
                         _LOGGER.warning('%s Unknown or unsupported units of measurement or key error: %s', self,
-                                        good_values[self.PARAM_UNITS])
-                        bad_values[self.PARAM_UNITS] = good_values[self.PARAM_UNITS]
+                                        good_values[self._PARAM_UNITS])
+                        bad_values[self._PARAM_UNITS] = good_values[self._PARAM_UNITS]
                         pass
 
                 # show data as changed
@@ -3265,13 +3417,13 @@ class AristonHandler():
             raise Exception("Connection data error, problem to set data")
 
     def start(self):
-
+        """Start communication with the server."""
         self._timer_periodic_read = threading.Timer(1, self._queue_get_data)
         self._timer_periodic_read.start()
         self._started = True
 
     def stop(self):
-
+        """Stop communication with the server."""
         self._started = False
         self._timer_periodic_read.cancel()
         self._timer_queue_delay.cancel()
