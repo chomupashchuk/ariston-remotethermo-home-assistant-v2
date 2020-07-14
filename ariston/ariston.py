@@ -99,7 +99,7 @@ class AristonHandler():
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.8"
+    _VERSION = "1.0.9"
 
     _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
@@ -3074,7 +3074,7 @@ class AristonHandler():
                 self._PARAM_DHW_COMFORT_TEMPERATURE,
                 self._PARAM_DHW_ECONOMY_TEMPERATURE
             ]
-            if any([i in self._set_param for i in dhw_params]):
+            if any([i in self._set_param for i in dhw_params]) and self._current_temp_economy_dhw is not None:
                 # data is still changing, assume it is the least value
                 return self._current_temp_economy_ch
             if self._ariston_data != {}:
@@ -3100,7 +3100,7 @@ class AristonHandler():
                 self._PARAM_CH_COMFORT_TEMPERATURE,
                 self._PARAM_CH_ECONOMY_TEMPERATURE
             ]
-            if any([i in self._set_param for i in ch_params]):
+            if any([i in self._set_param for i in ch_params]) and self._current_temp_economy_ch is not None:
                 # data is still changing, assume it is the least value
                 return self._current_temp_economy_ch
             if self._ariston_other_data != {} and self._ariston_data != {}:
