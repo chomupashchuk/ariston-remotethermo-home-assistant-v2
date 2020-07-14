@@ -99,7 +99,7 @@ class AristonHandler():
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.7"
+    _VERSION = "1.0.8"
 
     _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
@@ -2521,7 +2521,11 @@ class AristonHandler():
                             self._get_request_for_parameter(self._PARAM_MODE)] = True
 
                 if self._PARAM_DHW_SET_TEMPERATURE in self._set_param:
-                    if set_data["NewValue"]["dhwTemp"]["value"] == self._set_param[self._PARAM_DHW_SET_TEMPERATURE]:
+
+                    if math.isclose(
+                            set_data["NewValue"]["dhwTemp"]["value"],
+                            self._set_param[self._PARAM_DHW_SET_TEMPERATURE],
+                            abs_tol=0.01):
                         if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] < \
                                 self._get_time_end[self._get_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] \
                                 and self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] == 0:
@@ -2537,8 +2541,10 @@ class AristonHandler():
                             self._get_request_for_parameter(self._PARAM_DHW_SET_TEMPERATURE)] = True
 
                 if self._PARAM_DHW_COMFORT_TEMPERATURE in self._set_param:
-                    if dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] == \
-                            self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE]:
+                    if math.isclose(
+                            dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE],
+                            self._set_param[self._PARAM_DHW_COMFORT_TEMPERATURE],
+                            abs_tol=0.01):
                         if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)] < \
                                 dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE]:
                             # value should be up to date and match to remove from setting
@@ -2562,8 +2568,10 @@ class AristonHandler():
                             self._get_request_for_parameter(self._PARAM_DHW_COMFORT_TEMPERATURE)] = True
 
                 if self._PARAM_DHW_ECONOMY_TEMPERATURE in self._set_param:
-                    if dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] == \
-                            self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE]:
+                    if math.isclose(
+                            dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE],
+                            self._set_param[self._PARAM_DHW_ECONOMY_TEMPERATURE],
+                            abs_tol=0.01):
                         if self._set_time_start[self._set_request_for_parameter(self._PARAM_DHW_ECONOMY_TEMPERATURE)] < \
                                 dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE]:
                             # value should be up to date and match to remove from setting
@@ -2698,7 +2706,10 @@ class AristonHandler():
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_CYCLE:
-                                if param_item["value"] == self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE]:
+                                if math.isclose(
+                                        param_item["value"],
+                                        self._set_param[self._PARAM_THERMAL_CLEANSE_CYCLE],
+                                        abs_tol=0.01):
                                     if self._set_time_start[self._set_request_for_parameter(
                                             self._PARAM_THERMAL_CLEANSE_CYCLE)] < \
                                             self._get_time_end[
@@ -2806,8 +2817,10 @@ class AristonHandler():
                         pass
 
                 if self._PARAM_CH_SET_TEMPERATURE in self._set_param:
-                    if set_data["NewValue"]["zone"]["comfortTemp"]["value"] == \
-                            self._set_param[self._PARAM_CH_SET_TEMPERATURE]:
+                    if math.isclose(
+                            set_data["NewValue"]["zone"]["comfortTemp"]["value"],
+                            self._set_param[self._PARAM_CH_SET_TEMPERATURE],
+                            abs_tol=0.01):
                         if self._set_time_start[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] < \
                                 self._get_time_end[self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] and \
                                 self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] == 0:
@@ -2827,7 +2840,10 @@ class AristonHandler():
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                                if param_item["value"] == self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE]:
+                                if math.isclose(
+                                        param_item["value"],
+                                        self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE],
+                                        abs_tol=0.01):
                                     if self._set_time_start[self._set_request_for_parameter(
                                             self._PARAM_CH_COMFORT_TEMPERATURE)] < \
                                             self._get_time_end[
@@ -2864,7 +2880,10 @@ class AristonHandler():
                     try:
                         for param_item in self._ariston_other_data:
                             if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                                if param_item["value"] == self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE]:
+                                if math.isclose(
+                                        param_item["value"],
+                                        self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE],
+                                        abs_tol=0.01):
                                     if self._set_time_start[self._set_request_for_parameter(
                                             self._PARAM_CH_ECONOMY_TEMPERATURE)] < \
                                             self._get_time_end[
@@ -3105,7 +3124,7 @@ class AristonHandler():
             pass
         return self._current_temp_economy_ch
 
-    def set_http_data(self, **parameter_list: Union[str, int, float]) -> None:
+    def set_http_data(self, **parameter_list: Union[str, int, float, bool]) -> None:
         """
         Set data over http, where **parameter_list excepts parameters and wanted values.
 
@@ -3130,6 +3149,8 @@ class AristonHandler():
         Supported values must be viewed in the property 'supported_sensors_set_values',
         which are generated dynamically based on reported values.
 
+        Example:
+            set_http_data(mode='off',internet_time=True)
         """
 
         if self._ariston_data != {}:
@@ -3153,6 +3174,7 @@ class AristonHandler():
                             self._PARAM_THERMAL_CLEANSE_FUNCTION,
                             self._PARAM_UNITS
                         }:
+                            value = str(value).lower()
                             if value in allowed_values[parameter]:
                                 good_values[parameter] = value
                                 good_parameter = True
