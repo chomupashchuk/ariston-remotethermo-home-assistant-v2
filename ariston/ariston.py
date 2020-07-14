@@ -89,6 +89,9 @@ class AristonHandler():
 
     'store_file' - indicates if HTTP and internal data to be stored as files for troubleshooting purposes;
 
+    'store_folder' - folder to store HTTP and internal data to. If empty string is used, then current working directory
+    is used with a folder 'http_logs' within it.
+
     'units' - 'metric' or 'imperial' or 'auto'.
     Value 'auto' creates additional request towards the server and as a result increases period to update other sensors.
 
@@ -99,7 +102,7 @@ class AristonHandler():
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.9"
+    _VERSION = "1.0.10"
 
     _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
@@ -185,6 +188,7 @@ class AristonHandler():
     _VAL_AUTO = "auto"
     _VAL_DEFAULT = "default"
 
+    _FILE_FOLDER = "http_logs"
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
     _GITHUB_LATEST_RELEASE = \
         'https://pypi.python.org/pypi/aristonremotethermo/json'
@@ -525,13 +529,20 @@ class AristonHandler():
         if not isinstance(dhw_unknown_as_on, bool):
             raise
 
-        if store_folder != "" and not os.path.isdir(store_folder):
-            raise
-
         if sensors:
             for sensor in sensors:
                 if sensor not in self._SENSOR_LIST:
                     raise
+
+        if store_file:
+            if store_folder != "":
+                self._store_folder = store_folder
+            else:
+                self._store_folder = os.path.join(os.getcwd(), self._FILE_FOLDER)
+            if not os.path.isdir(self._store_folder):
+                os.mkdir(self._store_folder)
+        else:
+            self._store_folder = ""
 
         # clear read sensor values
         self._ariston_sensors = {}
@@ -628,10 +639,7 @@ class AristonHandler():
             self._REQUEST_SET_UNITS: 0
         }
         self._store_file = store_file
-        if store_folder != "":
-            self._store_folder = store_folder
-        else:
-            self._store_folder = os.path.dirname(os.path.realpath(__file__))
+
         self._token_lock = threading.Lock()
         self._token = None
         self._units = units

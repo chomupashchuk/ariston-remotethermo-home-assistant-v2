@@ -182,7 +182,7 @@ class AristonChecker():
             sensors=list_of_sensors,
             units=units,
             store_file=store_file,
-            store_folder="/config/custom_components/ariston"
+            store_folder="/config/custom_components/ariston/http_data"
         )
 
 
