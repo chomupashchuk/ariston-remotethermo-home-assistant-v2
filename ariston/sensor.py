@@ -72,9 +72,9 @@ SENSOR_DHW_ECONOMY_TEMPERATURE = "DHW Economy Temperature"
 SENSOR_DHW_MODE = "DHW Mode"
 SENSOR_ERRORS = "Active Errors"
 SENSOR_HEATING_LAST_24H = "Energy use for Heating in last 24 hours"
-SENSOR_HEATING_LAST_7d = "Energy use for Heating in last 7 days"
-SENSOR_HEATING_LAST_30d = "Energy use for Heating in last 30 days"
-SENSOR_HEATING_LAST_365d = "Energy use for Heating in last 365 days"
+SENSOR_HEATING_LAST_7D = "Energy use for Heating in last 7 days"
+SENSOR_HEATING_LAST_30D = "Energy use for Heating in last 30 days"
+SENSOR_HEATING_LAST_365D = "Energy use for Heating in last 365 days"
 SENSOR_MODE = "Mode"
 SENSOR_OUTSIDE_TEMPERATURE = "Outside Temperature"
 SENSOR_SIGNAL_STRENGTH = "Signal Strength"
@@ -112,9 +112,9 @@ SENSORS = {
     PARAM_DHW_MODE: [SENSOR_DHW_MODE, "mdi:water-pump"],
     PARAM_ERRORS_COUNT: [SENSOR_ERRORS, "mdi:alert-outline"],
     PARAM_HEATING_LAST_24H: [SENSOR_HEATING_LAST_24H, "mdi:cash"],
-    PARAM_HEATING_LAST_7D: [SENSOR_HEATING_LAST_7d, "mdi:cash"],
-    PARAM_HEATING_LAST_30D: [SENSOR_HEATING_LAST_30d, "mdi:cash"],
-    PARAM_HEATING_LAST_365D: [SENSOR_HEATING_LAST_365d, "mdi:cash"],
+    PARAM_HEATING_LAST_7D: [SENSOR_HEATING_LAST_7D, "mdi:cash"],
+    PARAM_HEATING_LAST_30D: [SENSOR_HEATING_LAST_30D, "mdi:cash"],
+    PARAM_HEATING_LAST_365D: [SENSOR_HEATING_LAST_365D, "mdi:cash"],
     PARAM_MODE: [SENSOR_MODE, "mdi:water-boiler"],
     PARAM_OUTSIDE_TEMPERATURE: [SENSOR_OUTSIDE_TEMPERATURE, "mdi:thermometer"],
     PARAM_SIGNAL_STRENGTH: [SENSOR_SIGNAL_STRENGTH, "mdi:signal"],
@@ -153,7 +153,7 @@ class AristonSensor(Entity):
         """Initialize a sensor for Ariston."""
         self._name = "{} {}".format(name, SENSORS[sensor_type][0])
         self._signal_name = name
-        self._api = device.api.Ariston
+        self._api = device.api.ariston_api
         self._sensor_type = sensor_type
         self._state = None
         self._attrs = {}
@@ -181,7 +181,7 @@ class AristonSensor(Entity):
             try:
                 if self._api.sensor_values[PARAM_ERRORS_COUNT][VALUE] == 0:
                     return "mdi:shield"
-            except:
+            except KeyError:
                 pass
         return self._icon
 
@@ -190,13 +190,16 @@ class AristonSensor(Entity):
         """Return the units of measurement."""
         try:
             return self._api.sensor_values[self._sensor_type][UNITS]
-        except:
+        except KeyError:
             return None
 
     @property
     def available(self):
         """Return True if entity is available."""
-        return self._api.available and not self._api.sensor_values[self._sensor_type][VALUE] is None
+        return (
+            self._api.available
+            and not self._api.sensor_values[self._sensor_type][VALUE] is None
+        )
 
     def update(self):
         """Get the latest data and updates the state."""
@@ -217,15 +220,18 @@ class AristonSensor(Entity):
             self._attrs = {}
             if self._sensor_type in {
                 PARAM_CH_SET_TEMPERATURE,
-                PARAM_DHW_SET_TEMPERATURE
+                PARAM_DHW_SET_TEMPERATURE,
             }:
                 try:
-                    self._attrs["Min"] = self._api.supported_sensors_set_values[self._sensor_type]["min"]
-                    self._attrs["Max"] = self._api.supported_sensors_set_values[self._sensor_type]["max"]
-                except:
+                    self._attrs["Min"] = self._api.supported_sensors_set_values[
+                        self._sensor_type
+                    ]["min"]
+                    self._attrs["Max"] = self._api.supported_sensors_set_values[
+                        self._sensor_type
+                    ]["max"]
+                except KeyError:
                     self._attrs["Min"] = None
                     self._attrs["Max"] = None
-                    pass
 
             elif self._sensor_type == PARAM_ERRORS_COUNT:
                 if not self._api.sensor_values[PARAM_ERRORS][VALUE] is None:
@@ -240,16 +246,13 @@ class AristonSensor(Entity):
                 PARAM_HEATING_LAST_30D,
                 PARAM_WATER_LAST_30D,
                 PARAM_HEATING_LAST_365D,
-                PARAM_WATER_LAST_365D
+                PARAM_WATER_LAST_365D,
             }:
                 list_param = self._sensor_type + "_list"
                 self._attrs = self._api.sensor_values[list_param][VALUE]
 
-            elif self._sensor_type in {
-                PARAM_CH_PROGRAM,
-                PARAM_DHW_PROGRAM
-            }:
+            elif self._sensor_type in {PARAM_CH_PROGRAM, PARAM_DHW_PROGRAM}:
                 if not self._api.sensor_values[self._sensor_type][VALUE] is None:
                     self._attrs = self._api.sensor_values[self._sensor_type][VALUE]
-        except:
+        except KeyError:
             _LOGGER.warning("Problem updating sensors for Ariston")

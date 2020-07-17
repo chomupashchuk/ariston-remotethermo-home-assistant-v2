@@ -27,13 +27,12 @@ from .const import (
     VAL_WINTER,
     VAL_OFFLINE,
     VAL_IMPERIAL,
-    VAL_METRIC,
     VALUE,
 )
 
 ACTION_IDLE = "idle"
 ACTION_HEATING = "heating"
-UNKNOWN_TEMP = 0.
+UNKNOWN_TEMP = 0.0
 
 SCAN_INTERVAL = timedelta(seconds=2)
 
@@ -57,7 +56,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def __init__(self, name, device):
         """Initialize the thermostat."""
         self._name = name
-        self._api = device.api.Ariston
+        self._api = device.api.ariston_api
 
     @property
     def name(self):
@@ -67,22 +66,22 @@ class AristonWaterHeater(WaterHeaterEntity):
     @property
     def icon(self):
         """Return the name of the Water Heater device."""
-        current_mode = VAL_OFFLINE
         try:
             if self._api.ch_available:
                 current_mode = self._api.sensor_values[PARAM_MODE][VALUE]
-        except:
-            current_mode = VAL_OFFLINE
-        finally:
-            if current_mode in [VAL_WINTER, VAL_SUMMER]:
-                return "mdi:water-pump"
             else:
-                return "mdi:water-pump-off"
+                current_mode = VAL_OFFLINE
+        except KeyError:
+            return "mdi:water-pump-off"
+        if current_mode in [VAL_WINTER, VAL_SUMMER]:
+            return "mdi:water-pump"
+        else:
+            return "mdi:water-pump-off"
 
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this thermostat."""
-        return '_'.join([self._name, 'water_heater'])
+        return "_".join([self._name, "water_heater"])
 
     @property
     def should_poll(self):
@@ -97,126 +96,116 @@ class AristonWaterHeater(WaterHeaterEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        features = SUPPORT_TARGET_TEMPERATURE
         try:
             if self._api.supported_sensors_set_values[PARAM_DHW_MODE]:
-                features = features | SUPPORT_OPERATION_MODE
-        except:
-            features = SUPPORT_TARGET_TEMPERATURE
+                features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE
+            else:
+                features = SUPPORT_TARGET_TEMPERATURE
+        except KeyError:
+            return SUPPORT_TARGET_TEMPERATURE
         return features
 
     @property
     def current_temperature(self):
         """Return the temperature"""
-        current_temp = None
         try:
             current_temp = self._api.sensor_values[PARAM_DHW_STORAGE_TEMPERATURE][VALUE]
             if current_temp == 0:
                 # Not supported
                 current_temp = None
-        except:
-            current_temp = None
-        finally:
-            return current_temp
+        except KeyError:
+            return None
+        return current_temp
 
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        units = VAL_METRIC
         try:
             units = self._api.sensor_values[PARAM_UNITS][VALUE]
-        except:
-            units = VAL_METRIC
-        finally:
-            if units == VAL_IMPERIAL:
-                return TEMP_FAHRENHEIT
-            else:
-                return TEMP_CELSIUS
+        except KeyError:
+            return TEMP_CELSIUS
+        if units == VAL_IMPERIAL:
+            return TEMP_FAHRENHEIT
+        else:
+            return TEMP_CELSIUS
 
     @property
     def min_temp(self):
         """Return minimum temperature."""
-        minimum_temp = UNKNOWN_TEMP
         try:
-            minimum_temp = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE]["min"]
-        except:
-            minimum_temp = UNKNOWN_TEMP
-        finally:
-            return minimum_temp
+            minimum_temp = self._api.supported_sensors_set_values[
+                PARAM_DHW_SET_TEMPERATURE
+            ]["min"]
+        except KeyError:
+            return UNKNOWN_TEMP
+        return minimum_temp
 
     @property
     def max_temp(self):
         """Return the maximum temperature."""
-        maximum_temp = UNKNOWN_TEMP
         try:
-            maximum_temp = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE]["max"]
-        except:
-            maximum_temp = UNKNOWN_TEMP
-        finally:
-            return maximum_temp
+            maximum_temp = self._api.supported_sensors_set_values[
+                PARAM_DHW_SET_TEMPERATURE
+            ]["max"]
+        except KeyError:
+            return UNKNOWN_TEMP
+        return maximum_temp
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        target_temp = UNKNOWN_TEMP
         try:
             target_temp = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][VALUE]
-        except:
-            target_temp = UNKNOWN_TEMP
-        finally:
-            return target_temp
+        except KeyError:
+            return UNKNOWN_TEMP
+        return target_temp
 
     @property
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
-        step = 1.
         try:
-            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE]["step"]
-        except:
-            step = 1.
-        finally:
-            return step
+            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE][
+                "step"
+            ]
+        except KeyError:
+            return 1.0
+        return step
 
     @property
     def device_state_attributes(self):
         """Return the supported step of target temperature."""
         try:
-            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE]["step"]
-        except:
-            step = 1.
-            pass
+            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE][
+                "step"
+            ]
+        except KeyError:
+            step = 1.0
         try:
             if self._api.sensor_values[PARAM_DHW_FLAME][VALUE]:
                 action = ACTION_HEATING
             else:
                 action = ACTION_IDLE
-        except:
+        except KeyError:
             action = ACTION_IDLE
-            pass
-        data = {"target_temp_step": step, "hvac_action": action}
-        return data
+        return {"target_temp_step": step, "hvac_action": action}
 
     @property
     def operation_list(self):
         """List of available operation modes."""
-        op_list = []
         try:
             op_list = self._api.supported_sensors_set_values[PARAM_DHW_MODE]
-        except:
-            op_list = []
-        finally:
-            return op_list
+        except KeyError:
+            return []
+        return op_list
 
     @property
     def current_operation(self):
         """Return current operation"""
-        current_op = VAL_OFFLINE
         try:
             current_op = self._api.sensor_values[PARAM_DHW_MODE][VALUE]
-        except:
-            current_op = VAL_OFFLINE
-        finally:
-            return current_op
+        except KeyError:
+            return VAL_OFFLINE
+        return current_op
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""

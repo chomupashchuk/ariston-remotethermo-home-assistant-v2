@@ -59,8 +59,16 @@ BINARY_SENSORS = {
     PARAM_HEAT_PUMP: (BINARY_SENSOR_HEAT_PUMP, DEVICE_CLASS_HEAT, None),
     PARAM_CHANGING_DATA: (BINARY_SENSOR_CHANGING_DATA, None, "mdi:cogs"),
     PARAM_INTERNET_TIME: (BINARY_SENSOR_INTERNET_TIME, None, "mdi:update"),
-    PARAM_INTERNET_WEATHER: (BINARY_SENSOR_INTERNET_WEATHER, None, "mdi:weather-partly-cloudy"),
-    PARAM_THERMAL_CLEANSE_FUNCTION: (BINARY_SENSOR_THERMAL_CLEANSE_FUNCTION, None, "mdi:allergy"),
+    PARAM_INTERNET_WEATHER: (
+        BINARY_SENSOR_INTERNET_WEATHER,
+        None,
+        "mdi:weather-partly-cloudy",
+    ),
+    PARAM_THERMAL_CLEANSE_FUNCTION: (
+        BINARY_SENSOR_THERMAL_CLEANSE_FUNCTION,
+        None,
+        "mdi:allergy",
+    ),
     PARAM_CH_PILOT: (BINARY_SENSOR_CH_PILOT, None, "mdi:head-cog-outline"),
     PARAM_UPDATE: (BINARY_SENSOR_UPDATE, None, "mdi:package-down"),
 }
@@ -87,7 +95,7 @@ class AristonBinarySensor(BinarySensorEntity):
 
     def __init__(self, name, device, sensor_type):
         """Initialize entity."""
-        self._api = device.api.Ariston
+        self._api = device.api.ariston_api
         self._attrs = {}
         self._device_class = BINARY_SENSORS[sensor_type][1]
         self._icon = BINARY_SENSORS[sensor_type][2]
@@ -128,7 +136,10 @@ class AristonBinarySensor(BinarySensorEntity):
         elif self._sensor_type == PARAM_CHANGING_DATA:
             return self._api.available
         else:
-            return self._api.available and not self._api.sensor_values[self._sensor_type][VALUE] is None
+            return (
+                self._api.available
+                and not self._api.sensor_values[self._sensor_type][VALUE] is None
+            )
 
     @property
     def icon(self):
@@ -145,7 +156,9 @@ class AristonBinarySensor(BinarySensorEntity):
             elif self._sensor_type == PARAM_UPDATE:
                 self._attrs["Installed"] = self._api.version
                 self._state = self._api.sensor_values[self._sensor_type][VALUE]
-                self._attrs["Online"] = self._api.sensor_values[PARAM_ONLINE_VERSION][VALUE]
+                self._attrs["Online"] = self._api.sensor_values[PARAM_ONLINE_VERSION][
+                    VALUE
+                ]
             else:
                 if not self._api.available:
                     return
@@ -153,5 +166,5 @@ class AristonBinarySensor(BinarySensorEntity):
                     self._state = self._api.sensor_values[self._sensor_type][VALUE]
                 else:
                     self._state = False
-        except:
+        except KeyError:
             _LOGGER.warning("Problem updating binary_sensors for Ariston")

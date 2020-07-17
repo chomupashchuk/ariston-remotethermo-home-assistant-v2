@@ -51,7 +51,7 @@ class AristonSwitch(SwitchEntity):
 
     def __init__(self, name, device, switch_type):
         """Initialize entity."""
-        self._api = device.api.Ariston
+        self._api = device.api.ariston_api
         self._icon = SWITCHES[switch_type][1]
         self._name = "{} {}".format(name, SWITCHES[switch_type][0])
         self._switch_type = switch_type
@@ -77,8 +77,11 @@ class AristonSwitch(SwitchEntity):
     def available(self):
         """Return True if entity is available."""
         try:
-            return self._api.available and not self._api.sensor_values[self._switch_type][VALUE] is None
-        except:
+            return (
+                self._api.available
+                and not self._api.sensor_values[self._switch_type][VALUE] is None
+            )
+        except KeyError:
             return False
 
     @property
@@ -88,7 +91,7 @@ class AristonSwitch(SwitchEntity):
             if not self._api.available:
                 return False
             return self._api.sensor_values[self._switch_type][VALUE]
-        except:
+        except KeyError:
             return False
 
     def turn_on(self, **kwargs):

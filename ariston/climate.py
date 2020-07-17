@@ -42,14 +42,13 @@ from .const import (
     VAL_PROGRAM,
     VAL_HOLIDAY,
     VAL_OFFLINE,
-    VAL_METRIC,
     VAL_IMPERIAL,
     VALUE,
 )
 
 SCAN_INTERVAL = timedelta(seconds=2)
 SUPPORT_FLAGS = SUPPORT_PRESET_MODE | SUPPORT_TARGET_TEMPERATURE
-UNKNOWN_TEMP = 0.
+UNKNOWN_TEMP = 0.0
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,23 +69,23 @@ class AristonThermostat(ClimateEntity):
     def __init__(self, name, device):
         """Initialize the thermostat."""
         self._name = name
-        self._api = device.api.Ariston
+        self._api = device.api.ariston_api
         self._device = device.device
 
     @property
     def icon(self):
         """Return the name of the Climate device."""
-        current_mode = VAL_OFFLINE
         try:
             if self._api.ch_available:
                 current_mode = self._api.sensor_values[PARAM_MODE][VALUE]
-        except:
-            pass
-        finally:
-            if current_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
-                return "mdi:radiator"
             else:
-                return "mdi:radiator-off"
+                current_mode = VAL_OFFLINE
+        except KeyError:
+            return "mdi:radiator-off"
+        if current_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
+            return "mdi:radiator"
+        else:
+            return "mdi:radiator-off"
 
     @property
     def name(self):
@@ -96,7 +95,7 @@ class AristonThermostat(ClimateEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this thermostat."""
-        return '_'.join([self._name, 'climate'])
+        return "_".join([self._name, "climate"])
 
     @property
     def should_poll(self):
@@ -106,65 +105,58 @@ class AristonThermostat(ClimateEntity):
     @property
     def min_temp(self):
         """Return minimum temperature."""
-        minimum_temp = UNKNOWN_TEMP
         try:
-            minimum_temp = self._api.supported_sensors_set_values[PARAM_CH_SET_TEMPERATURE]["min"]
-        except:
-            minimum_temp = UNKNOWN_TEMP
-        finally:
-            return minimum_temp
+            minimum_temp = self._api.supported_sensors_set_values[
+                PARAM_CH_SET_TEMPERATURE
+            ]["min"]
+        except KeyError:
+            return UNKNOWN_TEMP
+        return minimum_temp
 
     @property
     def max_temp(self):
         """Return the maximum temperature."""
-        maximum_temp = UNKNOWN_TEMP
         try:
-            maximum_temp = self._api.supported_sensors_set_values[PARAM_CH_SET_TEMPERATURE]["max"]
-        except:
-            maximum_temp = UNKNOWN_TEMP
-        finally:
-            return maximum_temp
+            maximum_temp = self._api.supported_sensors_set_values[
+                PARAM_CH_SET_TEMPERATURE
+            ]["max"]
+        except KeyError:
+            return UNKNOWN_TEMP
+        return maximum_temp
 
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        units = VAL_METRIC
         try:
             units = self._api.sensor_values[PARAM_UNITS][VALUE]
-        except:
-            units = VAL_METRIC
-        finally:
-            if units == VAL_IMPERIAL:
-                return TEMP_FAHRENHEIT
-            else:
-                return TEMP_CELSIUS
+        except KeyError:
+            return TEMP_CELSIUS
+        if units == VAL_IMPERIAL:
+            return TEMP_FAHRENHEIT
+        else:
+            return TEMP_CELSIUS
 
     @property
     def current_temperature(self):
         """Return the current temperature."""
-        current_temp = UNKNOWN_TEMP
         try:
             current_temp = self._api.sensor_values[PARAM_CH_DETECTED_TEMPERATURE][VALUE]
-        except:
-            current_temp = UNKNOWN_TEMP
-        finally:
-            return current_temp
+        except KeyError:
+            return UNKNOWN_TEMP
+        return current_temp
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        target_temp = UNKNOWN_TEMP
         try:
             target_temp = self._api.sensor_values[PARAM_CH_SET_TEMPERATURE][VALUE]
-        except:
-            target_temp = UNKNOWN_TEMP
-        finally:
-            return target_temp
+        except KeyError:
+            return UNKNOWN_TEMP
+        return target_temp
 
     @property
     def hvac_mode(self):
         """Return hvac operation ie. heat, cool mode."""
-        curr_hvac_mode = HVAC_MODE_OFF
         try:
             climate_mode = self._api.sensor_values[PARAM_MODE][VALUE]
             climate_ch_mode = self._api.sensor_values[PARAM_CH_MODE][VALUE]
@@ -174,33 +166,30 @@ class AristonThermostat(ClimateEntity):
                     curr_hvac_mode = HVAC_MODE_HEAT
                 elif climate_ch_mode == VAL_PROGRAM:
                     curr_hvac_mode = HVAC_MODE_AUTO
-        except:
-            curr_hvac_mode = HVAC_MODE_OFF
-        finally:
-            return curr_hvac_mode
+        except KeyError:
+            return HVAC_MODE_OFF
+        return curr_hvac_mode
 
     @property
     def hvac_modes(self):
         """HVAC modes."""
-        supported_modes = []
         try:
             hvac_off_present = self._device[CONF_HVAC_OFF_PRESENT]
             supported_ch_modes = self._api.supported_sensors_set_values[PARAM_CH_MODE]
+            supported_modes = []
             if VAL_MANUAL in supported_ch_modes:
                 supported_modes.append(HVAC_MODE_HEAT)
             if VAL_PROGRAM in supported_ch_modes:
                 supported_modes.append(HVAC_MODE_AUTO)
             if hvac_off_present:
                 supported_modes.append(HVAC_MODE_OFF)
-        except:
-            supported_modes = []
-        finally:
-            return supported_modes
+        except KeyError:
+            return []
+        return supported_modes
 
     @property
     def hvac_action(self):
         """Return the current running hvac operation."""
-        curr_hvac_action = CURRENT_HVAC_OFF
         try:
             curr_hvac_action = CURRENT_HVAC_OFF
             climate_mode = self._api.sensor_values[PARAM_MODE][VALUE]
@@ -210,34 +199,29 @@ class AristonThermostat(ClimateEntity):
                     curr_hvac_action = CURRENT_HVAC_HEAT
                 else:
                     curr_hvac_action = CURRENT_HVAC_IDLE
-        except:
-            curr_hvac_action = CURRENT_HVAC_OFF
-        finally:
-            return curr_hvac_action
+        except KeyError:
+            return CURRENT_HVAC_OFF
+        return curr_hvac_action
 
     @property
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
-        curr_preset_mode = VAL_OFFLINE
         try:
             curr_preset_mode = self._api.sensor_values[PARAM_MODE][VALUE]
             if self._api.sensor_values[PARAM_HOLIDAY_MODE][VALUE]:
                 curr_preset_mode = VAL_HOLIDAY
-        except:
-            curr_preset_mode = VAL_OFFLINE
-        finally:
-            return curr_preset_mode
+        except KeyError:
+            return VAL_OFFLINE
+        return curr_preset_mode
 
     @property
     def preset_modes(self):
         """Return a list of available preset modes."""
-        all_presets = []
         try:
             all_presets = [*self._api.supported_sensors_set_values[PARAM_MODE]]
-        except:
-            all_presets = []
-        finally:
-            return all_presets
+        except KeyError:
+            return []
+        return all_presets
 
     @property
     def supported_features(self):
@@ -252,13 +236,13 @@ class AristonThermostat(ClimateEntity):
     @property
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
-        step = 0.5
         try:
-            step = self._api.supported_sensors_set_values[PARAM_CH_SET_TEMPERATURE]["step"]
-        except:
-            step = 0.5
-        finally:
-            return step
+            step = self._api.supported_sensors_set_values[PARAM_CH_SET_TEMPERATURE][
+                "step"
+            ]
+        except KeyError:
+            return 0.5
+        return step
 
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -279,13 +263,19 @@ class AristonThermostat(ClimateEntity):
                 self._api.set_http_data(**{PARAM_CH_MODE: ch_mode})
             elif current_mode == VAL_SUMMER:
                 # DHW is working, so use Winter where CH and DHW are active
-                self._api.set_http_data(**{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode})
+                self._api.set_http_data(
+                    **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
+                )
             else:
                 # DHW is disabled, so use heating only, if not supported then winter
                 if VAL_HEATING_ONLY in supported_modes:
-                    self._api.set_http_data(**{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode})
+                    self._api.set_http_data(
+                        **{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode}
+                    )
                 else:
-                    self._api.set_http_data(**{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode})
+                    self._api.set_http_data(
+                        **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
+                    )
 
     def set_preset_mode(self, preset_mode):
         """Set new target preset mode."""

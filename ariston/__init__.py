@@ -20,6 +20,7 @@ from homeassistant.const import (
 from homeassistant.helpers import discovery
 
 from .ariston import AristonHandler
+
 from .binary_sensor import BINARY_SENSORS
 from .const import (
     DOMAIN,
@@ -97,7 +98,6 @@ from .const import (
     PARAM_THERMAL_CLEANSE_FUNCTION,
     PARAM_CH_PILOT,
     PARAM_UPDATE,
-    PARAM_INSTALLED_VERSION,
     PARAM_ONLINE_VERSION,
     VALUE,
     UNITS,
@@ -123,14 +123,22 @@ ARISTON_SCHEMA = vol.Schema(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Optional(CONF_BINARY_SENSORS): vol.All(cv.ensure_list, [vol.In(BINARY_SENSORS)]),
+        vol.Optional(CONF_BINARY_SENSORS): vol.All(
+            cv.ensure_list, [vol.In(BINARY_SENSORS)]
+        ),
         vol.Optional(CONF_SENSORS): vol.All(cv.ensure_list, [vol.In(SENSORS)]),
-        vol.Optional(CONF_HVAC_OFF, default=DEFAULT_HVAC): vol.In([VAL_OFF, VAL_SUMMER]),
-        vol.Optional(CONF_MAX_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(int, vol.Range(min=0, max=65535)),
+        vol.Optional(CONF_HVAC_OFF, default=DEFAULT_HVAC): vol.In(
+            [VAL_OFF, VAL_SUMMER]
+        ),
+        vol.Optional(CONF_MAX_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
+            int, vol.Range(min=0, max=65535)
+        ),
         vol.Optional(CONF_SWITCHES): vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
         vol.Optional(CONF_STORE_CONFIG_FILES, default=False): cv.boolean,
         vol.Optional(CONF_HVAC_OFF_PRESENT, default=False): cv.boolean,
-        vol.Optional(CONF_UNITS, default=VAL_METRIC): vol.In([VAL_METRIC, VAL_IMPERIAL, VAL_AUTO]),
+        vol.Optional(CONF_UNITS, default=VAL_METRIC): vol.In(
+            [VAL_METRIC, VAL_IMPERIAL, VAL_AUTO]
+        ),
     }
 )
 
@@ -147,27 +155,27 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-class AristonChecker():
+class AristonChecker:
     """Ariston checker"""
 
     def __init__(
-            self,
-            hass,
-            device,
-            name,
-            username,
-            password,
-            store_file,
-            units,
-            sensors,
-            binary_sensors,
-            switches
+        self,
+        hass,
+        device,
+        name,
+        username,
+        password,
+        store_file,
+        units,
+        sensors,
+        binary_sensors,
+        switches,
     ):
         """Initialize."""
 
         self.device = device
         self._hass = hass
-        self._name = name
+        self.name = name
 
         list_of_sensors = list({*sensors, *binary_sensors, *switches})
         """ Some sensors or switches are not part of API """
@@ -176,13 +184,13 @@ class AristonChecker():
         if PARAM_ONLINE in list_of_sensors:
             list_of_sensors.remove(PARAM_ONLINE)
 
-        self.Ariston = AristonHandler(
+        self.ariston_api = AristonHandler(
             username=username,
             password=password,
             sensors=list_of_sensors,
             units=units,
             store_file=store_file,
-            store_folder="/config/custom_components/ariston/http_data"
+            store_folder="/config/ariston_http_data",
         )
 
 
@@ -210,27 +218,19 @@ def setup(hass, config):
             units=units,
             sensors=sensors,
             binary_sensors=binary_sensors,
-            switches=switches
+            switches=switches,
         )
 
         api_list.append(api)
         # start api execution
-        api.Ariston.start()
+        api.ariston_api.start()
 
         # load all devices
         hass.data[DATA_ARISTON][DEVICES][name] = AristonDevice(api, device)
 
-        discovery.load_platform(
-            hass, CLIMATE,
-            DOMAIN,
-            {CONF_NAME: name},
-            config)
+        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name}, config)
 
-        discovery.load_platform(
-            hass, WATER_HEATER,
-            DOMAIN,
-            {CONF_NAME: name},
-            config)
+        discovery.load_platform(hass, WATER_HEATER, DOMAIN, {CONF_NAME: name}, config)
 
         if switches:
             discovery.load_platform(
@@ -252,11 +252,7 @@ def setup(hass, config):
 
         if sensors:
             discovery.load_platform(
-                hass,
-                SENSOR,
-                DOMAIN,
-                {CONF_NAME: name, CONF_SENSORS: sensors},
-                config
+                hass, SENSOR, DOMAIN, {CONF_NAME: name, CONF_SENSORS: sensors}, config
             )
 
     def set_ariston_data(call):
@@ -279,8 +275,8 @@ def setup(hass, config):
             raise Exception("Invalid entity_id device for Ariston")
 
         for api in api_list:
-            if api._name.lower() == device_id.lower():
-                """climate entity is found"""
+            if api.name.lower() == device_id.lower():
+                # climate entity is found
                 parameter_list = {}
 
                 data = call.data.get(PARAM_MODE, "")
@@ -365,11 +361,7 @@ def setup(hass, config):
 class AristonDevice:
     """Representation of a base Ariston discovery device."""
 
-    def __init__(
-            self,
-            api,
-            device
-    ):
+    def __init__(self, api, device):
         """Initialize the entity."""
         self.api = api
         self.device = device
