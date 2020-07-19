@@ -13,7 +13,8 @@ You may read more about API (`ariston.py`) on the website: https://pypi.org/proj
   - Ariston Nimbus Flex
 
 ## Integration was tested and does not work with:
-  - Ariston Velis Wifi. use https://github.com/chomupashchuk/ariston-aqua-remotethermo-home-assistant instead
+  - Ariston Lydos Wifi. use https://github.com/chomupashchuk/ariston-aqua-remotethermo-home-assistant instead.
+  - Ariston Velis Wifi. No solution yet.
 
 ## How to check if intergation supports your model
 You may check possible support of your boiler by logging into https://www.ariston-net.remotethermo.com and if climate and water heater parts (like temperatures) are available on the home page, then intergation should potentially work.
