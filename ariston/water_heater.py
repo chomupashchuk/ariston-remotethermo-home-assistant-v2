@@ -193,7 +193,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def operation_list(self):
         """List of available operation modes."""
         try:
-            op_list = self._api.supported_sensors_set_values[PARAM_DHW_MODE]
+            op_list = [*self._api.supported_sensors_set_values[PARAM_DHW_MODE]]
         except KeyError:
             return []
         return op_list
