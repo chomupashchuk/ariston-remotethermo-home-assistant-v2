@@ -196,6 +196,8 @@ class AristonChecker:
 
 def setup(hass, config):
     """Set up the Ariston component."""
+    if DOMAIN not in config:
+        return True
     hass.data.setdefault(DATA_ARISTON, {DEVICES: {}, CLIMATES: [], WATER_HEATERS: []})
     api_list = []
     for device in config[DOMAIN]:
