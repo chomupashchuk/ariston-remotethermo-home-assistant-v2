@@ -67,7 +67,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def icon(self):
         """Return the name of the Water Heater device."""
         try:
-            if self._api.ch_available:
+            if self._api.dhw_available:
                 current_mode = self._api.sensor_values[PARAM_MODE][VALUE]
             else:
                 current_mode = VAL_OFFLINE
