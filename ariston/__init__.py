@@ -345,7 +345,7 @@ def setup(hass, config):
 
                 _LOGGER.debug("Ariston device found, data to check and send")
 
-                api.Ariston.set_http_data(**parameter_list)
+                api.ariston_api.set_http_data(**parameter_list)
                 return
             raise Exception("Corresponding entity_id for Ariston not found")
         return
