@@ -277,7 +277,7 @@ def setup(hass, config):
             raise Exception("Invalid entity_id device for Ariston")
 
         for api in api_list:
-            if api.name.lower() == device_id.lower():
+            if api.name.replace(' ', '_').lower() == device_id.lower():
                 # climate entity is found
                 parameter_list = {}
 
