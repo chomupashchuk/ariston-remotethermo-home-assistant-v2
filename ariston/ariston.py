@@ -100,7 +100,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.16"
+    _VERSION = "1.0.17"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -536,15 +536,13 @@ class AristonHandler:
                 if sensor not in self._SENSOR_LIST:
                     sensors.remove(sensor)
 
-        if store_file:
-            if store_folder != "":
-                self._store_folder = store_folder
-            else:
-                self._store_folder = os.path.join(os.getcwd(), self._FILE_FOLDER)
-            if not os.path.isdir(self._store_folder):
-                os.mkdir(self._store_folder)
+        if store_folder != "":
+            self._store_folder = store_folder
         else:
-            self._store_folder = ""
+            self._store_folder = os.path.join(os.getcwd(), self._FILE_FOLDER)
+        if store_file:
+            if not os.path.isdir(self._store_folder):
+                os.makedirs(self._store_folder)
 
         # clear read sensor values
         self._ariston_sensors = {}
@@ -708,6 +706,8 @@ class AristonHandler:
         self._started = False
 
         if self._store_file:
+            if not os.path.isdir(self._store_folder):
+                os.makedirs(self._store_folder)
             store_file = 'data_ariston_valid_requests.json'
             store_file_path = os.path.join(self._store_folder, store_file)
             with open(store_file_path, 'w') as ariston_fetched:
@@ -1657,6 +1657,8 @@ class AristonHandler:
                 continue
 
         if self._store_file:
+            if not os.path.isdir(self._store_folder):
+                os.makedirs(self._store_folder)
             store_file = 'data_ariston_temp_main.json'
             store_file_path = os.path.join(self._store_folder, store_file)
             with open(store_file_path, 'w') as ariston_fetched:
@@ -2054,6 +2056,8 @@ class AristonHandler:
         self._get_time_end[request_type] = time.time()
 
         if self._store_file:
+            if not os.path.isdir(self._store_folder):
+                os.makedirs(self._store_folder)
             store_file = 'data_ariston' + request_type + '.json'
             store_file_path = os.path.join(self._store_folder, store_file)
             with open(store_file_path, 'w') as ariston_fetched:
@@ -2283,6 +2287,8 @@ class AristonHandler:
                             self._get_request_number_low_prio = 0
 
             if self._store_file:
+                if not os.path.isdir(self._store_folder):
+                    os.makedirs(self._store_folder)
                 store_file = 'data_ariston_all_set_get.json'
                 store_file_path = os.path.join(self._store_folder, store_file)
                 with open(store_file_path, 'w') as ariston_fetched:
@@ -2316,6 +2322,8 @@ class AristonHandler:
         self._LOGGER.info('setting http data')
         try:
             if self._store_file:
+                if not os.path.isdir(self._store_folder):
+                    os.makedirs(self._store_folder)
                 store_file = 'data_ariston' + request_type + '.json'
                 store_file_path = os.path.join(self._store_folder, store_file)
                 with open(store_file_path, 'w') as ariston_fetched:
@@ -2363,6 +2371,8 @@ class AristonHandler:
             """
             # self._store_data(resp, request_type)
             if self._store_file:
+                if not os.path.isdir(self._store_folder):
+                    os.makedirs(self._store_folder)
                 store_file = "data_ariston" + request_type + "_reply.txt"
                 store_file_path = os.path.join(self._store_folder, store_file)
                 with open(store_file_path, "w") as f:
@@ -2979,6 +2989,8 @@ class AristonHandler:
                     self._set_param = {}
 
                 if self._store_file:
+                    if not os.path.isdir(self._store_folder):
+                        os.makedirs(self._store_folder)
                     store_file = 'data_ariston_all_set_get.json'
                     store_file_path = os.path.join(self._store_folder, store_file)
                     with open(store_file_path, 'w') as ariston_fetched:
