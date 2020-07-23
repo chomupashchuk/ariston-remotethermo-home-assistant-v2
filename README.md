@@ -4,7 +4,7 @@ You are free to modify and distribute it. It is distributed 'as is' with no liab
 Cimate has presets to switch between `off`, `summer` and `winter` in order to be able to control boiler from one entity.
 
 ## Donations
-If you like this app, please consider donating some sum to your local charity organizations or for example global organization like Red Cross. I don't mind receiving donations myself (you may conact me for more details if you want to), but please consider charity at first.
+If you like this app, please consider donating some sum to your local charity organizations or global organization like Red Cross. I don't mind receiving donations myself (you may conact me for more details if you want to), but please consider charity at first.
 
 ## Integration slow nature
 Intergation uses api developed by me based on assumptions and test results. It continiously fetches the data from the site with periods determined during tests to have not as many interference with other applications (like Ariston NET application or Google Home application) but be quick enough to get information as soon as possible.
