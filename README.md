@@ -62,6 +62,14 @@ All optional attributes are described in **Integration attributes**
   - `ch_economy_temperature` - CH economy temperature.
   - `ch_set_temperature` - set CH temperature.
   - `ch_program` - CH Time Program.
+  - `cooling_last_24h` - energy use for pump cooling in a day.
+  - `cooling_last_7d` - energy use for pump cooling in a week.
+  - `cooling_last_30d` - energy use for pump cooling in a month.
+  - `cooling_last_365d` - energy use for pump cooling in a year.
+  - `cooling_last_24h_list` - energy use for pump cooling in a day with periods.
+  - `cooling_last_7d_list` - energy use for pump cooling in a week with periods.
+  - `cooling_last_30d_list` - energy use for pump cooling in a month with periods.
+  - `cooling_last_365d_list` - energy use for pump cooling in a year with periods.
   - `dhw_program` - DHW Time Program.
   - `dhw_comfort_function` - DHW comfort function.
   - `dhw_mode` - mode of DHW. Not supported on all models.
