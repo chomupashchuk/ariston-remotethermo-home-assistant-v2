@@ -19,6 +19,10 @@ from .const import (
     PARAM_CH_ECONOMY_TEMPERATURE,
     PARAM_CH_DETECTED_TEMPERATURE,
     PARAM_CH_PROGRAM,
+    PARAM_COOLING_LAST_24H,
+    PARAM_COOLING_LAST_7D,
+    PARAM_COOLING_LAST_30D,
+    PARAM_COOLING_LAST_365D,
     PARAM_ERRORS,
     PARAM_ERRORS_COUNT,
     PARAM_DHW_COMFORT_FUNCTION,
@@ -63,6 +67,10 @@ SENSOR_CH_SET_TEMPERATURE = "CH Set Temperature"
 SENSOR_CH_PROGRAM = "CH Time Program"
 SENSOR_CH_COMFORT_TEMPERATURE = "CH Comfort Temperature"
 SENSOR_CH_ECONOMY_TEMPERATURE = "CH Economy Temperature"
+SENSOR_COOLING_LAST_24H = "Energy use for Cooling in last 24 hours"
+SENSOR_COOLING_LAST_7D = "Energy use for Cooling in last 7 days"
+SENSOR_COOLING_LAST_30D = "Energy use for Cooling in last 30 days"
+SENSOR_COOLING_LAST_365D = "Energy use for Cooling in last 365 days"
 SENSOR_DHW_COMFORT_FUNCTION = "DHW Comfort Function"
 SENSOR_DHW_PROGRAM = "DHW Time Program"
 SENSOR_DHW_SET_TEMPERATURE = "DHW Set Temperature"
@@ -103,6 +111,10 @@ SENSORS = {
     PARAM_CH_PROGRAM: [SENSOR_CH_PROGRAM, "mdi:calendar-month"],
     PARAM_CH_COMFORT_TEMPERATURE: [SENSOR_CH_COMFORT_TEMPERATURE, "mdi:radiator"],
     PARAM_CH_ECONOMY_TEMPERATURE: [SENSOR_CH_ECONOMY_TEMPERATURE, "mdi:radiator"],
+    PARAM_COOLING_LAST_24H: [SENSOR_COOLING_LAST_24H, "mdi:cash"],
+    PARAM_COOLING_LAST_7D: [SENSOR_COOLING_LAST_7D, "mdi:cash"],
+    PARAM_COOLING_LAST_30D: [SENSOR_COOLING_LAST_30D, "mdi:cash"],
+    PARAM_COOLING_LAST_365D: [SENSOR_COOLING_LAST_365D, "mdi:cash"],
     PARAM_DHW_PROGRAM: [SENSOR_DHW_PROGRAM, "mdi:calendar-month"],
     PARAM_DHW_COMFORT_FUNCTION: [SENSOR_DHW_COMFORT_FUNCTION, "mdi:water-pump"],
     PARAM_DHW_SET_TEMPERATURE: [SENSOR_DHW_SET_TEMPERATURE, "mdi:water-pump"],
@@ -241,12 +253,16 @@ class AristonSensor(Entity):
             elif self._sensor_type in {
                 PARAM_HEATING_LAST_24H,
                 PARAM_WATER_LAST_24H,
+                PARAM_COOLING_LAST_24H,
                 PARAM_HEATING_LAST_7D,
                 PARAM_WATER_LAST_7D,
+                PARAM_COOLING_LAST_7D,
                 PARAM_HEATING_LAST_30D,
                 PARAM_WATER_LAST_30D,
+                PARAM_COOLING_LAST_30D,
                 PARAM_HEATING_LAST_365D,
                 PARAM_WATER_LAST_365D,
+                PARAM_COOLING_LAST_365D,
             }:
                 list_param = self._sensor_type + "_list"
                 self._attrs = self._api.sensor_values[list_param][VALUE]

@@ -38,6 +38,14 @@ class AristonHandler:
         - 'ch_pilot' - CH pilot status.
         - 'ch_auto_function' - CH auto function.
         - 'ch_flame' - CH flame.
+        - 'cooling_last_24h' - energy use for pump cooling in a day.
+        - 'cooling_last_7d' - energy use for pump cooling in a week.
+        - 'cooling_last_30d' - energy use for pump cooling in a month.
+        - 'cooling_last_365d' - energy use for pump cooling in a year.
+        - 'cooling_last_24h_list' - energy use for pump cooling in a day with periods.
+        - 'cooling_last_7d_list' - energy use for pump cooling in a week with periods.
+        - 'cooling_last_30d_list' - energy use for pump cooling in a month with periods.
+        - 'cooling_last_365d_list' - energy use for pump cooling in a year with periods.
         - 'errors' - list of active errors.
         - 'errors_count' - number of active errors
         - 'dhw_comfort_function' - DHW comfort function.
@@ -100,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.17"
+    _VERSION = "1.0.19"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -115,6 +123,14 @@ class AristonHandler:
     _PARAM_CH_ECONOMY_TEMPERATURE = "ch_economy_temperature"
     _PARAM_CH_DETECTED_TEMPERATURE = "ch_detected_temperature"
     _PARAM_CH_PROGRAM = "ch_program"
+    _PARAM_COOLING_LAST_24H = "cooling_last_24h"
+    _PARAM_COOLING_LAST_7D = "cooling_last_7d"
+    _PARAM_COOLING_LAST_30D = "cooling_last_30d"
+    _PARAM_COOLING_LAST_365D = "cooling_last_365d"
+    _PARAM_COOLING_LAST_24H_LIST = "cooling_last_24h_list"
+    _PARAM_COOLING_LAST_7D_LIST = "cooling_last_7d_list"
+    _PARAM_COOLING_LAST_30D_LIST = "cooling_last_30d_list"
+    _PARAM_COOLING_LAST_365D_LIST = "cooling_last_365d_list"
     _PARAM_ERRORS = "errors"
     _PARAM_ERRORS_COUNT = "errors_count"
     _PARAM_DHW_COMFORT_FUNCTION = "dhw_comfort_function"
@@ -307,7 +323,15 @@ class AristonHandler:
         _PARAM_WATER_LAST_24H_LIST,
         _PARAM_WATER_LAST_7D_LIST,
         _PARAM_WATER_LAST_30D_LIST,
-        _PARAM_WATER_LAST_365D_LIST
+        _PARAM_WATER_LAST_365D_LIST,
+        _PARAM_COOLING_LAST_24H,
+        _PARAM_COOLING_LAST_7D,
+        _PARAM_COOLING_LAST_30D,
+        _PARAM_COOLING_LAST_365D,
+        _PARAM_COOLING_LAST_24H_LIST,
+        _PARAM_COOLING_LAST_7D_LIST,
+        _PARAM_COOLING_LAST_30D_LIST,
+        _PARAM_COOLING_LAST_365D_LIST
     }
     _GET_REQUEST_MAIN = {
         _PARAM_CH_DETECTED_TEMPERATURE,
@@ -462,6 +486,10 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
             self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kBtuh'
         elif self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_METRIC:
             self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = '°C'
             self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = '°C'
@@ -487,6 +515,10 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kWh'
             self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
             self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kWh'
 
     def __init__(self,
                  username: str,
@@ -504,7 +536,7 @@ class AristonHandler:
         Initialize API.
         """
         if sensors is None:
-            sensors = []
+            sensors = list()
 
         if units not in {
             self._UNIT_METRIC,
@@ -1224,6 +1256,18 @@ class AristonHandler:
 
                 try:
                     sum_obj = 0
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE] = {}
+                    for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
+                        self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE][
+                            "Period" + str(iteration)] = item["y3"]
+                        sum_obj = sum_obj + item["y3"]
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._VALUE] = round(sum_obj, 3)
+                except KeyError:
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE] = None
+
+                try:
+                    sum_obj = 0
                     self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
                         self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE][
@@ -1246,6 +1290,19 @@ class AristonHandler:
                 except KeyError:
                     self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = None
                     self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = None
+
+                try:
+                    sum_obj = 0
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE] = {}
+                    for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
+                        self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE]["Period" +
+                                                                                             str(iteration)] = \
+                            item["y3"]
+                        sum_obj = sum_obj + item["y3"]
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._VALUE] = round(sum_obj, 3)
+                except KeyError:
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE] = None
 
                 try:
                     sum_obj = 0
@@ -1274,6 +1331,18 @@ class AristonHandler:
 
                 try:
                     sum_obj = 0
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE] = {}
+                    for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
+                        self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE][
+                            "Period" + str(iteration)] = item["y3"]
+                        sum_obj = sum_obj + item["y3"]
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._VALUE] = round(sum_obj, 3)
+                except KeyError:
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE] = None
+
+                try:
+                    sum_obj = 0
                     self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
                         self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE]["Period" +
@@ -1299,6 +1368,18 @@ class AristonHandler:
 
                 try:
                     sum_obj = 0
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE] = {}
+                    for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
+                        self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE][
+                            "Period" + str(iteration)] = item["y3"]
+                        sum_obj = sum_obj + item["y3"]
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._VALUE] = round(sum_obj, 3)
+                except KeyError:
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._VALUE] = None
+                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE] = None
+
+                try:
+                    sum_obj = 0
                     self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = {}
                     for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
                         self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE]["Period" +
@@ -1317,20 +1398,28 @@ class AristonHandler:
                 self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_OTHER:
 
