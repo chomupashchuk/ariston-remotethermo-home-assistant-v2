@@ -177,6 +177,13 @@ class AristonChecker:
         self._hass = hass
         self.name = name
 
+        if not sensors:
+            sensors = list()
+        if not binary_sensors:
+            binary_sensors = list()
+        if not switches:
+            switches = list()
+
         list_of_sensors = list({*sensors, *binary_sensors, *switches})
         """ Some sensors or switches are not part of API """
         if PARAM_CHANGING_DATA in list_of_sensors:

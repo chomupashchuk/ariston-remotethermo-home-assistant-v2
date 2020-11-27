@@ -108,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.19"
+    _VERSION = "1.0.20"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -230,15 +230,20 @@ class AristonHandler:
 
     # Conversions between parameters
     _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2}
-    _VALUE_TO_MODE = {1: _VAL_WINTER, 0: _VAL_SUMMER, 5: _VAL_OFF, 2: _VAL_HEATING_ONLY}
+    _VALUE_TO_MODE = {value: key for (key, value) in _MODE_TO_VALUE.items()}
+
     _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_UNKNOWN: 0}
-    _VALUE_TO_CH_MODE = {2: _VAL_MANUAL, 3: _VAL_PROGRAM, 0: _VAL_UNKNOWN}
+    _VALUE_TO_CH_MODE = {value: key for (key, value) in _CH_MODE_TO_VALUE.items()}
+
     _DHW_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 1, _VAL_DEFAULT: 0}
-    _VALUE_TO_DHW_MODE = {2: _VAL_MANUAL, 1: _VAL_PROGRAM, 0: _VAL_DEFAULT, -1: _VAL_UNSUPPORTED}
+    _VALUE_TO_DHW_MODE = {value: key for (key, value) in _DHW_MODE_TO_VALUE.items()}
+
     _DHW_COMFORT_FUNCT_TO_VALUE = {_VAL_DISABLED: 0, _VAL_TIME_BASED: 1, _VAL_ALWAYS_ACTIVE: 2}
-    _DHW_COMFORT_VALUE_TO_FUNCT = {0: _VAL_DISABLED, 1: _VAL_TIME_BASED, 2: _VAL_ALWAYS_ACTIVE}
+    _DHW_COMFORT_VALUE_TO_FUNCT = {value: key for (key, value) in _DHW_COMFORT_FUNCT_TO_VALUE.items()}
+
     _UNIT_TO_VALUE = {_VAL_METRIC: 0, _VAL_IMPERIAL: 1}
-    _VALUE_TO_UNIT = {0: _VAL_METRIC, 1: _VAL_IMPERIAL}
+    _VALUE_TO_UNIT = {value: key for (key, value) in _UNIT_TO_VALUE.items()}
+
     _PARAM_STRING_TO_VALUE = {"true": 1, "false": 0}
 
     _UNKNOWN_TEMP = 0.0
