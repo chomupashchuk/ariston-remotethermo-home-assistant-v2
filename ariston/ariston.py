@@ -108,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.20"
+    _VERSION = "1.0.21"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -700,6 +700,11 @@ class AristonHandler:
         if sensors:
             for item in sensors:
                 self._valid_requests[self._get_request_for_parameter(item)] = True
+
+        self._internet_weather_used = True
+        if self._PARAM_INTERNET_WEATHER not in sensors:
+            self._internet_weather_used = False
+
         if self._units == self._UNIT_AUTO:
             self._valid_requests[self._REQUEST_GET_UNITS] = True
         # prepare lists of requests
@@ -2240,12 +2245,13 @@ class AristonHandler:
                         self._ARISTON_DHW_TIME_PROG_ECONOMY,
                         self._ARISTON_SIGNAL_STRENGHT,
                         self._ARISTON_INTERNET_TIME,
-                        self._ARISTON_INTERNET_WEATHER,
                         self._ARISTON_CH_COMFORT_TEMP,
                         self._ARISTON_CH_ECONOMY_TEMP,
                         self._ARISTON_CH_AUTO_FUNCTION
                     ]
                     try:
+                        if self._internet_weather_used:
+                            list_to_send.append(self._ARISTON_INTERNET_WEATHER)
                         if self._ariston_data["dhwBoilerPresent"]:
                             list_to_send.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
                             list_to_send.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
