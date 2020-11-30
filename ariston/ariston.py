@@ -108,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.22"
+    _VERSION = "1.0.23"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -217,7 +217,7 @@ class AristonHandler:
     _DEFAULT_MODES = [0, 1, 5]
     _DEFAULT_CH_MODES = [2, 3]
     _MAX_ERRORS = 10
-    _MAX_ERRORS_TIMER_EXTEND = 5
+    _MAX_ERRORS_TIMER_EXTEND = 7
     _MAX_ZERO_TOLERANCE = 10
     _HTTP_DELAY_MULTIPLY = 3
     _HTTP_TIMER_SET_LOCK = 25
@@ -2284,16 +2284,17 @@ class AristonHandler:
                             auth=self._token,
                             timeout=http_timeout,
                             verify=True)
-                    except requests.exceptions.RequestException:
-                        self._LOGGER.warning("%s %s Problem reading data", self, request_type)
+                    except requests.exceptions.RequestException as ex:
+                        self._LOGGER.warning("%s %s Problem reading data: %s", self, request_type, ex)
                         raise Exception("Request {} has failed with an exception".format(request_type))
                     self._store_data(resp, request_type)
             else:
                 self._LOGGER.debug("%s %s Still setting data, read restricted", self, request_type)
+                return False
         else:
             self._LOGGER.warning("%s %s Not properly logged in to get the data", self, request_type)
             raise Exception("Not logged in to fetch the data")
-        self._LOGGER.info('Data fetched')
+        self._LOGGER.info(f'Data fetched for {request_type}')
         return True
 
     def _queue_get_data(self):
@@ -2316,7 +2317,7 @@ class AristonHandler:
                 self._timer_periodic_read = threading.Timer(retry_in, self._queue_get_data)
                 self._timer_periodic_read.start()
 
-            if not self.available:
+            if not self.available or self._errors > 0:
                 # first always initiate main data
                 self._timer_queue_delay.cancel()
                 if self._started:
@@ -2394,11 +2395,9 @@ class AristonHandler:
                 with open(store_file_path, 'w') as ariston_fetched:
                     json.dump(self._set_param_group, ariston_fetched)
 
-    def _control_availability_state(self, request_type=""):
-        """Control component availability"""
-        try:
-            self._get_http_data(request_type)
-        except Exception:
+    def _error_detected(self, request_type):
+        """Error detected"""
+        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN, self._REQUEST_SET_OTHER}:
             with self._lock:
                 was_online = self.available
                 self._errors += 1
@@ -2407,14 +2406,34 @@ class AristonHandler:
             if offline and was_online:
                 with self._plant_id_lock:
                     self._login = False
+                self._ariston_data = {}
+                self._ariston_gas_data = {}
+                self._ariston_error_data = {}
+                self._ariston_ch_data = {}
+                self._ariston_dhw_data = {}
+                self._ariston_currency = {}
+                self._ariston_other_data = {}
+                self._ariston_units = {}
                 self._LOGGER.error("Ariston is offline: Too many errors")
-            raise Exception("Getting HTTP data has failed")
-        self._LOGGER.info("Data fetched successfully, available %s", self.available)
-        with self._lock:
-            was_offline = not self.available
-            self._errors = 0
-        if was_offline:
-            self._LOGGER.info("Ariston back online")
+
+    def _no_error_detected(self, request_type):
+        """No errors detected"""
+        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
+            with self._lock:
+                was_offline = not self.available
+                self._errors = 0
+            if was_offline:
+                self._LOGGER.info("No more errors")
+    
+    def _control_availability_state(self, request_type=""):
+        """Control component availability"""
+        try:
+            result_ok = self._get_http_data(request_type)
+        except Exception:
+            self._error_detected(request_type)
+            return
+        if result_ok:
+            self._no_error_detected(request_type)
         return
 
     def _setting_http_data(self, set_data, request_type=""):
@@ -2458,12 +2477,15 @@ class AristonHandler:
                 json=set_data,
                 verify=True)
         except requests.exceptions.RequestException:
+            self._error_detected(request_type)
             self._LOGGER.warning('%s %s error', self, request_type)
             raise Exception("Unexpected error for setting in the request {}".format(request_type))
         if resp.status_code != 200:
+            self._error_detected(request_type)
             self._LOGGER.warning("%s %s Command to set data failed with code: %s", self, request_type, resp.status_code)
             raise Exception("Unexpected code {} for setting in the request {}".format(resp.status_code, request_type))
         self._set_time_end[request_type] = time.time()
+        self._no_error_detected(request_type)
         if request_type == self._REQUEST_SET_MAIN:
             """
             data in reply cannot be fully trusted as occasionally we receive changed data but on next read turns out 
@@ -3055,6 +3077,8 @@ class AristonHandler:
                         self._LOGGER.warning('%s Setting main data failed', self)
                     except requests.exceptions.RequestException:
                         self._LOGGER.warning('%s Setting main data failed', self)
+                    except Exception:
+                        self._LOGGER.warning('%s Setting main data failed with code', self)
 
                 elif changed_parameter[self._REQUEST_SET_OTHER] != {}:
 
@@ -3067,6 +3091,8 @@ class AristonHandler:
                         self._LOGGER.warning('%s Setting parameter data failed', self)
                     except requests.exceptions.RequestException:
                         self._LOGGER.warning('%s Setting parameter data failed', self)
+                    except Exception:
+                        self._LOGGER.warning('%s Setting parameter data failed with code', self)
 
                 elif changed_parameter[self._REQUEST_SET_UNITS]:
                     try:
@@ -3075,6 +3101,8 @@ class AristonHandler:
                         self._LOGGER.warning('%s Setting units data failed', self)
                     except requests.exceptions.RequestException:
                         self._LOGGER.warning('%s Setting units data failed', self)
+                    except Exception:
+                        self._LOGGER.warning('%s Setting parameter data failed with code', self)
 
                 else:
                     self._LOGGER.debug('%s Same data was used', self)
