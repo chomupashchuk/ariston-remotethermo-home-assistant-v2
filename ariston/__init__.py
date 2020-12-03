@@ -34,6 +34,7 @@ from .const import (
     CONF_STORE_CONFIG_FILES,
     CONF_HVAC_OFF_PRESENT,
     CONF_UNITS,
+    CONF_POLLING,
     PARAM_ACCOUNT_CH_GAS,
     PARAM_ACCOUNT_CH_ELECTRICITY,
     PARAM_ACCOUNT_DHW_GAS,
@@ -115,6 +116,7 @@ from .switch import SWITCHES
 DEFAULT_HVAC = VAL_SUMMER
 DEFAULT_NAME = "Ariston"
 DEFAULT_MAX_RETRIES = 5
+DEFAULT_POLLING = 1.0
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -138,6 +140,9 @@ ARISTON_SCHEMA = vol.Schema(
         vol.Optional(CONF_HVAC_OFF_PRESENT, default=False): cv.boolean,
         vol.Optional(CONF_UNITS, default=VAL_METRIC): vol.In(
             [VAL_METRIC, VAL_IMPERIAL, VAL_AUTO]
+        ),
+        vol.Optional(CONF_POLLING, default=DEFAULT_POLLING): vol.All(
+            float, vol.Range(min=1, max=5)
         ),
     }
 )
@@ -170,6 +175,7 @@ class AristonChecker:
         sensors,
         binary_sensors,
         switches,
+        polling
     ):
         """Initialize."""
 
@@ -197,6 +203,7 @@ class AristonChecker:
             sensors=list_of_sensors,
             units=units,
             store_file=store_file,
+            polling=polling,
             #store_folder="/config/ariston_http_data",
         )
 
@@ -216,6 +223,7 @@ def setup(hass, config):
         binary_sensors = device.get(CONF_BINARY_SENSORS)
         sensors = device.get(CONF_SENSORS)
         switches = device.get(CONF_SWITCHES)
+        polling = device.get(CONF_POLLING)
 
         api = AristonChecker(
             hass=hass,
@@ -228,6 +236,7 @@ def setup(hass, config):
             sensors=sensors,
             binary_sensors=binary_sensors,
             switches=switches,
+            polling=polling
         )
 
         api_list.append(api)

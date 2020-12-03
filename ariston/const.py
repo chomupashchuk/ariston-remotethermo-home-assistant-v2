@@ -90,6 +90,7 @@ CONF_MAX_RETRIES = "max_retries"
 CONF_STORE_CONFIG_FILES = "store_config_files"
 CONF_HVAC_OFF_PRESENT = "hvac_off_present"
 CONF_UNITS = "units"
+CONF_POLLING = "polling"
 
 VALUE = "value"
 UNITS = "units"

@@ -108,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.24"
+    _VERSION = "1.0.25"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -467,16 +467,16 @@ class AristonHandler:
 
     def _update_units(self):
         if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_IMPERIAL:
-            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = '°F'
-            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = '°F'
+            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kBtuh'
@@ -496,16 +496,16 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kBtuh'
         elif self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_METRIC:
-            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = '°C'
-            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = '°C'
+            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kWh'
             self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kWh'
             self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kWh'
@@ -590,6 +590,7 @@ class AristonHandler:
 
         if units in {self._UNIT_METRIC, self._UNIT_IMPERIAL}:
             self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = units
+            self._update_units()
 
         # clear configuration data
         self._ariston_data = {}
