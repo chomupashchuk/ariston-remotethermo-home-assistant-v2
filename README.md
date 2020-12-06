@@ -14,7 +14,7 @@ You may read more about API (`ariston.py`) on the website: https://pypi.org/proj
   - Ariston Clas Evo
   - Ariston Genus One with Ariston BCH cylinder
   - Ariston Nimbus Flex
-  - Ariston Alteas One (note that `internet_weather` is not supported and must not be included in switches or binary sensors)
+  - Ariston Alteas One (note that `internet_weather` is not supported by this model and must not be included in switches or binary sensors)
 
 ## Integration was tested and does not work with:
   - Ariston Lydos. use https://github.com/chomupashchuk/ariston-aqua-remotethermo-home-assistant instead.
