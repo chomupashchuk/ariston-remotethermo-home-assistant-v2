@@ -266,9 +266,7 @@ class AristonSensor(Entity):
                     self._attrs["Max"] = None
 
             elif self._sensor_type == PARAM_ERRORS_COUNT:
-                if not self._api.sensor_values[PARAM_ERRORS][VALUE] is None:
-                    for valid_error in self._api.sensor_values[PARAM_ERRORS][VALUE]:
-                        self._attrs[valid_error] = ""
+                self._attrs = self._api.sensor_values[PARAM_ERRORS][VALUE]
 
             elif self._sensor_type in {
                 PARAM_HEATING_LAST_24H,

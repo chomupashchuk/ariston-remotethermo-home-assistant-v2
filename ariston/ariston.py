@@ -108,7 +108,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.25"
+    _VERSION = "1.0.26"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -755,6 +755,14 @@ class AristonHandler:
             store_file_path = os.path.join(self._store_folder, store_file)
             with open(store_file_path, 'w') as ariston_fetched:
                 json.dump(self._valid_requests, ariston_fetched)
+            store_file = 'data_ariston_high_prio.json'
+            store_file_path = os.path.join(self._store_folder, store_file)
+            with open(store_file_path, 'w') as ariston_fetched:
+                json.dump(self._request_list_high_prio, ariston_fetched)
+            store_file = 'data_ariston_low_prio.json'
+            store_file_path = os.path.join(self._store_folder, store_file)
+            with open(store_file_path, 'w') as ariston_fetched:
+                json.dump(self._request_list_low_prio, ariston_fetched)
 
     def _change_to_24h_format(self, time_str_12h=""):
         """Convert to 24H format if in 12H format"""
@@ -1017,6 +1025,8 @@ class AristonHandler:
 
     def _set_sensors(self, request_type=""):
 
+        self._LOGGER.info(f"Setting sensors for {request_type}")
+
         if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
 
             if self.available and self._ariston_data != {}:
@@ -1206,25 +1216,26 @@ class AristonHandler:
                 self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_ERROR:
-
+        
             if self.available and self._ariston_error_data != {}:
 
                 try:
+                    error_struct = dict()
                     self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = \
-                        self._ariston_error_data["count"]
-                except KeyError:
+                        len(self._ariston_error_data["result"])
+                    for count, error in enumerate(self._ariston_error_data["result"]):
+                        error_struct[f"Error{count + 1}_Slogan"] = error["Fault"]
+                        error_struct[f"Error{count + 1}_Severity"] = error["Severity"]
+                        error_struct[f"Error{count + 1}_Timestamp"] = error["Timestamp"]
+                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = error_struct
+                except KeyError as ex:
                     self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
-
-                try:
-                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = \
-                        self._ariston_error_data["result"]
-                except KeyError:
                     self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
 
             else:
                 self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
-
+                
         if request_type == self._REQUEST_GET_GAS:
 
             if self.available and self._ariston_gas_data != {}:
@@ -2430,8 +2441,10 @@ class AristonHandler:
         """Control component availability"""
         try:
             result_ok = self._get_http_data(request_type)
-        except Exception:
+            self._LOGGER.info(f"ariston action ok {request_type}")
+        except Exception as ex:
             self._error_detected(request_type)
+            self._LOGGER.warning(f"ariston action nok {request_type}: {ex}")
             return
         if result_ok:
             self._no_error_detected(request_type)
