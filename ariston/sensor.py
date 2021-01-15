@@ -256,6 +256,7 @@ class AristonSensor(Entity):
             if self._sensor_type in {
                 PARAM_CH_SET_TEMPERATURE,
                 PARAM_DHW_SET_TEMPERATURE,
+                PARAM_CH_WATER_TEMPERATURE
             }:
                 try:
                     self._attrs["Min"] = self._api.supported_sensors_set_values[
