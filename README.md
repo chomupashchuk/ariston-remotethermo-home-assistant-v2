@@ -65,6 +65,7 @@ All optional attributes are described in **Integration attributes**
   - `ch_economy_temperature` - CH economy temperature.
   - `ch_set_temperature` - set CH temperature.
   - `ch_program` - CH Time Program.
+  - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS ON OTHERS CAUSES CRASHES**
   - `cooling_last_24h` - energy use for pump cooling in a day.
   - `cooling_last_7d` - energy use for pump cooling in a week.
   - `cooling_last_30d` - energy use for pump cooling in a month.
