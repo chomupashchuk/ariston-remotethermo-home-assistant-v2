@@ -48,7 +48,7 @@ All optional attributes are described in **Integration attributes**
 #### Switches
 **Some parameters are not supported on all models**
   - `internet_time` - turn off and on sync with internet time.
-  - `internet_weather` - turn off and on fetching of weather from internet.
+  - `internet_weather` - turn off and on fetching of weather from internet. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `ch_auto_function` - turn off and on Auto function.
   - `dhw_thermal_cleanse_function` - DHW thermal cleanse function enabled.
 
@@ -65,7 +65,7 @@ All optional attributes are described in **Integration attributes**
   - `ch_economy_temperature` - CH economy temperature.
   - `ch_set_temperature` - set CH temperature.
   - `ch_program` - CH Time Program.
-  - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS ON OTHERS CAUSES CRASHES**
+  - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `cooling_last_24h` - energy use for pump cooling in a day.
   - `cooling_last_7d` - energy use for pump cooling in a week.
   - `cooling_last_30d` - energy use for pump cooling in a month.
@@ -106,7 +106,7 @@ All optional attributes are described in **Integration attributes**
   - `heat_pump` - Heating pump status.
   - `holiday_mode` - Holiday mode status.
   - `internet_time` - Internet time status.
-  - `internet_weather` - Internet weather status.
+  - `internet_weather` - Internet weather status. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `changing_data` - API is attempting to configure requested data. **API specific sensor**.
   - `online` - Online status. Indicates if API has communication with the heater. **API specific sensor**.
   - `update` - API update status. **API specific sensor**.
