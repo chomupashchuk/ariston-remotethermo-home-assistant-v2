@@ -48,6 +48,7 @@ from .const import (
     PARAM_CH_ECONOMY_TEMPERATURE,
     PARAM_CH_DETECTED_TEMPERATURE,
     PARAM_CH_PROGRAM,
+    PARAM_CH_WATER_TEMPERATURE,
     PARAM_ERRORS,
     PARAM_ERRORS_COUNT,
     PARAM_DHW_COMFORT_FUNCTION,
@@ -360,6 +361,10 @@ def setup(hass, config):
                 data = call.data.get(PARAM_THERMAL_CLEANSE_FUNCTION, "")
                 if data != "":
                     parameter_list[PARAM_THERMAL_CLEANSE_FUNCTION] = str(data).lower()
+
+                data = call.data.get(PARAM_CH_WATER_TEMPERATURE, "")
+                if data != "":
+                    parameter_list[PARAM_CH_WATER_TEMPERATURE] = str(data).lower()
 
                 _LOGGER.debug("Ariston device found, data to check and send")
 

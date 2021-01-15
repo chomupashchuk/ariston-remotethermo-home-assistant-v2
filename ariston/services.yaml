@@ -22,6 +22,9 @@ set_data:
     ch_economy_temperature:
       description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
       example: 23.5
+    ch_water_temperature:
+      description: "(Optional) Set CH water temperature in steps of '1.0'. Value range depends on model."
+      example: 80
     dhw_mode:
       description: "(Optional) DHW mode: 'manual' or 'program'. Support depends on model."
       example: manual

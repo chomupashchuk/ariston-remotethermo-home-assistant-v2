@@ -38,6 +38,7 @@ class AristonHandler:
         - 'ch_pilot' - CH pilot status.
         - 'ch_auto_function' - CH auto function.
         - 'ch_flame' - CH flame.
+        - 'ch_water_temperature' - CH water temperature.
         - 'cooling_last_24h' - energy use for pump cooling in a day.
         - 'cooling_last_7d' - energy use for pump cooling in a week.
         - 'cooling_last_30d' - energy use for pump cooling in a month.
@@ -108,7 +109,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.27"
+    _VERSION = "1.0.28"
 
     _LOGGER = logging.getLogger(__name__)
 
@@ -123,6 +124,7 @@ class AristonHandler:
     _PARAM_CH_ECONOMY_TEMPERATURE = "ch_economy_temperature"
     _PARAM_CH_DETECTED_TEMPERATURE = "ch_detected_temperature"
     _PARAM_CH_PROGRAM = "ch_program"
+    _PARAM_CH_WATER_TEMPERATURE = "ch_water_temperature"
     _PARAM_COOLING_LAST_24H = "cooling_last_24h"
     _PARAM_COOLING_LAST_7D = "cooling_last_7d"
     _PARAM_COOLING_LAST_30D = "cooling_last_30d"
@@ -263,6 +265,7 @@ class AristonHandler:
     _ARISTON_CH_COMFORT_TEMP = "U6_3_1_0_0"
     _ARISTON_CH_ECONOMY_TEMP = "U6_3_1_0_1"
     _ARISTON_CH_AUTO_FUNCTION = "U6_3_3"
+    _ARISTON_CH_WATER_TEMPERATURE = "U6_3_0_0"
     _ARISTON_THERMAL_CLEANSE_FUNCTION = "U6_9_5_0"
     _ARISTON_THERMAL_CLEANSE_CYCLE = "U6_9_5_1"
     _ARISTON_S_W_FUNCTION_ACTIVATION = "U6_3_5_0_0"
@@ -366,7 +369,8 @@ class AristonHandler:
         _PARAM_CH_COMFORT_TEMPERATURE,
         _PARAM_CH_ECONOMY_TEMPERATURE,
         _PARAM_SIGNAL_STRENGTH,
-        _PARAM_THERMAL_CLEANSE_CYCLE
+        _PARAM_THERMAL_CLEANSE_CYCLE,
+        _PARAM_CH_WATER_TEMPERATURE
     }
     _GET_REQUEST_UNITS = {
         _PARAM_UNITS
@@ -414,7 +418,8 @@ class AristonHandler:
         _PARAM_CH_COMFORT_TEMPERATURE,
         _PARAM_CH_ECONOMY_TEMPERATURE,
         _PARAM_SIGNAL_STRENGTH,
-        _PARAM_THERMAL_CLEANSE_CYCLE
+        _PARAM_THERMAL_CLEANSE_CYCLE,
+        _PARAM_CH_WATER_TEMPERATURE
     }
     _SET_REQUEST_UNITS = {
         _PARAM_UNITS
@@ -436,7 +441,8 @@ class AristonHandler:
         _PARAM_INTERNET_WEATHER,
         _PARAM_UNITS,
         _PARAM_THERMAL_CLEANSE_CYCLE,
-        _PARAM_THERMAL_CLEANSE_FUNCTION
+        _PARAM_THERMAL_CLEANSE_FUNCTION,
+        _PARAM_CH_WATER_TEMPERATURE
     }
 
     def _get_request_for_parameter(self, data):
@@ -472,6 +478,7 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°F"
             self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°F"
@@ -501,6 +508,7 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°C"
@@ -705,6 +713,10 @@ class AristonHandler:
         self._internet_weather_used = True
         if self._PARAM_INTERNET_WEATHER not in sensors:
             self._internet_weather_used = False
+
+        self._ch_water_temp_used = True
+        if self._PARAM_CH_WATER_TEMPERATURE not in sensors:
+            self._ch_water_temp_used = False
 
         if self._units == self._UNIT_AUTO:
             self._valid_requests[self._REQUEST_GET_UNITS] = True
@@ -972,6 +984,15 @@ class AristonHandler:
                             param_values["max"] = param_item["max"]
                             param_values["step"] = 1.
                 sensors_dictionary[parameter] = param_values
+            elif parameter == self._PARAM_CH_WATER_TEMPERATURE:
+                param_values = dict()
+                if self._ariston_other_data != {}:
+                    for param_item in self._ariston_other_data:
+                        if param_item["id"] == self._ARISTON_CH_WATER_TEMPERATURE:
+                            param_values["min"] = param_item["min"]
+                            param_values["max"] = param_item["max"]
+                            param_values["step"] = 1.
+                sensors_dictionary[parameter] = param_values
             elif parameter == self._PARAM_THERMAL_CLEANSE_FUNCTION:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
         return sensors_dictionary
@@ -1223,7 +1244,7 @@ class AristonHandler:
                 self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
 
         if request_type == self._REQUEST_GET_ERROR:
-        
+
             if self.available and self._ariston_error_data != {}:
 
                 try:
@@ -1242,7 +1263,7 @@ class AristonHandler:
             else:
                 self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
-                
+
         if request_type == self._REQUEST_GET_GAS:
 
             if self.available and self._ariston_gas_data != {}:
@@ -1511,6 +1532,17 @@ class AristonHandler:
 
                 try:
                     for param_item in self._ariston_other_data:
+                        if param_item["id"] == self._ARISTON_CH_WATER_TEMPERATURE:
+                            self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._VALUE] = \
+                                param_item["value"]
+                            break
+                    else:
+                        self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._VALUE] = None
+                except KeyError:
+                    self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._VALUE] = None
+
+                try:
+                    for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_INTERNET_TIME:
                             if param_item["value"] == 1:
                                 self._ariston_sensors[self._PARAM_INTERNET_TIME][self._VALUE] = True
@@ -1564,6 +1596,7 @@ class AristonHandler:
             else:
                 self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE] = None
+                self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_DHW_COMFORT_FUNCTION][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._VALUE] = None
@@ -1761,6 +1794,10 @@ class AristonHandler:
                             self._update_units()
 
                         elif parameter == self._PARAM_THERMAL_CLEANSE_CYCLE:
+
+                            self._ariston_sensors[parameter][self._VALUE] = value
+
+                        elif parameter == self._PARAM_CH_WATER_TEMPERATURE:
 
                             self._ariston_sensors[parameter][self._VALUE] = value
 
@@ -2285,6 +2322,8 @@ class AristonHandler:
                     try:
                         if self._internet_weather_used:
                             list_to_send.append(self._ARISTON_INTERNET_WEATHER)
+                        if self._ch_water_temp_used:
+                            list_to_send.append(self._ARISTON_CH_WATER_TEMPERATURE)
                         if self._ariston_data["dhwBoilerPresent"]:
                             list_to_send.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
                             list_to_send.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
@@ -2457,7 +2496,7 @@ class AristonHandler:
                 self._errors = 0
             if was_offline:
                 self._LOGGER.info("No more errors")
-    
+
     def _control_availability_state(self, request_type=""):
         """Control component availability"""
         try:
@@ -2866,6 +2905,45 @@ class AristonHandler:
                         changed_parameter[self._set_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)][
                             self._get_request_for_parameter(self._PARAM_THERMAL_CLEANSE_CYCLE)] = True
 
+                if self._PARAM_CH_WATER_TEMPERATURE in self._set_param:
+                    try:
+                        for param_item in self._ariston_other_data:
+                            if param_item["id"] == self._ARISTON_CH_WATER_TEMPERATURE:
+                                if math.isclose(
+                                        param_item["value"],
+                                        self._set_param[self._PARAM_CH_WATER_TEMPERATURE],
+                                        abs_tol=0.01):
+                                    if self._set_time_start[self._set_request_for_parameter(
+                                            self._PARAM_CH_WATER_TEMPERATURE)] < \
+                                            self._get_time_end[
+                                                self._get_request_for_parameter(self._PARAM_CH_WATER_TEMPERATURE)]:
+                                        # value should be up to date and match to remove from setting
+                                        del self._set_param[self._PARAM_CH_WATER_TEMPERATURE]
+                                    else:
+                                        # assume data was not yet changed
+                                        param_data = {
+                                            "id": self._ARISTON_CH_WATER_TEMPERATURE,
+                                            "newValue": self._set_param[self._PARAM_CH_WATER_TEMPERATURE],
+                                            "oldValue": param_item["value"]}
+                                        set_param_data.append(param_data)
+                                        changed_parameter[self._set_request_for_parameter(
+                                            self._PARAM_CH_WATER_TEMPERATURE)][
+                                            self._get_request_for_parameter(self._PARAM_CH_WATER_TEMPERATURE)] = True
+                                    break
+                                else:
+                                    param_data = {
+                                        "id": self._ARISTON_CH_WATER_TEMPERATURE,
+                                        "newValue": self._set_param[self._PARAM_CH_WATER_TEMPERATURE],
+                                        "oldValue": param_item["value"]}
+                                    set_param_data.append(param_data)
+                                    changed_parameter[self._set_request_for_parameter(
+                                        self._PARAM_CH_WATER_TEMPERATURE)][
+                                        self._get_request_for_parameter(self._PARAM_CH_WATER_TEMPERATURE)] = True
+                                    break
+                    except KeyError:
+                        changed_parameter[self._set_request_for_parameter(self._PARAM_CH_WATER_TEMPERATURE)][
+                            self._get_request_for_parameter(self._PARAM_CH_WATER_TEMPERATURE)] = True
+
                 if self._PARAM_THERMAL_CLEANSE_FUNCTION in self._set_param:
                     try:
                         for param_item in self._ariston_other_data:
@@ -3258,6 +3336,7 @@ class AristonHandler:
             - 'ch_comfort_temperature'
             - 'ch_economy_temperature'
             - 'ch_auto_function'
+            - 'ch_water_temperature'
             - 'dhw_mode'
             - 'dhw_set_temperature'
             - 'dhw_comfort_temperature'
@@ -3308,7 +3387,8 @@ class AristonHandler:
                             self._PARAM_DHW_SET_TEMPERATURE,
                             self._PARAM_DHW_COMFORT_TEMPERATURE,
                             self._PARAM_DHW_ECONOMY_TEMPERATURE,
-                            self._PARAM_THERMAL_CLEANSE_CYCLE
+                            self._PARAM_THERMAL_CLEANSE_CYCLE,
+                            self._PARAM_CH_WATER_TEMPERATURE
                         }:
                             value = float(value)
                             if allowed_values[parameter]["min"] - 0.01 <= value \
@@ -3497,6 +3577,28 @@ class AristonHandler:
                         self._LOGGER.warning('%s Unknown or unsupported Thermal Cleanse Cycle or key error: %s', self,
                                         good_values[self._PARAM_THERMAL_CLEANSE_CYCLE])
                         bad_values[self._PARAM_THERMAL_CLEANSE_CYCLE] = good_values[self._PARAM_THERMAL_CLEANSE_CYCLE]
+
+                # check ch water temperature
+                if self._PARAM_CH_WATER_TEMPERATURE in good_values:
+                    try:
+                        item_present = False
+                        for param_item in self._ariston_other_data:
+                            if param_item["id"] == self._ARISTON_CH_WATER_TEMPERATURE:
+                                self._set_param[self._PARAM_CH_WATER_TEMPERATURE] = \
+                                    good_values[self._PARAM_CH_WATER_TEMPERATURE]
+                                item_present = True
+                                self._LOGGER.info('%s New CH water temperature is %s', self,
+                                             good_values[self._PARAM_CH_WATER_TEMPERATURE])
+                                break
+                        if not item_present:
+                            self._LOGGER.warning('%s Can not set CH water temperature: %s', self,
+                                            good_values[self._PARAM_CH_WATER_TEMPERATURE])
+                            bad_values[self._PARAM_CH_WATER_TEMPERATURE] = \
+                                good_values[self._PARAM_CH_WATER_TEMPERATURE]
+                    except KeyError:
+                        self._LOGGER.warning('%s Unknown or unsupported CH water temperature or key error: %s', self,
+                                        good_values[self._PARAM_CH_WATER_TEMPERATURE])
+                        bad_values[self._PARAM_CH_WATER_TEMPERATURE] = good_values[self._PARAM_CH_WATER_TEMPERATURE]
 
                 # check cleanse function
                 if self._PARAM_THERMAL_CLEANSE_FUNCTION in good_values:
