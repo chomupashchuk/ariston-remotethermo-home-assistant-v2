@@ -32,7 +32,7 @@ ariston:
   username: !secret ariston_username
   password: !secret ariston_password
 ```
-All optional attributes are described in **Integration attributes**
+All optional attributes are described in **Integration attributes**\
 Order of Installation:
 - Copy data to `custom_components`;
 - Restart Home Assistant to find the component;
