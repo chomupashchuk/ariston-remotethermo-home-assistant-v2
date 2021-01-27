@@ -33,6 +33,11 @@ ariston:
   password: !secret ariston_password
 ```
 All optional attributes are described in **Integration attributes**
+Order of Installation:
+- Copy data to `custom_components`;
+- Restart Home Assistant to find the component;
+- Include data in `configuration.yaml`;
+- Restart Home Asistant to see new services.
 
 ### Integration attributes
   - `username` - **mandatory** user name used in https://www.ariston-net.remotethermo.com
