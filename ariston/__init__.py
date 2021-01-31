@@ -205,6 +205,7 @@ class AristonChecker:
             units=units,
             store_file=store_file,
             polling=polling,
+            logging_level="DEBUG",
             #store_folder="/config/ariston_http_data",
         )
 

@@ -106,12 +106,29 @@ class AristonHandler:
 
     'dhw_unknown_as_on' - indicates if to assume 'dhw_flame' as being True if cannot be identified.
 
+    'logging_level' - defines level of logging - allowed values [CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET=(default)]
+
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.28"
+    _VERSION = "1.0.29"
 
     _LOGGER = logging.getLogger(__name__)
+    _LEVEL_CRITICAL = "CRITICAL"
+    _LEVEL_ERROR = "ERROR"
+    _LEVEL_WARNING = "WARNING"
+    _LEVEL_INFO = "INFO"
+    _LEVEL_DEBUG = "DEBUG"
+    _LEVEL_NOTSET = "NOTSET"
+
+    _LOGGING_LEVELS = [
+        _LEVEL_CRITICAL,
+        _LEVEL_ERROR,
+        _LEVEL_WARNING,
+        _LEVEL_INFO,
+        _LEVEL_DEBUG,
+        _LEVEL_NOTSET
+    ]
 
     _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
@@ -544,6 +561,7 @@ class AristonHandler:
                  units: str = _UNIT_METRIC,
                  ch_and_dhw: bool = False,
                  dhw_unknown_as_on: bool = True,
+                 logging_level: str = _LEVEL_NOTSET,
                  ) -> None:
         """
         Initialize API.
@@ -576,6 +594,9 @@ class AristonHandler:
         if not isinstance(sensors, list):
             raise Exception("Invalid sensors type")
 
+        if logging_level not in self._LOGGING_LEVELS:
+            raise Exception("Invalid logging_level")
+
         if sensors:
             for sensor in sensors:
                 if sensor not in self._SENSOR_LIST:
@@ -588,6 +609,17 @@ class AristonHandler:
         if store_file:
             if not os.path.isdir(self._store_folder):
                 os.makedirs(self._store_folder)
+
+        """
+        Logging settings
+        """
+        self._logging_level = logging.getLevelName(logging_level)
+        self._LOGGER.setLevel(self._logging_level)
+        self._console_handler = logging.StreamHandler()
+        self._console_handler.setLevel(self._logging_level)
+        self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self._console_handler.setFormatter(self._formatter)
+        self._LOGGER.addHandler(self._console_handler)
 
         # clear read sensor values
         self._ariston_sensors = {}
