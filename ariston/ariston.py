@@ -111,7 +111,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.30"
+    _VERSION = "1.0.31"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -988,6 +988,16 @@ class AristonHandler:
 
         if changed_data:
             self._subscribers_statuses_inform(changed_data)
+
+    @classmethod
+    def api_data(cls):
+        """
+        Get API data as a tuple:
+          - API version
+          - supported sensors by API (actual list of supported sensors by the model cannot be identified and must be chosen manually)
+          - supported parameters to be changed by API (actual list of supported parameters by the model cannot be identified and must be chosen manually)
+        """
+        return cls._VERSION, cls._SENSOR_LIST, cls._SENSOR_SET_LIST
 
     @property
     def available(self) -> bool:
