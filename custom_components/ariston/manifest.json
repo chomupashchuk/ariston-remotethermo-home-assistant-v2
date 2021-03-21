@@ -1,0 +1,9 @@
+{
+  "domain": "ariston",
+  "name": "Ariston",
+  "documentation": "https://github.com/chomupashchuk/ariston-remotethermo-home-assistant-v2",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@chomupashchuk"],
+  "version": "1.0.31"
+}

@@ -1,0 +1,5 @@
+{
+    "name": "Ariston NET",
+    "domains": ["ariston", "sensor", "climate", "wather_heater", "switch", "binary_sensor"],
+    "render_readme": true
+}
