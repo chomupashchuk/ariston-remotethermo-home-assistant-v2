@@ -111,7 +111,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.31"
+    _VERSION = "1.0.32"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -761,13 +761,16 @@ class AristonHandler:
             for item in sensors:
                 self._valid_requests[self._get_request_for_parameter(item)] = True
 
-        self._internet_weather_used = True
-        if self._PARAM_INTERNET_WEATHER not in sensors:
-            self._internet_weather_used = False
-
-        self._ch_water_temp_used = True
-        if self._PARAM_CH_WATER_TEMPERATURE not in sensors:
-            self._ch_water_temp_used = False
+        self._param_sensors = list()
+        if self._PARAM_INTERNET_TIME in sensors:
+            self._param_sensors.append(self._ARISTON_INTERNET_TIME)
+        if self._PARAM_INTERNET_WEATHER in sensors:
+            self._param_sensors.append(self._ARISTON_INTERNET_WEATHER)
+        if self._PARAM_CH_WATER_TEMPERATURE in sensors:
+            self._param_sensors.append(self._ARISTON_CH_WATER_TEMPERATURE)
+        if self._PARAM_SIGNAL_STRENGTH in sensors:
+            self._param_sensors.append(self._ARISTON_SIGNAL_STRENGHT)
+       
 
         if self._units == self._UNIT_AUTO:
             self._valid_requests[self._REQUEST_GET_UNITS] = True
@@ -2196,6 +2199,34 @@ class AristonHandler:
             except KeyError:
                 self._LOGGER.warning('%s Error handling DHW temperature history', self)
 
+            # Append additional sensors to params
+            if "dhwBoilerPresent" in self._ariston_data and self._ariston_data["dhwBoilerPresent"]:
+                if self._ARISTON_THERMAL_CLEANSE_FUNCTION not in self._param_sensors:
+                    self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
+                if self._ARISTON_THERMAL_CLEANSE_CYCLE not in self._param_sensors:
+                    self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
+
+            try:
+                if self._ariston_data["dhwTemp"]["min"] == 0 and \
+                    self._ariston_data["dhwTemp"]["max"] == 0 and \
+                    self._ariston_data["dhwTemp"]["value"] == 0 and \
+                    self._ariston_data["dhwTimeProgSupported"] == False and \
+                    self._ariston_data["dhwTimeProgComfortActive"] == False and \
+                    self._ariston_data["dhwTimeProgComfortTemp"]["min"] == 0 and \
+                    self._ariston_data["dhwTimeProgComfortTemp"]["max"] == 0 and \
+                    self._ariston_data["dhwTimeProgComfortTemp"]["value"] == 0 and \
+                    self._ariston_data["dhwTimeProgEconomyTemp"]["min"] == 0 and \
+                    self._ariston_data["dhwTimeProgEconomyTemp"]["max"] == 0 and \
+                    self._ariston_data["dhwTimeProgEconomyTemp"]["value"] == 0:
+                    self._LOGGER.info('%s DHW parameters probably not supported.', self)
+                else:
+                    if self._ARISTON_DHW_TIME_PROG_COMFORT not in self._param_sensors:
+                        self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_COMFORT)
+                    if self._ARISTON_DHW_TIME_PROG_ECONOMY not in self._param_sensors:
+                        self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_ECONOMY)
+            except KeyError:
+                self._LOGGER.warning('%s Error appending sensors to parameter list.', self)
+
             self._set_sensors(request_type)
             self._set_sensors(self._REQUEST_GET_VERSION)
             self._set_visible_data()
@@ -2493,24 +2524,11 @@ class AristonHandler:
                     list_to_send = [
                         self._ARISTON_DHW_COMFORT_TEMP,
                         self._ARISTON_DHW_COMFORT_FUNCTION,
-                        self._ARISTON_DHW_TIME_PROG_COMFORT,
-                        self._ARISTON_DHW_TIME_PROG_ECONOMY,
-                        self._ARISTON_SIGNAL_STRENGHT,
-                        self._ARISTON_INTERNET_TIME,
                         self._ARISTON_CH_COMFORT_TEMP,
                         self._ARISTON_CH_ECONOMY_TEMP,
                         self._ARISTON_CH_AUTO_FUNCTION
                     ]
-                    try:
-                        if self._internet_weather_used:
-                            list_to_send.append(self._ARISTON_INTERNET_WEATHER)
-                        if self._ch_water_temp_used:
-                            list_to_send.append(self._ARISTON_CH_WATER_TEMPERATURE)
-                        if self._ariston_data["dhwBoilerPresent"]:
-                            list_to_send.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
-                            list_to_send.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
-                    except KeyError:
-                        self._LOGGER.warning('%s Problem appending thermal cleanse', self)
+                    list_to_send.extend(self._param_sensors)
                     ids_to_fetch = ",".join(map(str, list_to_send))
                     url = self._url + '/Menu/User/Refresh/' + self._plant_id + '?paramIds=' + ids_to_fetch + '&umsys=si'
                     http_timeout = self._timeout_long

@@ -92,6 +92,7 @@ CONF_STORE_CONFIG_FILES = "store_config_files"
 CONF_HVAC_OFF_PRESENT = "hvac_off_present"
 CONF_UNITS = "units"
 CONF_POLLING = "polling"
+CONF_LOG = "logging"
 
 VALUE = "value"
 UNITS = "units"

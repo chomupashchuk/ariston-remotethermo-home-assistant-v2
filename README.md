@@ -49,6 +49,7 @@ Order of Installation:
   - `store_config_files` - `true` or `false` indicating if configuration `json` files to be stored in `/config/custom_components/ariston` folder. Can be used for troubleshooting purposes. Default value is `false`.
   - `units` - which uniots to be used. Values are: `metric` (°C-bar-kW...), `imperial` (°F-psi-kBtu/h...), `auto` (detect automatically, which takes additional time). Default is `metric`. Note that use of `auto` requires additional request to be used, which would result in slower update of other sensors.
   - `polling` - sets floating value of relative polling rate. Default is 1.0. Setting value to 2.0 for example would increase timeouts times and retries by 2 times. It is recommended to set this value to more than one (e.g. 1.2) in case timeouts take place very frequently.
+  - `logging` - sets logging level (`CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `NOTSET`). Default is `DEBUG`.
 
 #### Switches
 **Some parameters are not supported on all models**
