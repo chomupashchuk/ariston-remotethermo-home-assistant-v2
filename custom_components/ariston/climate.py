@@ -73,6 +73,11 @@ class AristonThermostat(ClimateEntity):
         self._device = device.device
 
     @property
+    def unique_id(self):
+        """Return the unique id."""
+        return f"{self._name}-climate"
+
+    @property
     def icon(self):
         """Return the name of the Climate device."""
         try:

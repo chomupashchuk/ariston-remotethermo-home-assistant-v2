@@ -59,6 +59,11 @@ class AristonSwitch(SwitchEntity):
         self._device = device.device
 
     @property
+    def unique_id(self):
+        """Return the unique id."""
+        return f"{self._name}-{self._switch_type}"
+
+    @property
     def should_poll(self):
         """Return True if entity has to be polled for state."""
         return True

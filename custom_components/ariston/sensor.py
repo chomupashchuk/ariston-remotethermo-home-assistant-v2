@@ -190,6 +190,11 @@ class AristonSensor(Entity):
         self._device_class = SENSORS[sensor_type][1]
 
     @property
+    def unique_id(self):
+        """Return the unique id."""
+        return f"{self._name}-{self._sensor_type}"
+
+    @property
     def name(self):
         """Return the name of the sensor."""
         return self._name
