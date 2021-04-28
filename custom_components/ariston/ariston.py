@@ -111,7 +111,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.33"
+    _VERSION = "1.0.34"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -1255,7 +1255,7 @@ class AristonHandler:
 
                 try:
                     self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = \
-                        self._ariston_data["zone"]["comfortTemp"]["value"]
+                        self._ariston_data["zone"]["desiredTemp"]
                 except KeyError:
                     self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] = None
 
@@ -2056,7 +2056,7 @@ class AristonHandler:
                 last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] = \
                     self._ariston_data["zone"]["roomTemp"]
                 last_temp[self._PARAM_CH_SET_TEMPERATURE] = \
-                    self._ariston_data["zone"]["comfortTemp"]["value"]
+                    self._ariston_data["zone"]["desiredTemp"]
                 last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
                     self._ariston_data["dhwTimeProgComfortTemp"]["min"]
                 last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
@@ -2170,7 +2170,7 @@ class AristonHandler:
                         self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] += 1
                         store_none_zero = True
                         if self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["zone"]["comfortTemp"]["value"] = last_temp[
+                            self._ariston_data["zone"]["desiredTemp"] = last_temp[
                                 self._PARAM_CH_SET_TEMPERATURE]
                 else:
                     self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] = 0
@@ -3216,7 +3216,7 @@ class AristonHandler:
 
                 if self._PARAM_CH_SET_TEMPERATURE in self._set_param:
                     if math.isclose(
-                            set_data["NewValue"]["zone"]["comfortTemp"]["value"],
+                            set_data["NewValue"]["zone"]["desiredTemp"],
                             self._set_param[self._PARAM_CH_SET_TEMPERATURE],
                             abs_tol=0.01):
                         if self._set_time_start[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] < \
@@ -3229,7 +3229,7 @@ class AristonHandler:
                             changed_parameter[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)][
                                 self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] = True
                     else:
-                        set_data["NewValue"]["zone"]["comfortTemp"]["value"] = \
+                        set_data["NewValue"]["zone"]["desiredTemp"] = \
                             self._set_param[self._PARAM_CH_SET_TEMPERATURE]
                         changed_parameter[self._set_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)][
                             self._get_request_for_parameter(self._PARAM_CH_SET_TEMPERATURE)] = True
@@ -3510,7 +3510,7 @@ class AristonHandler:
                     for param_item in self._ariston_other_data:
                         if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
                             if math.isclose(
-                                    self._ariston_data["zone"]["comfortTemp"]["value"],
+                                    self._ariston_data["zone"]["desiredTemp"],
                                     param_item["value"],
                                     abs_tol=0.01):
                                 self._current_temp_economy_ch = True
