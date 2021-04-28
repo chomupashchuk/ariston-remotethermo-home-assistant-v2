@@ -111,7 +111,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.34"
+    _VERSION = "1.0.35"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -2165,7 +2165,7 @@ class AristonHandler:
                 else:
                     self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] = 0
                 # keep latest CH set temperature if received invalid
-                if self._ariston_data["zone"]["comfortTemp"]["value"] == self._UNKNOWN_TEMP:
+                if self._ariston_data["zone"]["desiredTemp"] == self._UNKNOWN_TEMP:
                     if last_temp[self._PARAM_CH_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
                         self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] += 1
                         store_none_zero = True
@@ -3518,7 +3518,7 @@ class AristonHandler:
                         else:
                             self._current_temp_economy_ch = False
                 else:
-                    self._current_temp_economy_ch = None
+                    self._current_temp_economy_ch = False
             else:
                 self._current_temp_economy_ch = None
         except KeyError:
@@ -3618,12 +3618,14 @@ class AristonHandler:
                         self._check_if_ch_economy()
                         if self._current_temp_economy_ch:
                             self._set_param[self._PARAM_CH_ECONOMY_TEMPERATURE] = temperature
+                            self._LOGGER.info('%s New economy CH temperature %s', self, temperature)
                         elif self._current_temp_economy_ch is False:
                             self._set_param[self._PARAM_CH_COMFORT_TEMPERATURE] = temperature
+                            self._LOGGER.info('%s New comfort CH temperature %s', self, temperature)
                         else:
                             # None value
                             self._set_param[self._PARAM_CH_SET_TEMPERATURE] = temperature
-                        self._LOGGER.info('%s New CH temperature %s', self, temperature)
+                            self._LOGGER.info('%s New CH temperature %s', self, temperature)
                     except KeyError:
                         self._LOGGER.warning('%s Not supported CH temperature value: %s', self,
                                         good_values[self._PARAM_CH_SET_TEMPERATURE])
