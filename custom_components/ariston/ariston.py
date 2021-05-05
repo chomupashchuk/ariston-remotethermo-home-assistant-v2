@@ -111,7 +111,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.35"
+    _VERSION = "1.0.36"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -1342,19 +1342,27 @@ class AristonHandler:
                     self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] = None
 
                 try:
-                    if not self._ariston_data["zone"]["heatRequest"] and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
-                    elif self._ariston_data["flameForDhw"]:
-                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
-                    elif self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP \
-                            and self._dhw_trend_up \
-                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in [self._VAL_SUMMER, self._VAL_WINTER]\
-                            and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
-                    elif self._dhw_unknown_as_on and self._ariston_data["flameSensor"]:
-                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = True
+                    if self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP:
+                        # trend can be used
+                        _dhw_automation_possible = True
                     else:
-                        self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = False
+                        _dhw_automation_possible = False
+                    _dhw_flame = False
+                    if self._ariston_data["flameSensor"] and \
+                        self._VALUE_TO_MODE[self._ariston_data["mode"]] in [self._VAL_SUMMER, self._VAL_WINTER]:
+                        if not self._ariston_data["zone"]["heatRequest"]:
+                            # flame is not CH meaning it is DHW
+                            _dhw_flame = True
+                        elif self._ariston_data["flameForDhw"]:
+                            # wow, does DHW flag actually work for someone
+                            _dhw_flame = True
+                        elif _dhw_automation_possible and self._dhw_trend_up:
+                            # temeparture increases, assume flame on
+                            _dhw_flame = True
+                        elif not _dhw_automation_possible and self._dhw_unknown_as_on:
+                            # no automation, use default value
+                            _dhw_flame = True
+                    self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = _dhw_flame
                 except KeyError:
                     self._ariston_sensors[self._PARAM_DHW_FLAME][self._VALUE] = None
 
