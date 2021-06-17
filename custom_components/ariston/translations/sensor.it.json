@@ -14,7 +14,8 @@
             "program": "Programma",
             "summer": "Estate",
             "time_based": "Programma",
-            "winter": "Inverno"
+            "winter": "Inverno",
+            "cooling": "Refrigerazione"
         }
     }
 }

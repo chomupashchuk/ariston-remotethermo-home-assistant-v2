@@ -14,7 +14,8 @@
             "program": "Programowany",
             "summer": "Lato",
             "time_based": "Czasowa",
-            "winter": "Zima"
+            "winter": "Zima",
+            "cooling": "Chłodzenie"
         }
     }
 }

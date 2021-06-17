@@ -209,6 +209,7 @@ class AristonHandler:
     _VAL_SUMMER = "summer"
     _VAL_OFF = "off"
     _VAL_HEATING_ONLY = "heating_only"
+    _VAL_COOLING = "cooling"
     _VAL_MANUAL = "manual"
     _VAL_PROGRAM = "program"
     _VAL_UNKNOWN = "unknown"
@@ -248,7 +249,7 @@ class AristonHandler:
     _HTTP_PARAM_DELAY = 30.0
 
     # Conversions between parameters
-    _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2}
+    _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2, _VAL_COOLING: 3}
     _VALUE_TO_MODE = {value: key for (key, value) in _MODE_TO_VALUE.items()}
 
     _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_UNKNOWN: 0}

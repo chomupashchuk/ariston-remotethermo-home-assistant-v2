@@ -24,6 +24,7 @@ from .const import (
     PARAM_DHW_FLAME,
     PARAM_MODE,
     PARAM_UNITS,
+    VAL_COOLING,
     VAL_SUMMER,
     VAL_WINTER,
     VAL_OFFLINE,
@@ -79,7 +80,7 @@ class AristonWaterHeater(WaterHeaterEntity):
                 current_mode = VAL_OFFLINE
         except KeyError:
             return "mdi:water-pump-off"
-        if current_mode in [VAL_WINTER, VAL_SUMMER]:
+        if current_mode in [VAL_WINTER, VAL_SUMMER, VAL_COOLING]:
             return "mdi:water-pump"
         else:
             return "mdi:water-pump-off"

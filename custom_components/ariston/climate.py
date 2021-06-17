@@ -9,9 +9,11 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_HEAT,
     CURRENT_HVAC_IDLE,
     CURRENT_HVAC_OFF,
+    CURRENT_HVAC_COOL ,
     HVAC_MODE_AUTO,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
+    HVAC_MODE_COOL,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
 )
@@ -37,6 +39,7 @@ from .const import (
     VAL_WINTER,
     VAL_SUMMER,
     VAL_HEATING_ONLY,
+    VAL_COOLING,
     VAL_OFF,
     VAL_MANUAL,
     VAL_PROGRAM,
@@ -171,6 +174,11 @@ class AristonThermostat(ClimateEntity):
                     curr_hvac_mode = HVAC_MODE_HEAT
                 elif climate_ch_mode == VAL_PROGRAM:
                     curr_hvac_mode = HVAC_MODE_AUTO
+            if climate_mode in [VAL_COOLING]:
+                if climate_ch_mode == VAL_MANUAL:
+                    curr_hvac_mode = HVAC_MODE_COOL
+                elif climate_ch_mode == VAL_PROGRAM:
+                    curr_hvac_mode = HVAC_MODE_AUTO
         except KeyError:
             return HVAC_MODE_OFF
         return curr_hvac_mode
@@ -184,6 +192,7 @@ class AristonThermostat(ClimateEntity):
             supported_modes = []
             if VAL_MANUAL in supported_ch_modes:
                 supported_modes.append(HVAC_MODE_HEAT)
+                supported_modes.append(HVAC_MODE_COOL)
             if VAL_PROGRAM in supported_ch_modes:
                 supported_modes.append(HVAC_MODE_AUTO)
             if hvac_off_present:
@@ -202,6 +211,12 @@ class AristonThermostat(ClimateEntity):
                 ch_flame = self._api.sensor_values[PARAM_CH_FLAME][VALUE]
                 if ch_flame:
                     curr_hvac_action = CURRENT_HVAC_HEAT
+                else:
+                    curr_hvac_action = CURRENT_HVAC_IDLE
+            if climate_mode in [VAL_COOLING]:
+                ch_flame = self._api.sensor_values[PARAM_CH_FLAME][VALUE]
+                if ch_flame:
+                    curr_hvac_action = CURRENT_HVAC_COOL
                 else:
                     curr_hvac_action = CURRENT_HVAC_IDLE
         except KeyError:
@@ -281,6 +296,9 @@ class AristonThermostat(ClimateEntity):
                     self._api.set_http_data(
                         **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
                     )
+        elif hvac_mode == HVAC_MODE_COOL:
+            ch_mode = VAL_MANUAL
+            self._api.set_http_data(**{PARAM_CH_MODE: ch_mode})
 
     def set_preset_mode(self, preset_mode):
         """Set new target preset mode."""

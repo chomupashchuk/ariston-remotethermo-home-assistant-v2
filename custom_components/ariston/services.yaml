@@ -5,7 +5,7 @@ set_data:
       description: "(Mandatory) Climate 'enity_id' for Ariston heater"
       example: climate.ariston
     mode:
-      description: "(Optional) General mode: 'winter' or 'summer' or 'off' or 'heating_only'. Values depend on model."
+      description: "(Optional) General mode: 'winter' or 'summer' or 'off' or 'heating_only' or 'cooling'. Values depend on model."
       example: winter
     ch_auto_function:
       description: "(Optional) CH AUTO function (boolean)"
