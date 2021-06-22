@@ -9,9 +9,11 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_HEAT,
     CURRENT_HVAC_IDLE,
     CURRENT_HVAC_OFF,
+    CURRENT_HVAC_COOL ,
     HVAC_MODE_AUTO,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
+    HVAC_MODE_COOL,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
 )
@@ -37,6 +39,7 @@ from .const import (
     VAL_WINTER,
     VAL_SUMMER,
     VAL_HEATING_ONLY,
+    VAL_COOLING,
     VAL_OFF,
     VAL_MANUAL,
     VAL_PROGRAM,
@@ -163,12 +166,17 @@ class AristonThermostat(ClimateEntity):
     def hvac_mode(self):
         """Return hvac operation ie. heat, cool mode."""
         try:
-            climate_mode = self._api.sensor_values[PARAM_MODE][VALUE]
-            climate_ch_mode = self._api.sensor_values[PARAM_CH_MODE][VALUE]
+            climate_mode = self._api.sensor_values[PARAM_MODE][VALUE] 
+            climate_ch_mode = self._api.sensor_values[PARAM_CH_MODE][VALUE] # time/manual
             curr_hvac_mode = HVAC_MODE_OFF
             if climate_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
                 if climate_ch_mode == VAL_MANUAL:
                     curr_hvac_mode = HVAC_MODE_HEAT
+                elif climate_ch_mode == VAL_PROGRAM:
+                    curr_hvac_mode = HVAC_MODE_AUTO
+            if climate_mode in [VAL_COOLING]:
+                if climate_ch_mode == VAL_MANUAL:
+                    curr_hvac_mode = HVAC_MODE_COOL
                 elif climate_ch_mode == VAL_PROGRAM:
                     curr_hvac_mode = HVAC_MODE_AUTO
         except KeyError:
@@ -183,7 +191,10 @@ class AristonThermostat(ClimateEntity):
             supported_ch_modes = self._api.supported_sensors_set_values[PARAM_CH_MODE]
             supported_modes = []
             if VAL_MANUAL in supported_ch_modes:
-                supported_modes.append(HVAC_MODE_HEAT)
+                if self._api._ariston_data.get("isHeatingSupported"): 
+                    supported_modes.append(HVAC_MODE_HEAT)
+                if self._api._ariston_data.get("isCoolingSupported"):
+                    supported_modes.append(HVAC_MODE_COOL)
             if VAL_PROGRAM in supported_ch_modes:
                 supported_modes.append(HVAC_MODE_AUTO)
             if hvac_off_present:
@@ -202,6 +213,12 @@ class AristonThermostat(ClimateEntity):
                 ch_flame = self._api.sensor_values[PARAM_CH_FLAME][VALUE]
                 if ch_flame:
                     curr_hvac_action = CURRENT_HVAC_HEAT
+                else:
+                    curr_hvac_action = CURRENT_HVAC_IDLE
+            if climate_mode in [VAL_COOLING]:
+                ch_flame = self._api.sensor_values[PARAM_CH_FLAME][VALUE]
+                if ch_flame:
+                    curr_hvac_action = CURRENT_HVAC_COOL
                 else:
                     curr_hvac_action = CURRENT_HVAC_IDLE
         except KeyError:
@@ -252,19 +269,16 @@ class AristonThermostat(ClimateEntity):
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
         supported_modes = self._api.supported_sensors_set_values[PARAM_MODE]
-        current_mode = self._api.sensor_values[PARAM_HOLIDAY_MODE][VALUE]
+        current_mode = self._api.sensor_values[PARAM_MODE][VALUE]
         if hvac_mode == HVAC_MODE_OFF:
             if self._device[CONF_HVAC_OFF] == VAL_OFF:
                 self._api.set_http_data(**{PARAM_MODE: VAL_OFF})
             else:
                 self._api.set_http_data(**{PARAM_MODE: VAL_SUMMER})
-        elif hvac_mode in [HVAC_MODE_HEAT, HVAC_MODE_AUTO]:
-            if hvac_mode == HVAC_MODE_HEAT:
-                ch_mode = VAL_MANUAL
-            else:
-                ch_mode = VAL_PROGRAM
-            if current_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
-                # if already heating, change CH mode
+        elif hvac_mode == HVAC_MODE_AUTO:
+            ch_mode = VAL_PROGRAM
+            if current_mode in [VAL_WINTER, VAL_HEATING_ONLY, VAL_COOLING]:
+                # if already heating or cooling just change CH mode
                 self._api.set_http_data(**{PARAM_CH_MODE: ch_mode})
             elif current_mode == VAL_SUMMER:
                 # DHW is working, so use Winter where CH and DHW are active
@@ -272,7 +286,7 @@ class AristonThermostat(ClimateEntity):
                     **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
                 )
             else:
-                # DHW is disabled, so use heating only, if not supported then winter
+                # hvac is OFF, so use heating only, if not supported then winter
                 if VAL_HEATING_ONLY in supported_modes:
                     self._api.set_http_data(
                         **{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode}
@@ -281,6 +295,29 @@ class AristonThermostat(ClimateEntity):
                     self._api.set_http_data(
                         **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
                     )
+        elif hvac_mode == HVAC_MODE_HEAT:
+            ch_mode = VAL_MANUAL            
+            if current_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
+                # if already heating, change CH mode
+                self._api.set_http_data(**{PARAM_CH_MODE: ch_mode})
+            elif current_mode in [VAL_SUMMER, VAL_COOLING]:
+                # DHW is working, so use Winter and change mode
+                self._api.set_http_data(
+                    **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
+                )
+            else:
+                # hvac is OFF, so use heating only, if not supported then winter
+                if VAL_HEATING_ONLY in supported_modes:
+                    self._api.set_http_data(
+                        **{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode}
+                    )
+                else:
+                    self._api.set_http_data(
+                        **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
+                    )
+        elif hvac_mode == HVAC_MODE_COOL:
+            ch_mode = VAL_MANUAL
+            self._api.set_http_data(**{PARAM_MODE: VAL_COOLING, PARAM_CH_MODE: ch_mode})
 
     def set_preset_mode(self, preset_mode):
         """Set new target preset mode."""

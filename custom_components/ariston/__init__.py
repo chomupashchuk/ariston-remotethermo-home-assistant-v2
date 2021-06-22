@@ -111,6 +111,7 @@ from .const import (
     VAL_SUMMER,
     VAL_OFF,
     VAL_HEATING_ONLY,
+    VAL_COOLING,
 )
 from .sensor import SENSORS
 from .switch import SWITCHES
