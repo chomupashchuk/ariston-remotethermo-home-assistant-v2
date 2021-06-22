@@ -191,8 +191,7 @@ class AristonThermostat(ClimateEntity):
             supported_ch_modes = self._api.supported_sensors_set_values[PARAM_CH_MODE]
             supported_modes = []
             if VAL_MANUAL in supported_ch_modes:
-                if self._api._ariston_data.get("isHeatingSupported"): 
-                    supported_modes.append(HVAC_MODE_HEAT)
+                supported_modes.append(HVAC_MODE_HEAT)
                 if self._api._ariston_data.get("isCoolingSupported"):
                     supported_modes.append(HVAC_MODE_COOL)
             if VAL_PROGRAM in supported_ch_modes:
