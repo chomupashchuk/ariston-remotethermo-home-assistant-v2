@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import os
+import re
 import threading
 import time
 from typing import Union
@@ -111,7 +112,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.37"
+    _VERSION = "1.0.38"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -461,6 +462,21 @@ class AristonHandler:
         _PARAM_THERMAL_CLEANSE_CYCLE,
         _PARAM_THERMAL_CLEANSE_FUNCTION,
         _PARAM_CH_WATER_TEMPERATURE
+    }
+
+    _MENU_TO_SENSOR = {
+        "6.9.2" : _PARAM_DHW_COMFORT_FUNCTION,
+        "6.9.1.0.0" : _PARAM_DHW_COMFORT_TEMPERATURE,
+        "6.9.1.0.1" : _PARAM_DHW_ECONOMY_TEMPERATURE,
+        "6.16.5" : _PARAM_SIGNAL_STRENGTH,
+        "6.16.6" : _PARAM_INTERNET_TIME,
+        "6.16.7" : _PARAM_INTERNET_WEATHER,
+        "6.3.1.0.0" : _PARAM_CH_COMFORT_TEMPERATURE,
+        "6.3.1.0.1" : _PARAM_CH_ECONOMY_TEMPERATURE,
+        "6.3.3" : _PARAM_CH_AUTO_FUNCTION,
+        "6.3.0.0" : _PARAM_CH_WATER_TEMPERATURE,
+        "6.9.5.0" : _PARAM_THERMAL_CLEANSE_FUNCTION,
+        "6.9.5.1" : _PARAM_THERMAL_CLEANSE_CYCLE, 
     }
 
     def _get_request_for_parameter(self, data):
@@ -2028,6 +2044,15 @@ class AristonHandler:
                 store_file_path = os.path.join(self._store_folder, store_file)
                 with open(store_file_path, "w") as f:
                     f.write(resp.text)
+            if request_type == self._REQUEST_GET_OTHER and resp.status_code == 500:
+                not_supported = set()
+                for re_string in re.findall('Violated Postcondition.*menu', resp.text):
+                    for menu_item in self._MENU_TO_SENSOR:
+                        check_menu = f"&quot;{menu_item}&quot;"
+                        if check_menu in re_string:
+                            not_supported.add(self._MENU_TO_SENSOR[menu_item])
+                if not_supported:
+                    self._LOGGER.error('%s Unsupported sensors detected: %s, disable corresponding binary_sensors/sensors/switches in the configuration', self, not_supported)
             self._LOGGER.warning('%s %s invalid reply code %s', self, request_type, resp.status_code)
             raise Exception("Unexpected code {} received for the request {}".format(resp.status_code, request_type))
         if not self._json_validator(resp.json()):
