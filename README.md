@@ -58,6 +58,13 @@ Order of Installation:
   - `ch_auto_function` - turn off and on Auto function.
   - `dhw_thermal_cleanse_function` - DHW thermal cleanse function enabled.
 
+#### Selectors
+**Some parameters are not supported on all models**
+  - `mode` - mode of boiler (`off` or `summer` or `winter` and others).
+  - `ch_mode` - mode of CH (`manual` or `scheduled` and others).
+  - `dhw_mode` - mode of DHW. Not supported on all models.
+  - `dhw_comfort_function` - DHW comfort function.
+
 #### Sensors
 **Some parameters are not supported on all models**
   - `account_ch_gas` - gas use summary for CH. Not supported on all models.
@@ -139,6 +146,9 @@ ariston:
   binary_sensors:
     - changing_data
     - online
+  selector:
+    - mode
+    - ch_mode
 ```
 
 ## Services
