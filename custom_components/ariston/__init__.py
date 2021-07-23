@@ -38,6 +38,7 @@ from .const import (
     CONF_UNITS,
     CONF_POLLING,
     CONF_LOG,
+    CONF_GW,
     PARAM_ACCOUNT_CH_GAS,
     PARAM_ACCOUNT_CH_ELECTRICITY,
     PARAM_ACCOUNT_DHW_GAS,
@@ -130,6 +131,7 @@ ARISTON_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
+        vol.Optional(CONF_GW, default=""): cv.string,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         vol.Optional(CONF_BINARY_SENSORS): vol.All(
             cv.ensure_list, [vol.In(BINARY_SENSORS)]
@@ -187,7 +189,8 @@ class AristonChecker:
         switches,
         selectors,
         polling,
-        logging
+        logging,
+        gw
     ):
         """Initialize."""
 
@@ -220,6 +223,7 @@ class AristonChecker:
             polling=polling,
             logging_level=logging,
             #store_folder="/config/ariston_http_data",
+            gw=gw
         )
 
 
@@ -229,6 +233,8 @@ def setup(hass, config):
         return True
     hass.data.setdefault(DATA_ARISTON, {DEVICES: {}, CLIMATES: [], WATER_HEATERS: []})
     api_list = []
+    dev_gateways = set()
+    dev_names = set()
     for device in config[DOMAIN]:
         name = device[CONF_NAME]
         username = device[CONF_USERNAME]
@@ -241,6 +247,15 @@ def setup(hass, config):
         selectors =  device.get(CONF_SELECTOR)
         polling = device.get(CONF_POLLING)
         logging = device.get(CONF_LOG)
+        gw = device.get(CONF_GW)
+        if gw in dev_gateways:
+            _LOGGER.error(f"Duplicate value of 'gw': {gw}")
+            raise Exception(f"Duplicate value of 'gw': {gw}")
+        if name in dev_names:
+            _LOGGER.error(f"Duplicate value of 'name': {name}")
+            raise Exception(f"Duplicate value of 'name': {name}")
+        dev_gateways.add(gw)
+        dev_names.add(name)
 
         api = AristonChecker(
             hass=hass,
@@ -255,7 +270,8 @@ def setup(hass, config):
             switches=switches,
             selectors=selectors,
             polling=polling,
-            logging=logging
+            logging=logging,
+            gw=gw,
         )
 
         api_list.append(api)
@@ -300,6 +316,11 @@ def setup(hass, config):
             discovery.load_platform(
                 hass, SENSOR, DOMAIN, {CONF_NAME: name, CONF_SENSORS: sensors}, config
             )
+            
+    gateways_txt = ", ".join(dev_gateways)
+    names_txt = ", ".join(dev_names)
+    _LOGGER.info(f"All gateways: {gateways_txt}")
+    _LOGGER.info(f"All names: {names_txt}")
 
     def set_ariston_data(call):
         """Handle the service call to set the data."""

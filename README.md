@@ -151,6 +151,53 @@ ariston:
     - ch_mode
 ```
 
+## Multiple boilers under one account setup
+Multiple boilers can exist under one account and by default first gateway is used to connect to appropriate boiler, so in case of multiple boilers each gateway must be specified individually.
+
+### Multiple boilers Gateways collection
+Perform actions in the following order:
+  - Login to https://www.ariston-net.remotethermo.com/
+  - Click on `MANAGE APPLIANCES` or similar (where all appliances are listed)
+  - In the list of devices click on each radio button on the left side, and for each selected device note gateway number in the URL. For example the First device in the list is selected, then URL should look something like `https://www.ariston-net.remotethermo.com/PlantManagement/Index/[GAETWAYNUMBER]>`, note `GAETWAYNUMBER`, which corresponds to device selected. Then select the Second device, note URL change and save new `GAETWAYNUMBER`.
+
+### Example with 4 boilers (2 ariston and 2 aquaariston) with minimal configuration
+```
+ariston:
+  - name: boiler_1_name
+    gw: "BOILER1GW"                         # See GAETWAYNUMBER fetching
+    username: !secret ariston_username
+    password: !secret ariston_password
+    selector:
+      - mode
+
+  - name: boiler_2_name
+    gw: "BOILER2GW"                         # See GAETWAYNUMBER fetching
+    username: !secret ariston_username
+    password: !secret ariston_password
+    sensors:
+      - mode
+
+aquaariston:
+  - name: boiler_3_name
+    gw: "BOILER3GW"                         # See GAETWAYNUMBER fetching
+    username: !secret ariston_username
+    password: !secret ariston_password
+    type: "velis"
+    switches:
+      - power
+
+  - name: boiler_4_name
+    gw: "BOILER4GW"                         # See GAETWAYNUMBER fetching
+    username: !secret ariston_username
+    password: !secret ariston_password
+    type: "lydos"
+    selector:
+      - mode
+
+```
+In example there are 4 devices, for which `GAETWAYNUMBER` was fetched manually and is used as value for `gw` parameter. Parameter `name` must be unique (could be based on `Nickname` from Ariston URL or selected randomly). Gateway must be selected according to integration (see details per integration, which boilers it supports). Sensors, switches, binary sensors and selectors can be specified under each boiler individually. Integration attempts to check 
+
+
 ## Services
 `ariston.set_data` - Sets the requested data.
 

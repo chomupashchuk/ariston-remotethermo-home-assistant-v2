@@ -94,6 +94,7 @@ CONF_HVAC_OFF_PRESENT = "hvac_off_present"
 CONF_UNITS = "units"
 CONF_POLLING = "polling"
 CONF_LOG = "logging"
+CONF_GW = "gw"
 
 VALUE = "value"
 UNITS = "units"
