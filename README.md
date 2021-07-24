@@ -195,7 +195,7 @@ aquaariston:
       - mode
 
 ```
-In example there are 4 devices, for which `GAETWAYNUMBER` was fetched manually and is used as value for `gw` parameter. Parameter `name` must be unique (could be based on `Nickname` from Ariston URL or selected randomly). Gateway must be selected according to integration (see details per integration, which boilers it supports). Sensors, switches, binary sensors and selectors can be specified under each boiler individually. Integration attempts to check 
+In example there are 4 devices, for which `GAETWAYNUMBER` was fetched manually and is used as value for `gw` parameter. Parameter `name` must be unique (could be based on `Nickname` from Ariston URL or selected randomly). Gateway must be selected according to integration (see details per integration, which boilers it supports). Sensors, switches, binary sensors and selectors can be specified under each boiler individually. Integration attempts to check for supported gateways whe one is specified and logs corresponding events.
 
 
 ## Services
