@@ -17,6 +17,11 @@ from homeassistant.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_TIMESTAMP,
     DEVICE_CLASS_VOLTAGE,
+    ENERGY_KILO_WATT_HOUR
+)
+
+from homeassistant.components.sensor import (
+    STATE_CLASS_TOTAL_INCREASING
 )
 
 from .const import (
@@ -38,6 +43,7 @@ from .const import (
     PARAM_COOLING_LAST_7D,
     PARAM_COOLING_LAST_30D,
     PARAM_COOLING_LAST_365D,
+    PARAM_COOLING_TODAY,
     PARAM_ERRORS,
     PARAM_ERRORS_COUNT,
     PARAM_DHW_COMFORT_FUNCTION,
@@ -52,11 +58,13 @@ from .const import (
     PARAM_HEATING_LAST_7D,
     PARAM_HEATING_LAST_30D,
     PARAM_HEATING_LAST_365D,
+    PARAM_HEATING_TODAY,
     PARAM_SIGNAL_STRENGTH,
     PARAM_WATER_LAST_24H,
     PARAM_WATER_LAST_7D,
     PARAM_WATER_LAST_30D,
     PARAM_WATER_LAST_365D,
+    PARAM_WATER_TODAY,
     PARAM_UNITS,
     PARAM_THERMAL_CLEANSE_CYCLE,
     PARAM_DHW_PROGRAM,
@@ -111,51 +119,57 @@ SENSOR_THERMAL_CLEANSE_CYCLE = "Thermal Cleanse Cycle"
 SENSOR_GAS_TYPE = "Gas Type"
 SENSOR_GAS_COST = "Gas Cost"
 SENSOR_ELECTRICITY_COST = "Electricity Cost"
+SENSOR_COOLING_TODAY = "Energy use for Cooling today"
+SENSOR_HETING_TODAY = "Energy use for Heating today"
+SENSOR_WATER_TODAY = "Energy use for Water today"
 
 _LOGGER = logging.getLogger(__name__)
 
 # Sensor types are defined like: Name, units, icon
 SENSORS = {
-    PARAM_ACCOUNT_CH_GAS: [SENSOR_ACCOUNT_CH_GAS, None, "mdi:cash"],
-    PARAM_ACCOUNT_DHW_GAS: [SENSOR_ACCOUNT_DHW_GAS, None, "mdi:cash"],
-    PARAM_ACCOUNT_CH_ELECTRICITY: [SENSOR_ACCOUNT_CH_ELECTRICITY, None, "mdi:cash"],
-    PARAM_ACCOUNT_DHW_ELECTRICITY: [SENSOR_ACCOUNT_DHW_ELECTRICITY, None, "mdi:cash"],
-    PARAM_CH_ANTIFREEZE_TEMPERATURE: [SENSOR_CH_ANTIFREEZE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator"],
-    PARAM_CH_DETECTED_TEMPERATURE: [SENSOR_CH_DETECTED_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:thermometer"],
-    PARAM_CH_MODE: [SENSOR_CH_MODE, None, "mdi:radiator"],
-    PARAM_CH_SET_TEMPERATURE: [SENSOR_CH_SET_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator"],
-    PARAM_CH_PROGRAM: [SENSOR_CH_PROGRAM, None, "mdi:calendar-month"],
-    PARAM_CH_COMFORT_TEMPERATURE: [SENSOR_CH_COMFORT_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator"],
-    PARAM_CH_ECONOMY_TEMPERATURE: [SENSOR_CH_ECONOMY_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator"],
-    PARAM_CH_WATER_TEMPERATURE: [SENSOR_CH_WATER_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator"],
-    PARAM_COOLING_LAST_24H: [SENSOR_COOLING_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_COOLING_LAST_7D: [SENSOR_COOLING_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_COOLING_LAST_30D: [SENSOR_COOLING_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_COOLING_LAST_365D: [SENSOR_COOLING_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_DHW_PROGRAM: [SENSOR_DHW_PROGRAM, None, "mdi:calendar-month"],
-    PARAM_DHW_COMFORT_FUNCTION: [SENSOR_DHW_COMFORT_FUNCTION, None, "mdi:water-pump"],
-    PARAM_DHW_SET_TEMPERATURE: [SENSOR_DHW_SET_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump"],
-    PARAM_DHW_STORAGE_TEMPERATURE: [SENSOR_DHW_STORAGE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump"],
-    PARAM_DHW_COMFORT_TEMPERATURE: [SENSOR_DHW_COMFORT_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump"],
-    PARAM_DHW_ECONOMY_TEMPERATURE: [SENSOR_DHW_ECONOMY_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump"],
-    PARAM_DHW_MODE: [SENSOR_DHW_MODE, None, "mdi:water-pump"],
-    PARAM_ERRORS_COUNT: [SENSOR_ERRORS, None, "mdi:alert-outline"],
-    PARAM_HEATING_LAST_24H: [SENSOR_HEATING_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_HEATING_LAST_7D: [SENSOR_HEATING_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_HEATING_LAST_30D: [SENSOR_HEATING_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_HEATING_LAST_365D: [SENSOR_HEATING_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_MODE: [SENSOR_MODE, None, "mdi:water-boiler"],
-    PARAM_OUTSIDE_TEMPERATURE: [SENSOR_OUTSIDE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:thermometer"],
-    PARAM_SIGNAL_STRENGTH: [SENSOR_SIGNAL_STRENGTH, DEVICE_CLASS_SIGNAL_STRENGTH, "mdi:signal"],
-    PARAM_WATER_LAST_24H: [SENSOR_WATER_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_WATER_LAST_7D: [SENSOR_WATER_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_WATER_LAST_30D: [SENSOR_WATER_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_WATER_LAST_365D: [SENSOR_WATER_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash"],
-    PARAM_UNITS: [SENSOR_UNITS, None, "mdi:scale-balance"],
-    PARAM_THERMAL_CLEANSE_CYCLE: [SENSOR_THERMAL_CLEANSE_CYCLE, DEVICE_CLASS_TIMESTAMP, "mdi:update"],
-    PARAM_GAS_TYPE: [SENSOR_GAS_TYPE, None, "mdi:gas-cylinder"],
-    PARAM_GAS_COST: [SENSOR_GAS_COST, None, "mdi:cash"],
-    PARAM_ELECTRICITY_COST: [SENSOR_ELECTRICITY_COST, None, "mdi:cash"],
+    PARAM_ACCOUNT_CH_GAS: [SENSOR_ACCOUNT_CH_GAS, None, "mdi:cash", None],
+    PARAM_ACCOUNT_DHW_GAS: [SENSOR_ACCOUNT_DHW_GAS, None, "mdi:cash", None],
+    PARAM_ACCOUNT_CH_ELECTRICITY: [SENSOR_ACCOUNT_CH_ELECTRICITY, None, "mdi:cash", None],
+    PARAM_ACCOUNT_DHW_ELECTRICITY: [SENSOR_ACCOUNT_DHW_ELECTRICITY, None, "mdi:cash", None],
+    PARAM_CH_ANTIFREEZE_TEMPERATURE: [SENSOR_CH_ANTIFREEZE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
+    PARAM_CH_DETECTED_TEMPERATURE: [SENSOR_CH_DETECTED_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:thermometer", None],
+    PARAM_CH_MODE: [SENSOR_CH_MODE, None, "mdi:radiator", None],
+    PARAM_CH_SET_TEMPERATURE: [SENSOR_CH_SET_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
+    PARAM_CH_PROGRAM: [SENSOR_CH_PROGRAM, None, "mdi:calendar-month", None],
+    PARAM_CH_COMFORT_TEMPERATURE: [SENSOR_CH_COMFORT_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
+    PARAM_CH_ECONOMY_TEMPERATURE: [SENSOR_CH_ECONOMY_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
+    PARAM_CH_WATER_TEMPERATURE: [SENSOR_CH_WATER_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
+    PARAM_COOLING_LAST_24H: [SENSOR_COOLING_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_COOLING_LAST_7D: [SENSOR_COOLING_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_COOLING_LAST_30D: [SENSOR_COOLING_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_COOLING_LAST_365D: [SENSOR_COOLING_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_DHW_PROGRAM: [SENSOR_DHW_PROGRAM, None, "mdi:calendar-month", None],
+    PARAM_DHW_COMFORT_FUNCTION: [SENSOR_DHW_COMFORT_FUNCTION, None, "mdi:water-pump", None],
+    PARAM_DHW_SET_TEMPERATURE: [SENSOR_DHW_SET_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump", None],
+    PARAM_DHW_STORAGE_TEMPERATURE: [SENSOR_DHW_STORAGE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump", None],
+    PARAM_DHW_COMFORT_TEMPERATURE: [SENSOR_DHW_COMFORT_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump", None],
+    PARAM_DHW_ECONOMY_TEMPERATURE: [SENSOR_DHW_ECONOMY_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:water-pump", None],
+    PARAM_DHW_MODE: [SENSOR_DHW_MODE, None, "mdi:water-pump", None],
+    PARAM_ERRORS_COUNT: [SENSOR_ERRORS, None, "mdi:alert-outline", None],
+    PARAM_HEATING_LAST_24H: [SENSOR_HEATING_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_HEATING_LAST_7D: [SENSOR_HEATING_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_HEATING_LAST_30D: [SENSOR_HEATING_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_HEATING_LAST_365D: [SENSOR_HEATING_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_MODE: [SENSOR_MODE, None, "mdi:water-boiler", None],
+    PARAM_OUTSIDE_TEMPERATURE: [SENSOR_OUTSIDE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:thermometer", None],
+    PARAM_SIGNAL_STRENGTH: [SENSOR_SIGNAL_STRENGTH, DEVICE_CLASS_SIGNAL_STRENGTH, "mdi:signal", None],
+    PARAM_WATER_LAST_24H: [SENSOR_WATER_LAST_24H, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_WATER_LAST_7D: [SENSOR_WATER_LAST_7D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_WATER_LAST_30D: [SENSOR_WATER_LAST_30D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_WATER_LAST_365D: [SENSOR_WATER_LAST_365D, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_UNITS: [SENSOR_UNITS, None, "mdi:scale-balance", None],
+    PARAM_THERMAL_CLEANSE_CYCLE: [SENSOR_THERMAL_CLEANSE_CYCLE, DEVICE_CLASS_TIMESTAMP, "mdi:update", None],
+    PARAM_GAS_TYPE: [SENSOR_GAS_TYPE, None, "mdi:gas-cylinder", None],
+    PARAM_GAS_COST: [SENSOR_GAS_COST, None, "mdi:cash", None],
+    PARAM_ELECTRICITY_COST: [SENSOR_ELECTRICITY_COST, None, "mdi:cash", None],
+    PARAM_COOLING_TODAY: [SENSOR_COOLING_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
+    PARAM_HEATING_TODAY: [SENSOR_HETING_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
+    PARAM_WATER_TODAY: [SENSOR_WATER_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
 }
 
 
@@ -188,6 +202,7 @@ class AristonSensor(Entity):
         self._attrs = {}
         self._icon = SENSORS[sensor_type][2]
         self._device_class = SENSORS[sensor_type][1]
+        self._state_class = SENSORS[sensor_type][3]
 
     @property
     def unique_id(self):
@@ -203,6 +218,24 @@ class AristonSensor(Entity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
+
+    @property
+    def native_value(self):
+        """Return value of sensor."""
+        return self._state
+
+    @property
+    def state_class(self):
+        """State class of sensor."""
+        return self._state_class
+
+    @property
+    def native_unit_of_measurement(self):
+        """Return unit of sensor."""
+        try:
+            return self._api.sensor_values[self._sensor_type][UNITS]
+        except KeyError:
+            return None
 
     @property
     def device_class(self):
@@ -274,7 +307,9 @@ class AristonSensor(Entity):
                     self._attrs["Min"] = None
                     self._attrs["Max"] = None
 
-            elif self._sensor_type == PARAM_ERRORS_COUNT:
+            elif self._sensor_type in {
+                PARAM_ERRORS_COUNT
+            }:
                 self._attrs = self._api.sensor_values[PARAM_ERRORS][VALUE]
 
             elif self._sensor_type in {
@@ -294,8 +329,19 @@ class AristonSensor(Entity):
                 list_param = self._sensor_type + "_list"
                 self._attrs = self._api.sensor_values[list_param][VALUE]
 
-            elif self._sensor_type in {PARAM_CH_PROGRAM, PARAM_DHW_PROGRAM}:
+            elif self._sensor_type in {
+                PARAM_CH_PROGRAM,
+                PARAM_DHW_PROGRAM
+            }:
                 if not self._api.sensor_values[self._sensor_type][VALUE] is None:
                     self._attrs = self._api.sensor_values[self._sensor_type][VALUE]
+
+            elif self._sensor_type in {
+                PARAM_WATER_TODAY,
+                PARAM_HEATING_TODAY,
+                PARAM_COOLING_TODAY
+            }:
+                self._attrs["state_class"] = self._state_class
+
         except KeyError:
             _LOGGER.warning("Problem updating sensors for Ariston")

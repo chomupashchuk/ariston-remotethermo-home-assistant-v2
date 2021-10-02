@@ -79,10 +79,11 @@ Order of Installation:
   - `ch_set_temperature` - set CH temperature.
   - `ch_program` - CH Time Program.
   - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
-  - `cooling_last_24h` - energy use for pump cooling in a day.
-  - `cooling_last_7d` - energy use for pump cooling in a week.
-  - `cooling_last_30d` - energy use for pump cooling in a month.
-  - `cooling_last_365d` - energy use for pump cooling in a year.
+  - `cooling_last_24h` - energy use for pump cooling in a day. Not supported on all models.
+  - `cooling_last_7d` - energy use for pump cooling in a week. Not supported on all models.
+  - `cooling_last_30d` - energy use for pump cooling in a month. Not supported on all models.
+  - `cooling_last_365d` - energy use for pump cooling in a year. Not supported on all models.
+  - `cooling_today` - energy use for pump cooling today. Not supported on all models.
   - `dhw_program` - DHW Time Program.
   - `dhw_comfort_function` - DHW comfort function.
   - `dhw_mode` - mode of DHW. Not supported on all models.
@@ -99,6 +100,7 @@ Order of Installation:
   - `heating_last_30d` - energy use for heating in last 7 days. Not supported on all models.
   - `heating_last_365d` - energy use for heating in last 30 days. Not supported on all models.
   - `heating_last_7d` - energy use for heating in last 365 days. Not supported on all models.
+  - `heating_today` - energy use for heating today. Not supported on all models.
   - `mode` - mode of boiler (`off` or `summer` or `winter` and others).
   - `outside_temperature` - outside temperature. Not supported on all models.
   - `signal_strength` - Wifi signal strength.
@@ -107,6 +109,7 @@ Order of Installation:
   - `water_last_30d` - energy use for water in last 7 days. Not supported on all models.
   - `water_last_365d` - energy use for water in last 30 days. Not supported on all models.
   - `water_last_7d` - energy use for water in last 365 days. Not supported on all models.
+  - `water_today` - energy use for water today. Not supported on all models.
 
 #### Binary sensors
 **Some parameters are not supported on all models**
