@@ -112,7 +112,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.43"
+    _VERSION = "1.0.44"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -317,6 +317,22 @@ class AristonHandler:
     _REQUEST_SET_OTHER = "_set_param"
     _REQUEST_SET_UNITS = "_set_units"
 
+
+    _PARAM_TO_ARISTON = {
+        _PARAM_INTERNET_TIME: _ARISTON_INTERNET_TIME,
+        _PARAM_INTERNET_WEATHER: _ARISTON_INTERNET_WEATHER,
+        _PARAM_THERMAL_CLEANSE_FUNCTION: _ARISTON_THERMAL_CLEANSE_FUNCTION,
+        _PARAM_CH_AUTO_FUNCTION: _ARISTON_CH_AUTO_FUNCTION,
+        _PARAM_DHW_COMFORT_FUNCTION: _ARISTON_DHW_COMFORT_FUNCTION,
+        _PARAM_CH_COMFORT_TEMPERATURE: _ARISTON_CH_COMFORT_TEMP,
+        _PARAM_CH_ECONOMY_TEMPERATURE: _ARISTON_CH_ECONOMY_TEMP,
+        _PARAM_SIGNAL_STRENGTH: _ARISTON_SIGNAL_STRENGHT,
+        _PARAM_THERMAL_CLEANSE_CYCLE: _ARISTON_THERMAL_CLEANSE_CYCLE,
+        _PARAM_CH_WATER_TEMPERATURE: _ARISTON_CH_WATER_TEMPERATURE
+    }
+
+    _MENU_TO_SENSOR = {value.replace('U','').replace('_','.'): key for (key, value) in _PARAM_TO_ARISTON.items()}
+
     # Mapping of parameter to request
     _GET_REQUEST_CH_PROGRAM = {
         _PARAM_CH_PROGRAM
@@ -470,20 +486,20 @@ class AristonHandler:
         _PARAM_CH_WATER_TEMPERATURE
     }
 
-    _MENU_TO_SENSOR = {
-        "6.9.2" : _PARAM_DHW_COMFORT_FUNCTION,
-        "6.9.1.0.0" : _PARAM_DHW_COMFORT_TEMPERATURE,
-        "6.9.1.0.1" : _PARAM_DHW_ECONOMY_TEMPERATURE,
-        "6.16.5" : _PARAM_SIGNAL_STRENGTH,
-        "6.16.6" : _PARAM_INTERNET_TIME,
-        "6.16.7" : _PARAM_INTERNET_WEATHER,
-        "6.3.1.0.0" : _PARAM_CH_COMFORT_TEMPERATURE,
-        "6.3.1.0.1" : _PARAM_CH_ECONOMY_TEMPERATURE,
-        "6.3.3" : _PARAM_CH_AUTO_FUNCTION,
-        "6.3.0.0" : _PARAM_CH_WATER_TEMPERATURE,
-        "6.9.5.0" : _PARAM_THERMAL_CLEANSE_FUNCTION,
-        "6.9.5.1" : _PARAM_THERMAL_CLEANSE_CYCLE, 
-    }
+    # _MENU_TO_SENSOR = {
+    #     "6.9.2" : _PARAM_DHW_COMFORT_FUNCTION,
+    #     "6.9.1.0.0" : _PARAM_DHW_COMFORT_TEMPERATURE,
+    #     "6.9.1.0.1" : _PARAM_DHW_ECONOMY_TEMPERATURE,
+    #     "6.16.5" : _PARAM_SIGNAL_STRENGTH,
+    #     "6.16.6" : _PARAM_INTERNET_TIME,
+    #     "6.16.7" : _PARAM_INTERNET_WEATHER,
+    #     "6.3.1.0.0" : _PARAM_CH_COMFORT_TEMPERATURE,
+    #     "6.3.1.0.1" : _PARAM_CH_ECONOMY_TEMPERATURE,
+    #     "6.3.3" : _PARAM_CH_AUTO_FUNCTION,
+    #     "6.3.0.0" : _PARAM_CH_WATER_TEMPERATURE,
+    #     "6.9.5.0" : _PARAM_THERMAL_CLEANSE_FUNCTION,
+    #     "6.9.5.1" : _PARAM_THERMAL_CLEANSE_CYCLE, 
+    # }
 
     def _get_request_for_parameter(self, data):
         if data in self._GET_REQUEST_CH_PROGRAM:
@@ -798,15 +814,9 @@ class AristonHandler:
                 self._valid_requests[self._get_request_for_parameter(item)] = True
 
         self._param_sensors = list()
-        if self._PARAM_INTERNET_TIME in sensors:
-            self._param_sensors.append(self._ARISTON_INTERNET_TIME)
-        if self._PARAM_INTERNET_WEATHER in sensors:
-            self._param_sensors.append(self._ARISTON_INTERNET_WEATHER)
-        if self._PARAM_CH_WATER_TEMPERATURE in sensors:
-            self._param_sensors.append(self._ARISTON_CH_WATER_TEMPERATURE)
-        if self._PARAM_SIGNAL_STRENGTH in sensors:
-            self._param_sensors.append(self._ARISTON_SIGNAL_STRENGHT)
-       
+        for sensor_to_add in sorted(self._GET_REQUEST_PARAM):
+            if sensor_to_add in sensors:
+                self._param_sensors.append(self._PARAM_TO_ARISTON[sensor_to_add])
 
         if self._units == self._UNIT_AUTO:
             self._valid_requests[self._REQUEST_GET_UNITS] = True
@@ -2334,33 +2344,33 @@ class AristonHandler:
             except KeyError:
                 self._LOGGER.warning('%s Error handling DHW temperature history', self)
 
-            # Append additional sensors to params
-            if "dhwBoilerPresent" in self._ariston_data and self._ariston_data["dhwBoilerPresent"]:
-                if self._ARISTON_THERMAL_CLEANSE_FUNCTION not in self._param_sensors:
-                    self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
-                if self._ARISTON_THERMAL_CLEANSE_CYCLE not in self._param_sensors:
-                    self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
+            # # Append additional sensors to params
+            # if "dhwBoilerPresent" in self._ariston_data and self._ariston_data["dhwBoilerPresent"]:
+            #     if self._ARISTON_THERMAL_CLEANSE_FUNCTION not in self._param_sensors:
+            #         self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_FUNCTION)
+            #     if self._ARISTON_THERMAL_CLEANSE_CYCLE not in self._param_sensors:
+            #         self._param_sensors.append(self._ARISTON_THERMAL_CLEANSE_CYCLE)
 
-            try:
-                if self._ariston_data["dhwTemp"]["min"] == 0 and \
-                    self._ariston_data["dhwTemp"]["max"] == 0 and \
-                    self._ariston_data["dhwTemp"]["value"] == 0 and \
-                    self._ariston_data["dhwTimeProgSupported"] == False and \
-                    self._ariston_data["dhwTimeProgComfortActive"] == False and \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["min"] == 0 and \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["max"] == 0 and \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["value"] == 0 and \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["min"] == 0 and \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["max"] == 0 and \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["value"] == 0:
-                    self._LOGGER.info('%s DHW parameters probably not supported.', self)
-                else:
-                    if self._ARISTON_DHW_TIME_PROG_COMFORT not in self._param_sensors:
-                        self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_COMFORT)
-                    if self._ARISTON_DHW_TIME_PROG_ECONOMY not in self._param_sensors:
-                        self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_ECONOMY)
-            except KeyError:
-                self._LOGGER.warning('%s Error appending sensors to parameter list.', self)
+            # try:
+            #     if self._ariston_data["dhwTemp"]["min"] == 0 and \
+            #         self._ariston_data["dhwTemp"]["max"] == 0 and \
+            #         self._ariston_data["dhwTemp"]["value"] == 0 and \
+            #         self._ariston_data["dhwTimeProgSupported"] == False and \
+            #         self._ariston_data["dhwTimeProgComfortActive"] == False and \
+            #         self._ariston_data["dhwTimeProgComfortTemp"]["min"] == 0 and \
+            #         self._ariston_data["dhwTimeProgComfortTemp"]["max"] == 0 and \
+            #         self._ariston_data["dhwTimeProgComfortTemp"]["value"] == 0 and \
+            #         self._ariston_data["dhwTimeProgEconomyTemp"]["min"] == 0 and \
+            #         self._ariston_data["dhwTimeProgEconomyTemp"]["max"] == 0 and \
+            #         self._ariston_data["dhwTimeProgEconomyTemp"]["value"] == 0:
+            #         self._LOGGER.info('%s DHW parameters probably not supported.', self)
+            #     else:
+            #         if self._ARISTON_DHW_TIME_PROG_COMFORT not in self._param_sensors:
+            #             self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_COMFORT)
+            #         if self._ARISTON_DHW_TIME_PROG_ECONOMY not in self._param_sensors:
+            #             self._param_sensors.append(self._ARISTON_DHW_TIME_PROG_ECONOMY)
+            # except KeyError:
+            #     self._LOGGER.warning('%s Error appending sensors to parameter list.', self)
 
             self._set_sensors(request_type)
             self._set_sensors(self._REQUEST_GET_VERSION)
@@ -2663,7 +2673,11 @@ class AristonHandler:
                         self._ARISTON_CH_ECONOMY_TEMP,
                         self._ARISTON_CH_AUTO_FUNCTION
                     ]
-                    list_to_send.extend(self._param_sensors)
+                    # Add defined sensors
+                    if self._param_sensors:
+                        for param_to_add in self._param_sensors:
+                            if param_to_add not in list_to_send:
+                                list_to_send.append(param_to_add)
                     ids_to_fetch = ",".join(map(str, list_to_send))
                     url = self._url + '/Menu/User/Refresh/' + self._plant_id + '?paramIds=' + ids_to_fetch + '&umsys=si'
                     http_timeout = self._timeout_long
