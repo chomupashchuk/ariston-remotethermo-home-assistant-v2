@@ -1,5 +1,6 @@
 """Suppoort for Ariston seletion."""
 from datetime import timedelta
+from copy import deepcopy
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import CONF_SELECTOR, CONF_NAME
@@ -12,6 +13,9 @@ from .const import (
     PARAM_DHW_MODE,
     PARAM_DHW_COMFORT_FUNCTION,
     VALUE,
+    ZONE_PARAMETERS,
+    ZONE_TEMPLATE, 
+    ZONE_NAME_TEMPLATE
 )
 
 SELECT_MODE = "Boiler Mode"
@@ -27,6 +31,13 @@ SELECTS = {
     PARAM_DHW_MODE: (SELECT_DHW_MODE, "mdi:water-pump"),
     PARAM_DHW_COMFORT_FUNCTION: (SELECT_DHW_COMFORT, "mdi:water-pump"),
 }
+for param in ZONE_PARAMETERS:
+    if param in SELECTS:
+        for zone in range(2, 4):
+            SELECTS[ZONE_TEMPLATE.format(param, zone)] = (
+                ZONE_NAME_TEMPLATE.format(SELECTS[param][0], zone),
+                SELECTS[param][1]
+            )
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):

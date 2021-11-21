@@ -8,6 +8,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.const import CONF_BINARY_SENSORS, CONF_NAME
 
 import logging
+from copy import deepcopy
 from datetime import timedelta
 
 from .const import (
@@ -28,6 +29,9 @@ from .const import (
     PARAM_UPDATE,
     PARAM_ONLINE_VERSION,
     VALUE,
+    ZONE_PARAMETERS,
+    ZONE_TEMPLATE,
+    ZONE_NAME_TEMPLATE
 )
 
 BINARY_SENSOR_CH_FLAME = "CH Flame"
@@ -72,6 +76,14 @@ BINARY_SENSORS = {
     PARAM_CH_PILOT: (BINARY_SENSOR_CH_PILOT, None, "mdi:head-cog-outline"),
     PARAM_UPDATE: (BINARY_SENSOR_UPDATE, None, "mdi:package-down"),
 }
+for param in ZONE_PARAMETERS:
+    if param in BINARY_SENSORS:
+        for zone in range(2, 4):
+            BINARY_SENSORS[ZONE_TEMPLATE.format(param, zone)] = (
+                ZONE_NAME_TEMPLATE.format(BINARY_SENSORS[param][0], zone),
+                BINARY_SENSORS[param][1],
+                BINARY_SENSORS[param][2]
+            )
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):

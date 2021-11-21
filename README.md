@@ -44,6 +44,7 @@ Order of Installation:
   - `password` - **mandatory** password used in https://www.ariston-net.remotethermo.com
     **! It is recommended for security purposes to not use your common password, just in case !**
   - `name` - friendly name for integration, default is `Ariston`
+  - `zones` - number of zones to be monitored (`1`, `2` or `3`). The default value is `1`. It automatically adds sensors ending with `_zone_2` and `_zone_3`.
   - `hvac_off_present` - indicates if `HVAC OFF` shall be present in climate entity. Default value is `false`.
   - `hvac_off` - indicates how to treat `HVAC OFF` action in climate (use depends on `hvac_off_present`). Options are `off` and `summer`. By default it is `summer`, which means that turning off would keep DHW water heating on (e.g. summer mode). Presets in climate allow switching between `off`, `summer` and `winter`.
   - `store_config_files` - `true` or `false` indicating if configuration `json` files to be stored in `/config/custom_components/ariston` folder. Can be used for troubleshooting purposes. Default value is `false`.

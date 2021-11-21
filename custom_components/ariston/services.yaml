@@ -13,13 +13,37 @@ set_data:
     ch_mode:
       description: "(Optional) CH mode: 'manual' or 'program'."
       example: manual
+    ch_mode_zone_2:
+      description: "(Optional) CH mode: 'manual' or 'program'."
+      example: manual
+    ch_mode_zone_3:
+      description: "(Optional) CH mode: 'manual' or 'program'."
+      example: manual
     ch_set_temperature:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone_2:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone_3:
       description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
       example: 23
     ch_comfort_temperature:
       description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
       example: 23
+    ch_comfort_temperature_zone_2:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone_3:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
     ch_economy_temperature:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone_2:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone_3:
       description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
       example: 23.5
     ch_water_temperature:

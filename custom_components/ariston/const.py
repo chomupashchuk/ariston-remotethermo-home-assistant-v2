@@ -77,6 +77,20 @@ PARAM_CH_PILOT = "ch_pilot"
 PARAM_UPDATE = "update"
 PARAM_ONLINE_VERSION = "online_version"
 
+ZONE_PARAMETERS ={
+    PARAM_CH_MODE,
+    PARAM_CH_SET_TEMPERATURE,
+    PARAM_CH_COMFORT_TEMPERATURE,
+    PARAM_CH_ECONOMY_TEMPERATURE,
+    PARAM_CH_DETECTED_TEMPERATURE,
+    PARAM_CH_ANTIFREEZE_TEMPERATURE,
+    PARAM_CH_FLAME,
+    PARAM_CH_PROGRAM
+}
+
+ZONE_TEMPLATE = '{}_zone_{}'
+ZONE_NAME_TEMPLATE = '{} Zone {}'
+
 VAL_HOLIDAY = "holiday"
 VAL_WINTER = "winter"
 VAL_SUMMER = "summer"
@@ -98,6 +112,8 @@ CONF_UNITS = "units"
 CONF_POLLING = "polling"
 CONF_LOG = "logging"
 CONF_GW = "gw"
+CONF_ZONES = "zones"
+CONF_CLIMATES = "climates"
 
 VALUE = "value"
 UNITS = "units"

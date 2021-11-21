@@ -1,6 +1,7 @@
 """Suppoort for Ariston sensors."""
 import logging
 from datetime import timedelta
+from copy import deepcopy
 
 from homeassistant.const import CONF_NAME, CONF_SENSORS
 from homeassistant.helpers.entity import Entity
@@ -73,6 +74,9 @@ from .const import (
     PARAM_ELECTRICITY_COST,
     VALUE,
     UNITS,
+    ZONE_PARAMETERS,
+    ZONE_TEMPLATE, 
+    ZONE_NAME_TEMPLATE
 )
 
 SCAN_INTERVAL = timedelta(seconds=2)
@@ -171,7 +175,16 @@ SENSORS = {
     PARAM_HEATING_TODAY: [SENSOR_HETING_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
     PARAM_WATER_TODAY: [SENSOR_WATER_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
 }
-
+for param in ZONE_PARAMETERS:
+    if param in SENSORS:
+        for zone in range(2, 4):
+            SENSORS[ZONE_TEMPLATE.format(param, zone)] = (
+                ZONE_NAME_TEMPLATE.format(SENSORS[param][0], zone),
+                SENSORS[param][1],
+                SENSORS[param][2],
+                SENSORS[param][3]
+            )
+            
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up a sensor for Ariston."""
@@ -274,13 +287,23 @@ class AristonSensor(Entity):
             and not self._api.sensor_values[self._sensor_type][VALUE] is None
         )
 
+    def _original_sensor(self, sensor):
+        for param in ZONE_PARAMETERS:
+            if sensor in {
+                ZONE_TEMPLATE.format(param, 2),
+                ZONE_TEMPLATE.format(param, 3)
+                }:
+                return param
+        return sensor
+
+
     def update(self):
         """Get the latest data and updates the state."""
         try:
             if not self._api.available:
                 return
             if not self._api.sensor_values[self._sensor_type][VALUE] is None:
-                if self._sensor_type in {PARAM_CH_PROGRAM, PARAM_DHW_PROGRAM}:
+                if self._original_sensor(self._sensor_type) in {PARAM_CH_PROGRAM, PARAM_DHW_PROGRAM}:
                     if self._api.sensor_values[self._sensor_type][VALUE] != {}:
                         self._state = STATE_AVAILABLE
                     else:
@@ -291,7 +314,7 @@ class AristonSensor(Entity):
                 self._state = None
 
             self._attrs = {}
-            if self._sensor_type in {
+            if self._original_sensor(self._sensor_type) in {
                 PARAM_CH_SET_TEMPERATURE,
                 PARAM_DHW_SET_TEMPERATURE,
                 PARAM_CH_WATER_TEMPERATURE
@@ -307,12 +330,12 @@ class AristonSensor(Entity):
                     self._attrs["Min"] = None
                     self._attrs["Max"] = None
 
-            elif self._sensor_type in {
+            elif self._original_sensor(self._sensor_type) in {
                 PARAM_ERRORS_COUNT
             }:
                 self._attrs = self._api.sensor_values[PARAM_ERRORS][VALUE]
 
-            elif self._sensor_type in {
+            elif self._original_sensor(self._sensor_type) in {
                 PARAM_HEATING_LAST_24H,
                 PARAM_WATER_LAST_24H,
                 PARAM_COOLING_LAST_24H,
@@ -329,14 +352,14 @@ class AristonSensor(Entity):
                 list_param = self._sensor_type + "_list"
                 self._attrs = self._api.sensor_values[list_param][VALUE]
 
-            elif self._sensor_type in {
+            elif self._original_sensor(self._sensor_type) in {
                 PARAM_CH_PROGRAM,
                 PARAM_DHW_PROGRAM
             }:
-                if not self._api.sensor_values[self._sensor_type][VALUE] is None:
+                if self._state:
                     self._attrs = self._api.sensor_values[self._sensor_type][VALUE]
 
-            elif self._sensor_type in {
+            elif self._original_sensor(self._sensor_type) in {
                 PARAM_WATER_TODAY,
                 PARAM_HEATING_TODAY,
                 PARAM_COOLING_TODAY

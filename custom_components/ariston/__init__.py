@@ -39,6 +39,8 @@ from .const import (
     CONF_POLLING,
     CONF_LOG,
     CONF_GW,
+    CONF_ZONES,
+    CONF_CLIMATES,
     PARAM_ACCOUNT_CH_GAS,
     PARAM_ACCOUNT_CH_ELECTRICITY,
     PARAM_ACCOUNT_DHW_GAS,
@@ -115,6 +117,9 @@ from .const import (
     VAL_OFF,
     VAL_HEATING_ONLY,
     VAL_COOLING,
+    ZONE_PARAMETERS,
+    ZONE_TEMPLATE,
+    ZONE_NAME_TEMPLATE
 )
 from .sensor import SENSORS
 from .switch import SWITCHES
@@ -124,6 +129,7 @@ DEFAULT_HVAC = VAL_SUMMER
 DEFAULT_NAME = "Ariston"
 DEFAULT_MAX_RETRIES = 5
 DEFAULT_POLLING = 1.0
+DEFAULT_ZONES = 1
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,6 +161,9 @@ ARISTON_SCHEMA = vol.Schema(
         ),
         vol.Optional(CONF_LOG, default="DEBUG"): vol.In(
             ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
+        ),
+        vol.Optional(CONF_ZONES, default=DEFAULT_ZONES): vol.All(
+            int, vol.Range(min=1, max=3)
         ),
     }
 )
@@ -190,13 +199,15 @@ class AristonChecker:
         selectors,
         polling,
         logging,
-        gw
+        gw,
+        zones
     ):
         """Initialize."""
 
         self.device = device
         self._hass = hass
         self.name = name
+        self.zones = zones
 
         if not sensors:
             sensors = list()
@@ -223,7 +234,8 @@ class AristonChecker:
             polling=polling,
             logging_level=logging,
             #store_folder="/config/ariston_http_data",
-            gw=gw
+            gw=gw,
+            zones=zones
         )
 
 
@@ -247,6 +259,7 @@ def setup(hass, config):
         selectors =  device.get(CONF_SELECTOR)
         polling = device.get(CONF_POLLING)
         logging = device.get(CONF_LOG)
+        zones = device.get(CONF_ZONES)
         gw = device.get(CONF_GW)
         if gw in dev_gateways:
             _LOGGER.error(f"Duplicate value of 'gw': {gw}")
@@ -272,6 +285,7 @@ def setup(hass, config):
             polling=polling,
             logging=logging,
             gw=gw,
+            zones=zones
         )
 
         api_list.append(api)
@@ -281,7 +295,21 @@ def setup(hass, config):
         # load all devices
         hass.data[DATA_ARISTON][DEVICES][name] = AristonDevice(api, device)
 
-        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name}, config)
+        climate_entities = [name]
+        if zones > 1:
+            for zone in range(2, zones + 1):
+                climate_entities.append(ZONE_NAME_TEMPLATE.format(name, zone))
+                for param in ZONE_PARAMETERS:
+                    if param in switches:
+                        switches.append(ZONE_TEMPLATE.format(param, zone))
+                    if param in sensors:
+                        sensors.append(ZONE_TEMPLATE.format(param, zone))
+                    if param in selectors:
+                        selectors.append(ZONE_TEMPLATE.format(param, zone))
+                    if param in binary_sensors:
+                        binary_sensors.append(ZONE_TEMPLATE.format(param, zone))
+
+        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name, CONF_CLIMATES: climate_entities}, config)
 
         discovery.load_platform(hass, WATER_HEATER, DOMAIN, {CONF_NAME: name}, config)
 
@@ -346,73 +374,35 @@ def setup(hass, config):
                 # climate entity is found
                 parameter_list = {}
 
-                data = call.data.get(PARAM_MODE, "")
-                if data != "":
-                    parameter_list[PARAM_MODE] = str(data).lower()
+                params_to_set = {
+                    PARAM_MODE,
+                    PARAM_CH_MODE,
+                    PARAM_CH_SET_TEMPERATURE,
+                    PARAM_CH_COMFORT_TEMPERATURE,
+                    PARAM_CH_ECONOMY_TEMPERATURE,
+                    PARAM_CH_AUTO_FUNCTION,
+                    PARAM_CH_WATER_TEMPERATURE,
+                    PARAM_DHW_MODE,
+                    PARAM_DHW_SET_TEMPERATURE,
+                    PARAM_DHW_COMFORT_TEMPERATURE,
+                    PARAM_DHW_ECONOMY_TEMPERATURE,
+                    PARAM_DHW_COMFORT_FUNCTION,
+                    PARAM_INTERNET_TIME,
+                    PARAM_INTERNET_WEATHER,
+                    PARAM_UNITS,
+                    PARAM_THERMAL_CLEANSE_CYCLE,
+                    PARAM_THERMAL_CLEANSE_FUNCTION,
+                }
+                for param in ZONE_PARAMETERS:
+                    if param in params_to_set:
+                        for zone in range(2, 4):
+                            params_to_set.add(ZONE_TEMPLATE.format(param, zone))
+                
 
-                data = call.data.get(PARAM_CH_MODE, "")
-                if data != "":
-                    parameter_list[PARAM_CH_MODE] = str(data).lower()
-
-                data = call.data.get(PARAM_CH_SET_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_CH_SET_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_CH_COMFORT_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_CH_COMFORT_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_CH_ECONOMY_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_CH_ECONOMY_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_DHW_SET_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_DHW_SET_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_DHW_COMFORT_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_DHW_COMFORT_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_DHW_ECONOMY_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_DHW_ECONOMY_TEMPERATURE] = str(data).lower()
-
-                data = call.data.get(PARAM_DHW_MODE, "")
-                if data != "":
-                    parameter_list[PARAM_DHW_MODE] = str(data).lower()
-
-                data = call.data.get(PARAM_DHW_COMFORT_FUNCTION, "")
-                if data != "":
-                    parameter_list[PARAM_DHW_COMFORT_FUNCTION] = str(data).lower()
-
-                data = call.data.get(PARAM_INTERNET_TIME, "")
-                if data != "":
-                    parameter_list[PARAM_INTERNET_TIME] = str(data).lower()
-
-                data = call.data.get(PARAM_INTERNET_WEATHER, "")
-                if data != "":
-                    parameter_list[PARAM_INTERNET_WEATHER] = str(data).lower()
-
-                data = call.data.get(PARAM_CH_AUTO_FUNCTION, "")
-                if data != "":
-                    parameter_list[PARAM_CH_AUTO_FUNCTION] = str(data).lower()
-
-                data = call.data.get(PARAM_UNITS, "")
-                if data != "":
-                    parameter_list[PARAM_UNITS] = str(data).lower()
-
-                data = call.data.get(PARAM_THERMAL_CLEANSE_CYCLE, "")
-                if data != "":
-                    parameter_list[PARAM_THERMAL_CLEANSE_CYCLE] = str(data).lower()
-
-                data = call.data.get(PARAM_THERMAL_CLEANSE_FUNCTION, "")
-                if data != "":
-                    parameter_list[PARAM_THERMAL_CLEANSE_FUNCTION] = str(data).lower()
-
-                data = call.data.get(PARAM_CH_WATER_TEMPERATURE, "")
-                if data != "":
-                    parameter_list[PARAM_CH_WATER_TEMPERATURE] = str(data).lower()
+                for param in params_to_set:
+                    data = call.data.get(param, "")
+                    if data != "":
+                        parameter_list[param] = str(data).lower()
 
                 _LOGGER.debug("Ariston device found, data to check and send")
 

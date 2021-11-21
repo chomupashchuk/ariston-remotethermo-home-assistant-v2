@@ -1,5 +1,6 @@
 """Suppoort for Ariston switch."""
 from datetime import timedelta
+from copy import deepcopy
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import CONF_SWITCHES, CONF_NAME
@@ -12,6 +13,9 @@ from .const import (
     PARAM_CH_AUTO_FUNCTION,
     PARAM_THERMAL_CLEANSE_FUNCTION,
     VALUE,
+    ZONE_PARAMETERS,
+    ZONE_TEMPLATE,
+    ZONE_NAME_TEMPLATE
 )
 
 SWITCH_CH_AUTO_FUNCTION = "CH Auto Function"
@@ -28,7 +32,14 @@ SWITCHES = {
     PARAM_CH_AUTO_FUNCTION: (SWITCH_CH_AUTO_FUNCTION, "mdi:radiator"),
     PARAM_THERMAL_CLEANSE_FUNCTION: (SWITCH_THERMAL_CLEANSE_FUNCTION, "mdi:allergy"),
 }
-
+for param in ZONE_PARAMETERS:
+    if param in SWITCHES:
+        for zone in range(2, 4):
+            SWITCHES[ZONE_TEMPLATE.format(param, zone)] = (
+                ZONE_NAME_TEMPLATE.format(SWITCHES[param][0], zone),
+                SWITCHES[param][1]
+            )
+            
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up a switches for Ariston."""
