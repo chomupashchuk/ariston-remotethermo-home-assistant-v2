@@ -116,7 +116,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.47"
+    _VERSION = "1.0.48"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -287,6 +287,7 @@ class AristonHandler:
     _MAX_ERRORS = 10
     _MAX_ERRORS_TIMER_EXTEND = 7
     _MAX_ZERO_TOLERANCE = 10
+    _MAX_ZERO_TOLERANCE_TODAY_PARAMS = 5
     _HTTP_DELAY_MULTIPLY = 3
     _HTTP_TIMER_SET_LOCK = 25
     _HTTP_TIMER_SET_WAIT = 30
@@ -295,6 +296,8 @@ class AristonHandler:
     _HTTP_TIMEOUT_GET_MEDIUM = 10.0
     _HTTP_TIMEOUT_GET_SHORT = 6.0
     _HTTP_PARAM_DELAY = 30.0
+
+    _TODAY_SENSORS = {_PARAM_COOLING_TODAY, _PARAM_HEATING_TODAY, _PARAM_WATER_TODAY}
 
     # Conversions between parameters
     _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2, _VAL_COOLING: 3}
@@ -893,6 +896,9 @@ class AristonHandler:
             self._REQUEST_GET_OTHER: False,
             self._REQUEST_GET_UNITS: False
         }
+        self._today_count_ignore = dict()
+        for today_param in self._TODAY_SENSORS:
+            self._today_count_ignore[today_param] = 0
         self._set_retry = {
             self._REQUEST_SET_MAIN: 0,
             self._REQUEST_SET_OTHER: 0,
@@ -1915,47 +1921,53 @@ class AristonHandler:
                     self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = None
                     self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = None
 
-                try:
-                    sum_obj = 0
-                    start_hour = int(self._ariston_gas_data["daily"]["leftColumnLabel"])
-                    use_iterated = False
-                    for item in self._ariston_gas_data["daily"]["data"]:
-                        if start_hour == 0 or start_hour == 24:
-                            use_iterated = True
-                        start_hour += 2
-                        if use_iterated:
-                            sum_obj = sum_obj + item["y3"]
-                    self._ariston_sensors[self._PARAM_COOLING_TODAY][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_COOLING_TODAY][self._VALUE] = None
+                new_todays_values = dict()
+                old_todays_values = dict()
 
-                try:
-                    sum_obj = 0
-                    start_hour = int(self._ariston_gas_data["daily"]["leftColumnLabel"])
-                    use_iterated = False
-                    for item in self._ariston_gas_data["daily"]["data"]:
-                        if start_hour == 0 or start_hour == 24:
-                            use_iterated = True
-                        start_hour += 2
-                        if use_iterated:
-                            sum_obj = sum_obj + item["y2"]
-                    self._ariston_sensors[self._PARAM_HEATING_TODAY][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_HEATING_TODAY][self._VALUE] = None
+                for today_sensor in self._TODAY_SENSORS:
+                    try:
+                        if today_sensor == self._PARAM_COOLING_TODAY:
+                            key = "y3"
+                        elif today_sensor == self._PARAM_HEATING_TODAY:
+                            key = "y2"
+                        elif today_sensor == self._PARAM_WATER_TODAY:
+                            key = "y"
+                        else:
+                            # Unknown key
+                            continue
+                        # Store old values
+                        old_todays_values[today_sensor] = self._ariston_sensors[today_sensor][self._VALUE]
+                        sum_obj = 0
+                        start_hour = int(self._ariston_gas_data["daily"]["leftColumnLabel"])
+                        use_iterated = False
+                        for item in self._ariston_gas_data["daily"]["data"]:
+                            if start_hour == 0 or start_hour == 24:
+                                use_iterated = True
+                            start_hour += 2
+                            if use_iterated:
+                                sum_obj = sum_obj + item[key]
+                        new_todays_values[today_sensor] = round(sum_obj, 3)
+                    except KeyError:
+                        new_todays_values[today_sensor] = None
+                        continue
 
-                try:
-                    sum_obj = 0
-                    start_hour = int(self._ariston_gas_data["daily"]["leftColumnLabel"])
-                    use_iterated = False
-                    for item in self._ariston_gas_data["daily"]["data"]:
-                        if start_hour == 0 or start_hour == 24:
-                            use_iterated = True
-                        start_hour += 2
-                        if use_iterated:
-                            sum_obj = sum_obj + item["y"]
-                    self._ariston_sensors[self._PARAM_WATER_TODAY][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_WATER_TODAY][self._VALUE] = None
+                if all(new_todays_values[today_sensor] == 0 for today_sensor in self._TODAY_SENSORS):
+                    all_zero = True
+                else:
+                    all_zero = False
+                
+                for today_sensor in self._TODAY_SENSORS:
+                    try:
+                        if all_zero and old_todays_values[today_sensor] and self._today_count_ignore < self._MAX_ZERO_TOLERANCE_TODAY_PARAMS:
+                            # Use old value if reports are all 0, old value is non-zero and we have not exceeded tolarance
+                            self._ariston_sensors[today_sensor][self._VALUE] = old_todays_values[today_sensor]
+                            self._today_count_ignore[today_sensor] += 1
+                        else:
+                            # Use new value
+                            self._ariston_sensors[today_sensor][self._VALUE] = new_todays_values[today_sensor]
+                            self._today_count_ignore[today_sensor] = 0
+                    except:
+                        continue
 
             else:
                 for parameter in self._GET_REQUEST_GAS:
@@ -3904,6 +3916,8 @@ class AristonHandler:
             self._ZONE_2: dict(),
             self._ZONE_3: dict()
         }
+        for today_param in self._TODAY_SENSORS:
+            self._today_count_ignore[today_param] = 0
         for sensor in self._SENSOR_LIST:
             if sensor in self._ariston_sensors and sensor != self._PARAM_UNITS:
                 self._ariston_sensors[sensor][self._VALUE] = None
