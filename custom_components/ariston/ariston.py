@@ -116,7 +116,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.48"
+    _VERSION = "1.0.49"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -1036,10 +1036,11 @@ class AristonHandler:
                 json.dump(self._request_list_low_prio, ariston_fetched)
 
     def _send_params_get_main(self):
-        result = ['?zoneNum={0}&umsys=si']
+        request_params = '?zoneNum={}&umsys=si&firstRoundTrip=true&twoPhaseRefresh=false'
+        result = [request_params.format('{0}')]
         if self._zones > 1:
             for zone in range(self._ADD_ZONES_START, self._zones + 1):
-                result.append(f'?zoneNum={zone}&umsys=si')
+                result.append(request_params.format(zone))
         return result
 
     def _send_params_get_program(self):
