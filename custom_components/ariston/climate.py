@@ -124,11 +124,6 @@ class AristonThermostat(ClimateEntity):
         """Return the name of the Climate device."""
         return self._climate_name
 
-    # @property
-    # def unique_id(self) -> str:
-    #     """Return the unique ID for this thermostat."""
-    #     return "_".join([self._name, "climate"])
-
     @property
     def should_poll(self):
         """Polling is required."""

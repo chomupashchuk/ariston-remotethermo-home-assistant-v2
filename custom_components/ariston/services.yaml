@@ -49,6 +49,15 @@ set_data:
     ch_water_temperature:
       description: "(Optional) Set CH water temperature in steps of '1.0'. Value range depends on model."
       example: 80
+    ch_fixed_temperature:
+      description: "(Optional) Set CH fixed water temperature in steps of '1.0'. Value range depends on model."
+      example: -4
+    ch_fixed_temperature_zone_2:
+      description: "(Optional) Set CH fixed water temperature in steps of '1.0'. Value range depends on model."
+      example: -4
+    ch_fixed_temperature_zone_3:
+      description: "(Optional) Set CH fixed water temperature in steps of '1.0'. Value range depends on model."
+      example: -4
     dhw_mode:
       description: "(Optional) DHW mode: 'manual' or 'program'. Support depends on model."
       example: manual

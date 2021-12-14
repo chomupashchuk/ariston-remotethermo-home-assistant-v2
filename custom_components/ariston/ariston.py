@@ -40,6 +40,8 @@ class AristonHandler:
         - 'ch_pilot' - CH pilot status.
         - 'ch_auto_function' - CH auto function.
         - 'ch_flame' - CH flame.
+        - 'ch_fixed_temperature' - CH fixed temperature.
+        - 'ch_flow_temperature' - CH flow setpoint temperature.
         - 'ch_water_temperature' - CH water temperature.
         - 'cooling_last_24h' - energy use for pump cooling in a day.
         - 'cooling_last_7d' - energy use for pump cooling in a week.
@@ -71,6 +73,7 @@ class AristonHandler:
         - 'heating_last_365d_list' - energy use for CH in a year with periods.
         - 'mode' - general mode.
         - 'outside_temperature' - outside temperature.
+        - 'pressure' - CH water pressure.
         - 'signal_strength' - signal strength.
         - 'water_last_24h' - energy use for DHW in a day.
         - 'water_last_7d' - energy use for DHW in a week.
@@ -116,7 +119,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.49"
+    _VERSION = "1.0.51"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -227,6 +230,9 @@ class AristonHandler:
     _PARAM_CH_PILOT = "ch_pilot"
     _PARAM_UPDATE = "update"
     _PARAM_ONLINE_VERSION = "online_version"
+    _PARAM_PRESSURE = "pressure"
+    _PARAM_CH_FLOW_TEMP = 'ch_flow_temperature'
+    _PARAM_CH_FIXED_TEMP = 'ch_fixed_temperature'
 
     _ZONE_PARAMETERS ={
         "_PARAM_CH_MODE",
@@ -236,7 +242,8 @@ class AristonHandler:
         "_PARAM_CH_DETECTED_TEMPERATURE",
         "_PARAM_CH_ANTIFREEZE_TEMPERATURE",
         "_PARAM_CH_FLAME",
-        "_PARAM_CH_PROGRAM"
+        "_PARAM_CH_PROGRAM",
+        "_PARAM_CH_FIXED_TEMP"
     }
     # Create variables for zones
     for param in _ZONE_PARAMETERS:
@@ -260,6 +267,7 @@ class AristonHandler:
     _VAL_COOLING = "cooling"
     _VAL_MANUAL = "manual"
     _VAL_PROGRAM = "program"
+    _VAL_ANTIFREEZE = "antifreeze"
     _VAL_UNKNOWN = "unknown"
     _VAL_OFFLINE = "offline"
     _VAL_UNSUPPORTED = "unsupported"
@@ -303,7 +311,7 @@ class AristonHandler:
     _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2, _VAL_COOLING: 3}
     _VALUE_TO_MODE = {value: key for (key, value) in _MODE_TO_VALUE.items()}
 
-    _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_UNKNOWN: 0}
+    _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_ANTIFREEZE: 0}
     _VALUE_TO_CH_MODE = {value: key for (key, value) in _CH_MODE_TO_VALUE.items()}
 
     _DHW_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 1, _VAL_DEFAULT: 0}
@@ -316,6 +324,9 @@ class AristonHandler:
     _VALUE_TO_UNIT = {value: key for (key, value) in _UNIT_TO_VALUE.items()}
 
     _PARAM_STRING_TO_VALUE = {"true": 1, "false": 0}
+
+    _METHOD_GET = 'get'
+    _METHOD_POST = 'post'
 
     _UNKNOWN_TEMP = 0.0
     _UNKNOWN_UNITS = 3276
@@ -370,6 +381,9 @@ class AristonHandler:
     _ARISTON_CH_FIXED_TEMP_ZONE_2 = "U6_3_0_3"
     _ARISTON_CH_FIXED_TEMP_ZONE_3 = "U6_3_0_5"
 
+    _ARISTON_CH_FLOW_TEMP = 'ChFlowSetpointTemp'
+    _ARISTON_PRESSURE = 'HeatingCircuitPressure'
+
     _REQUEST_GET_MAIN = "_get_main"
     _REQUEST_GET_CH = "_get_ch"
     _REQUEST_GET_DHW = "_get_dhw"
@@ -382,7 +396,14 @@ class AristonHandler:
     _REQUEST_SET_MAIN = "_set_main"
     _REQUEST_SET_OTHER = "_set_param"
     _REQUEST_SET_UNITS = "_set_units"
+    _REQUEST_GET_OTHER_2 = '_get_post_other'
 
+
+    _PARAM_2_TO_ARISTON = {
+        _PARAM_CH_FLOW_TEMP: _ARISTON_CH_FLOW_TEMP,
+        _PARAM_PRESSURE: _ARISTON_PRESSURE
+    }
+    _ARISTON_2_TO_PARAM = {value: key for (key, value) in _PARAM_2_TO_ARISTON.items()}
 
     _PARAM_TO_ARISTON = {
         _PARAM_INTERNET_TIME: _ARISTON_INTERNET_TIME,
@@ -397,6 +418,7 @@ class AristonHandler:
         _PARAM_CH_WATER_TEMPERATURE: _ARISTON_CH_WATER_TEMPERATURE,
         _PARAM_DHW_COMFORT_TEMPERATURE: _ARISTON_DHW_TIME_PROG_COMFORT,
         _PARAM_DHW_ECONOMY_TEMPERATURE: _ARISTON_DHW_TIME_PROG_ECONOMY,
+        _PARAM_CH_FIXED_TEMP: _ARISTON_CH_FIXED_TEMP,
     }
     # Create mappings for zones
     var_name = '_PARAM_TO_ARISTON'
@@ -419,6 +441,11 @@ class AristonHandler:
         _PARAM_CH_PROGRAM
     }
     duplicate_set_per_zone('_GET_REQUEST_CH_PROGRAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
+    _GET_REQUEST_OTHER_2 = {
+        _PARAM_CH_FLOW_TEMP,
+        _PARAM_PRESSURE
+    }
+    duplicate_set_per_zone('_GET_REQUEST_OTHER_2', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
     _GET_REQUEST_CURRENCY = {
         _PARAM_GAS_TYPE,
         _PARAM_GAS_COST,
@@ -498,7 +525,8 @@ class AristonHandler:
         _PARAM_CH_ECONOMY_TEMPERATURE,
         _PARAM_SIGNAL_STRENGTH,
         _PARAM_THERMAL_CLEANSE_CYCLE,
-        _PARAM_CH_WATER_TEMPERATURE
+        _PARAM_CH_WATER_TEMPERATURE,
+        _PARAM_CH_FIXED_TEMP,
     }
     duplicate_set_per_zone('_GET_REQUEST_PARAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
     _GET_REQUEST_UNITS = {
@@ -520,7 +548,8 @@ class AristonHandler:
                     *_GET_REQUEST_MAIN,
                     *_GET_REQUEST_PARAM,
                     *_GET_REQUEST_UNITS,
-                    *_GET_REQUEST_VERSION}
+                    *_GET_REQUEST_VERSION,
+                    *_GET_REQUEST_OTHER_2}
 
 
     _MAP_ZONE_TO_ORIGINAL_PARAM = dict()
@@ -588,7 +617,8 @@ class AristonHandler:
         _PARAM_CH_ECONOMY_TEMPERATURE,
         _PARAM_SIGNAL_STRENGTH,
         _PARAM_THERMAL_CLEANSE_CYCLE,
-        _PARAM_CH_WATER_TEMPERATURE
+        _PARAM_CH_WATER_TEMPERATURE,
+        _PARAM_CH_FIXED_TEMP,
     }
     duplicate_set_per_zone('_SET_REQUEST_PARAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
     _SET_REQUEST_UNITS = {
@@ -612,7 +642,8 @@ class AristonHandler:
         _PARAM_UNITS,
         _PARAM_THERMAL_CLEANSE_CYCLE,
         _PARAM_THERMAL_CLEANSE_FUNCTION,
-        _PARAM_CH_WATER_TEMPERATURE
+        _PARAM_CH_WATER_TEMPERATURE,
+        _PARAM_CH_FIXED_TEMP
     }
     duplicate_set_per_zone('_SENSOR_SET_LIST', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
 
@@ -635,6 +666,8 @@ class AristonHandler:
             return self._REQUEST_GET_UNITS
         elif data in self._GET_REQUEST_VERSION:
             return self._REQUEST_GET_VERSION
+        elif data in self._GET_REQUEST_OTHER_2:
+            return self._REQUEST_GET_OTHER_2
         return self._REQUEST_GET_MAIN
 
     def _set_request_for_parameter(self, data):
@@ -678,6 +711,9 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kBtuh'
             self._ariston_sensors[self._PARAM_COOLING_TODAY][self._UNITS] = 'kBtuh'
+            self._ariston_sensors[self._PARAM_CH_FLOW_TEMP][self._UNITS] = "°F"
+            self._ariston_sensors[self._PARAM_PRESSURE][self._UNITS] = "psi"
+            self._ariston_sensors[self._PARAM_CH_FIXED_TEMP][self._UNITS] = "°F"
         elif self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_METRIC:
             self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = "°C"
             self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = "°C"
@@ -711,6 +747,9 @@ class AristonHandler:
             self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kWh'
             self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kWh'
             self._ariston_sensors[self._PARAM_COOLING_TODAY][self._UNITS] = 'kWh'
+            self._ariston_sensors[self._PARAM_CH_FLOW_TEMP][self._UNITS] = "°C"
+            self._ariston_sensors[self._PARAM_PRESSURE][self._UNITS] = "bar"
+            self._ariston_sensors[self._PARAM_CH_FIXED_TEMP][self._UNITS] = "°C"
         for key in self._ariston_sensors.keys():
             for param_name in self._ZONE_PARAMETERS:
                 param_key = self._CLASS_LOCALS[param_name]
@@ -828,6 +867,7 @@ class AristonHandler:
         self._ariston_dhw_data = {}
         self._ariston_currency = {}
         self._ariston_other_data = {}
+        self._ariston_other_data_2 = {}
         self._ariston_units = {}
         self._zone_data_main = {
             self._ZONE_1: dict(),
@@ -859,7 +899,8 @@ class AristonHandler:
             self._REQUEST_GET_OTHER: 0.,
             self._REQUEST_GET_UNITS: 0.,
             self._REQUEST_GET_CURRENCY: 0.,
-            self._REQUEST_GET_VERSION: 0.
+            self._REQUEST_GET_VERSION: 0.,
+            self._REQUEST_GET_OTHER_2: 0.
         }
         self._get_time_end = {
             self._REQUEST_GET_MAIN: 0.,
@@ -870,7 +911,8 @@ class AristonHandler:
             self._REQUEST_GET_OTHER: 0.,
             self._REQUEST_GET_UNITS: 0.,
             self._REQUEST_GET_CURRENCY: 0.,
-            self._REQUEST_GET_VERSION: 0.
+            self._REQUEST_GET_VERSION: 0.,
+            self._REQUEST_GET_OTHER_2: 0.
         }
         self._get_zero_temperature = {
             self._PARAM_CH_SET_TEMPERATURE: self._UNKNOWN_TEMP,
@@ -947,12 +989,16 @@ class AristonHandler:
             self._REQUEST_GET_OTHER: True,
             self._REQUEST_GET_UNITS: False,
             self._REQUEST_GET_CURRENCY: False,
-            self._REQUEST_GET_VERSION: False
+            self._REQUEST_GET_VERSION: False,
+            self._REQUEST_GET_OTHER_2: False
         }
+        self._set_param_sensors = list()
         if sensors:
             for item in sensors:
                 self._valid_requests[self._get_request_for_parameter(item)] = True
-
+                if item in self._GET_REQUEST_OTHER_2:
+                    self._set_param_sensors.append(item)
+        
         sensors_to_use = list()
         exclude_set = {
             self._PARAM_DHW_COMFORT_TEMPERATURE, 
@@ -982,6 +1028,8 @@ class AristonHandler:
             self._request_list_high_prio.append(self._REQUEST_GET_UNITS)
         if self._valid_requests[self._REQUEST_GET_OTHER]:
             self._request_list_high_prio.append(self._REQUEST_GET_OTHER)
+        if self._valid_requests[self._REQUEST_GET_OTHER_2]:
+            self._request_list_high_prio.append(self._REQUEST_GET_OTHER_2)
         if self._valid_requests[self._REQUEST_GET_ERROR]:
             self._request_list_high_prio.append(self._REQUEST_GET_ERROR)
         # prepare list of lower priority
@@ -1188,22 +1236,28 @@ class AristonHandler:
             self._ch_available = False
         elif self._ariston_other_data == {}:
             self._ch_available = False
+        elif self._available and self._zone_data_main[self._ZONE_1] and self._zone_data_main[self._ZONE_1]["mode"]["allowedOptions"]:
+            self._ch_available = True
         else:
-            self._ch_available = self._available and self._zone_data_main[self._ZONE_1] and self._zone_data_main[self._ZONE_1]["mode"]["allowedOptions"] != []
+            self._ch_available = False
 
         if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             self._ch_available_zone_2 = False
         elif self._ariston_other_data == {}:
             self._ch_available_zone_2 = False
+        elif self._available and self._zone_data_main[self._ZONE_2] and self._zone_data_main[self._ZONE_2]["mode"]["allowedOptions"]:
+            self._ch_available_zone_2 = True
         else:
-            self._ch_available_zone_2 = self._available and self._zone_data_main[self._ZONE_2] and self._zone_data_main[self._ZONE_2]["mode"]["allowedOptions"] != []
+            self._ch_available_zone_2 = False
 
         if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             self._ch_available_zone_3 = False
         elif self._ariston_other_data == {}:
             self._ch_available_zone_3 = False
+        elif self._available and self._zone_data_main[self._ZONE_3] and self._zone_data_main[self._ZONE_3]["mode"]["allowedOptions"]:
+            self._ch_available_zone_3 = True
         else:
-            self._ch_available_zone_3 = self._available and self._zone_data_main[self._ZONE_3] and self._zone_data_main[self._ZONE_3]["mode"]["allowedOptions"] != []
+            self._ch_available_zone_3 = False
 
         if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             self._dhw_available = False
@@ -1359,6 +1413,16 @@ class AristonHandler:
                     param_values["max"] = self._zone_data_main[zone_number]["comfortTemp"]["max"]
                     param_values["step"] = 0.5
                 sensors_dictionary[parameter] = param_values
+            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
+                param_values = dict()
+                if self._ariston_other_data != {} and self._zone_data_main[zone_number]:
+                    for param_item in self._ariston_other_data:
+                        if param_item["id"] == self._ARISTON_CH_FIXED_TEMP:
+                            param_values["min"] = param_item["min"]
+                            param_values["max"] = param_item["max"]
+                            param_values["step"] = 1.
+                            break
+                sensors_dictionary[parameter] = param_values
             elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_ECONOMY_TEMPERATURE:
                 param_values = dict()
                 if self._ariston_data != {} and self._zone_data_main[zone_number]:
@@ -1413,6 +1477,7 @@ class AristonHandler:
                             param_values["min"] = param_item["min"]
                             param_values["max"] = param_item["max"]
                             param_values["step"] = 1.
+                            break
                 sensors_dictionary[parameter] = param_values
             elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_WATER_TEMPERATURE:
                 param_values = dict()
@@ -1422,6 +1487,7 @@ class AristonHandler:
                             param_values["min"] = param_item["min"]
                             param_values["max"] = param_item["max"]
                             param_values["step"] = 1.
+                            break
                 sensors_dictionary[parameter] = param_values
             elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_FUNCTION:
                 sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
@@ -2106,6 +2172,19 @@ class AristonHandler:
                 self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = None
                 self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = None
 
+        if request_type == self._REQUEST_GET_OTHER_2:
+            if self.available and self._ariston_other_data_2:
+                try:
+
+                    for item in self._ariston_other_data_2:
+                        if item["id"] in self._ARISTON_2_TO_PARAM:
+                            self._ariston_sensors[self._ARISTON_2_TO_PARAM[item["id"]]][self._VALUE] = item["value"]
+                            
+                except KeyError:
+                    for sensor in self._PARAM_2_TO_ARISTON:
+                        self._ariston_sensors[sensor][self._VALUE] = None
+
+
     def _set_visible_data(self, zone_number):
         # set visible values as if they have in fact changed
         for parameter, value in self._set_param.items():
@@ -2135,6 +2214,10 @@ class AristonHandler:
                             self._ariston_sensors[parameter][self._VALUE] = value
                             if self._current_temp_economy_ch[zone_number] is False:
                                 self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_SET_TEMPERATURE][zone_number]][self._VALUE] = value
+
+                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
+
+                            self._ariston_sensors[parameter][self._VALUE] = value
 
                         elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_ECONOMY_TEMPERATURE:
 
@@ -2662,6 +2745,18 @@ class AristonHandler:
             self._set_sensors(request_type, zone_number)
             self._set_visible_data(zone_number)
 
+        elif request_type == self._REQUEST_GET_OTHER_2:
+
+            try:
+                self._ariston_other_data_2 = copy.deepcopy(resp.json()["items"])
+            except copy.error:
+                self._ariston_other_data_2 = list()
+                self._LOGGER.warning("%s Invalid data received for POST parameters, not JSON", self)
+                raise Exception("Corruption at reading data of the request {}".format(request_type))
+
+            self._set_sensors(request_type, zone_number)
+            self._set_visible_data(zone_number)
+
         self._get_time_end[request_type] = time.time()
 
         if self._store_file:
@@ -2688,6 +2783,8 @@ class AristonHandler:
                     json.dump(self._ariston_currency, ariston_fetched)
                 elif request_type == self._REQUEST_GET_VERSION:
                     ariston_fetched.write(self._version)
+                elif request_type == self._REQUEST_GET_OTHER_2:
+                    json.dump(self._ariston_other_data_2, ariston_fetched)
             store_file = self._gw_name + 'data_ariston_timers.json'
             store_file_path = os.path.join(self._store_folder, store_file)
             with open(store_file_path, 'w') as ariston_fetched:
@@ -2727,6 +2824,8 @@ class AristonHandler:
     def _get_http_data(self, request_type=""):
         """Common fetching of http data"""
         self._login_session()
+        method = self._METHOD_GET
+        post_data = dict()
         if self._login and self._plant_id != "":
             try:
                 last_set_of_data = \
@@ -2781,6 +2880,18 @@ class AristonHandler:
                     url = self._GITHUB_LATEST_RELEASE
                     http_timeout = self._timeout_short
                     send_params = ['']
+                elif request_type == self._REQUEST_GET_OTHER_2:
+                    url = self._url + '/api/v2/remote/dataItems/' + self._plant_id + '/get?umsys=si'
+                    http_timeout = self._timeout_medium
+                    send_params = ['']
+                    method = self._METHOD_POST
+                    post_data = {
+	                    "useCache": False,
+                        "items": list(),
+                        "features": dict()
+                    }
+                    for item in self._set_param_sensors:
+                        post_data["items"].append({"id": self._PARAM_2_TO_ARISTON[item], "zn": 0})
                 else:
                     url = self._url + '/PlantDashboard/GetPlantData/' + self._plant_id
                     if self.available:
@@ -2794,11 +2905,19 @@ class AristonHandler:
                         current_zone = self._ZONE_ORDER[order]
                         try:
                             self._get_time_start[request_type] = time.time()
-                            resp = self._session.get(
-                                url + param,
-                                auth=self._token,
-                                timeout=http_timeout,
-                                verify=True)
+                            if method == self._METHOD_POST:
+                                resp = self._session.post(
+                                    url + param,
+                                    auth=self._token,
+                                    timeout=http_timeout,
+                                    json=post_data,
+                                    verify=True)
+                            else:
+                                resp = self._session.get(
+                                    url + param,
+                                    auth=self._token,
+                                    timeout=http_timeout,
+                                    verify=True)
                         except requests.exceptions.RequestException as ex:
                             self._LOGGER.warning("%s %s Problem reading data: %s", self, request_type, ex)
                             raise Exception("Request {} has failed with an exception".format(request_type))
@@ -3274,6 +3393,7 @@ class AristonHandler:
                         self._PARAM_CH_WATER_TEMPERATURE,
                         self._PARAM_CH_COMFORT_TEMPERATURE,
                         self._PARAM_CH_ECONOMY_TEMPERATURE,
+                        self._PARAM_CH_FIXED_TEMP
                     }:
 
                         try:
@@ -3614,7 +3734,8 @@ class AristonHandler:
                             self._PARAM_DHW_COMFORT_TEMPERATURE,
                             self._PARAM_DHW_ECONOMY_TEMPERATURE,
                             self._PARAM_THERMAL_CLEANSE_CYCLE,
-                            self._PARAM_CH_WATER_TEMPERATURE
+                            self._PARAM_CH_WATER_TEMPERATURE,
+                            self._PARAM_CH_FIXED_TEMP
                         }:
                             value = float(value)
                             if allowed_values[parameter]["min"] - 0.01 <= value \
@@ -3646,6 +3767,7 @@ class AristonHandler:
                         try:
                             # round to nearest 0.5
                             temperature = round(float(good_values[parameter]) * 2.0) / 2.0
+                            temperature = float(temperature)
                             self._check_if_ch_economy(zone_number)
                             if self._current_temp_economy_ch[zone_number]:
                                 self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_ECONOMY_TEMPERATURE][zone_number]] = temperature
@@ -3667,6 +3789,7 @@ class AristonHandler:
                         try:
                             # round to nearest 1
                             temperature = round(float(good_values[parameter]))
+                            temperature = float(temperature)
                             self._check_if_dhw_economy()
                             if self._current_temp_economy_dhw:
                                 self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_ECONOMY_TEMPERATURE][zone_number]] = temperature
@@ -3683,6 +3806,7 @@ class AristonHandler:
                         try:
                             # round to nearest 1
                             temperature = round(float(good_values[parameter]))
+                            temperature = float(temperature)
                             self._set_param[parameter] = temperature
                             self._LOGGER.info('%s New DHW scheduled comfort temperature %s', self,
                                         good_values[parameter])
@@ -3698,6 +3822,7 @@ class AristonHandler:
                         try:
                             # round to nearest 1
                             temperature = round(float(good_values[parameter]))
+                            temperature = float(temperature)
                             self._set_param[parameter] = temperature
                             self._LOGGER.info('%s New DHW scheduled economy temperature %s', self, temperature)
                             self._check_if_dhw_economy()
@@ -3707,11 +3832,27 @@ class AristonHandler:
                             bad_values[parameter] = \
                                 good_values[parameter]
 
+                    # check ch fixed temperature
+                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
+                        try:
+                            # round to nearest 1
+                            temperature = round(float(good_values[parameter]))
+                            temperature = float(temperature)
+                            self._set_param[parameter] = temperature
+                            self._LOGGER.info('%s New CH fixed temperature %s', self, temperature)
+                            self._check_if_dhw_economy()
+                        except KeyError:
+                            self._LOGGER.warning('%s Not supported CH fixed temperature value: %s', self,
+                                            good_values[parameter])
+                            bad_values[parameter] = \
+                                good_values[parameter]
+
                     # check CH comfort scheduled temperature
                     elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_COMFORT_TEMPERATURE:
                         try:
                             # round to nearest 0.5
                             temperature = round(float(good_values[parameter]) * 2.0) / 2.0
+                            temperature = float(temperature)
                             self._set_param[parameter] = temperature
                             self._LOGGER.info('%s New CH temperature %s', self, temperature)
                             self._check_if_ch_economy(zone_number)
@@ -3726,6 +3867,7 @@ class AristonHandler:
                         try:
                             # round to nearest 0.5
                             temperature = round(float(good_values[parameter]) * 2.0) / 2.0
+                            temperature = float(temperature)
                             self._set_param[parameter] = temperature
                             self._LOGGER.info('%s New CH temperature %s', self, temperature)
                             self._check_if_ch_economy(zone_number)
@@ -3906,6 +4048,7 @@ class AristonHandler:
         self._ariston_dhw_data = {}
         self._ariston_currency = {}
         self._ariston_other_data = {}
+        self._ariston_other_data_2 = {}
         self._ariston_units = {}
         self._zone_data_ch = {
             self._ZONE_1: dict(),

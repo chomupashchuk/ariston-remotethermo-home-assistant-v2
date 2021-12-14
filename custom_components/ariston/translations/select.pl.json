@@ -15,7 +15,8 @@
             "summer": "Lato",
             "time_based": "Czasowa",
             "winter": "Zima",
-            "cooling": "Chłodzenie"
+            "cooling": "Chłodzenie",
+            "antifreeze": "Płyn przeciw zamarzaniu"
         }
     }
 }

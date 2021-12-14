@@ -76,6 +76,9 @@ PARAM_THERMAL_CLEANSE_FUNCTION = "dhw_thermal_cleanse_function"
 PARAM_CH_PILOT = "ch_pilot"
 PARAM_UPDATE = "update"
 PARAM_ONLINE_VERSION = "online_version"
+PARAM_PRESSURE = "pressure"
+PARAM_CH_FLOW_TEMP = 'ch_flow_temperature'
+PARAM_CH_FIXED_TEMP = 'ch_fixed_temperature'
 
 ZONE_PARAMETERS ={
     PARAM_CH_MODE,
@@ -85,7 +88,8 @@ ZONE_PARAMETERS ={
     PARAM_CH_DETECTED_TEMPERATURE,
     PARAM_CH_ANTIFREEZE_TEMPERATURE,
     PARAM_CH_FLAME,
-    PARAM_CH_PROGRAM
+    PARAM_CH_PROGRAM,
+    PARAM_CH_FIXED_TEMP,
 }
 
 ZONE_TEMPLATE = '{}_zone_{}'

@@ -1,4 +1,5 @@
 """Suppoort for Ariston seletion."""
+import logging
 from datetime import timedelta
 from copy import deepcopy
 
@@ -12,16 +13,34 @@ from .const import (
     PARAM_CH_MODE,
     PARAM_DHW_MODE,
     PARAM_DHW_COMFORT_FUNCTION,
+    PARAM_UNITS,
     VALUE,
     ZONE_PARAMETERS,
     ZONE_TEMPLATE, 
-    ZONE_NAME_TEMPLATE
+    ZONE_NAME_TEMPLATE,
+    PARAM_CH_SET_TEMPERATURE,
+    PARAM_CH_COMFORT_TEMPERATURE,
+    PARAM_CH_ECONOMY_TEMPERATURE,
+    PARAM_CH_WATER_TEMPERATURE,
+    PARAM_CH_FIXED_TEMP,
+    PARAM_DHW_SET_TEMPERATURE,
+    PARAM_DHW_COMFORT_TEMPERATURE,
+    PARAM_DHW_ECONOMY_TEMPERATURE
 )
 
 SELECT_MODE = "Boiler Mode"
 SELECT_CH_MODE = "CH Mode"
 SELECT_DHW_MODE = "DHW Mode"
 SELECT_DHW_COMFORT = "DHW Comfort Function"
+SELECT_UNITS = "Units"
+SELECT_CH_SET_TEMPERATURE = "CH Set Temperature"
+SELECT_CH_COMFORT_TEMPERATURE = "CH Comfort Temperature"
+SELECT_CH_ECONOMY_TEMPERATURE = "CH Economy Temperature"
+SELECT_CH_WATER_TEMPERATURE = "CH Water Temperature"
+SELECT_CH_FIXED_TEMP = "CH Fixed Temperature"
+SELECT_DHW_SET_TEMPERATURE = "DHW Set Temperature"
+SELECT_DHW_COMFORT_TEMPERATURE = "DHW Comfort Temperature"
+SELECT_DHW_ECONOMY_TEMPERATURE = "DHW Economy Temperature"
 
 SCAN_INTERVAL = timedelta(seconds=2)
 
@@ -30,6 +49,15 @@ SELECTS = {
     PARAM_CH_MODE: (SELECT_CH_MODE, "mdi:radiator"),
     PARAM_DHW_MODE: (SELECT_DHW_MODE, "mdi:water-pump"),
     PARAM_DHW_COMFORT_FUNCTION: (SELECT_DHW_COMFORT, "mdi:water-pump"),
+    PARAM_UNITS: (SELECT_UNITS, "mdi:scale-balance"),
+    PARAM_CH_FIXED_TEMP: (SELECT_CH_FIXED_TEMP, "mdi:radiator"),
+    PARAM_CH_SET_TEMPERATURE: (SELECT_CH_SET_TEMPERATURE, "mdi:radiator"),
+    PARAM_CH_COMFORT_TEMPERATURE: (SELECT_CH_COMFORT_TEMPERATURE, "mdi:radiator"),
+    PARAM_CH_ECONOMY_TEMPERATURE: (SELECT_CH_ECONOMY_TEMPERATURE, "mdi:radiator"),
+    PARAM_CH_WATER_TEMPERATURE: (SELECT_CH_WATER_TEMPERATURE, "mdi:water-pump"),
+    PARAM_DHW_SET_TEMPERATURE: (SELECT_DHW_SET_TEMPERATURE, "mdi:water-pump"),
+    PARAM_DHW_COMFORT_TEMPERATURE: (SELECT_DHW_COMFORT_TEMPERATURE, "mdi:water-pump"),
+    PARAM_DHW_ECONOMY_TEMPERATURE: (SELECT_DHW_ECONOMY_TEMPERATURE, "mdi:water-pump"),
 }
 for param in ZONE_PARAMETERS:
     if param in SELECTS:
@@ -39,6 +67,7 @@ for param in ZONE_PARAMETERS:
                 SELECTS[param][1]
             )
 
+_LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up a select for Ariston."""
@@ -94,7 +123,7 @@ class AristonSelect(SelectEntity):
         try:
             return (
                 self._api.available
-                and not self._api.sensor_values[self._select_type][VALUE] is None
+                and self._api.sensor_values[self._select_type][VALUE] is not None
             )
         except KeyError:
             return False
@@ -103,7 +132,7 @@ class AristonSelect(SelectEntity):
     def current_option(self):
         """Return current option."""
         try:
-            return self._api.sensor_values[self._select_type][VALUE]
+            return str(self._api.sensor_values[self._select_type][VALUE])
         except KeyError:
             return None
 
@@ -111,7 +140,26 @@ class AristonSelect(SelectEntity):
     def options(self):
         """Return options."""
         try:
-            return list(self._api.supported_sensors_set_values[self._select_type])
+            if self._select_type in {
+                PARAM_CH_SET_TEMPERATURE,
+                PARAM_CH_COMFORT_TEMPERATURE,
+                PARAM_CH_ECONOMY_TEMPERATURE,
+                PARAM_CH_FIXED_TEMP,
+                PARAM_DHW_SET_TEMPERATURE,
+                PARAM_DHW_COMFORT_TEMPERATURE,
+                PARAM_DHW_ECONOMY_TEMPERATURE,
+            }:
+                min_val = self._api.supported_sensors_set_values[self._select_type]["min"]
+                max_val = self._api.supported_sensors_set_values[self._select_type]["max"]
+                step_val = self._api.supported_sensors_set_values[self._select_type]["step"]
+                values = list()
+                value = min_val
+                while value < max_val + .1:
+                    values.append(str(value))
+                    value += step_val
+                return values
+            else:
+                return list(self._api.supported_sensors_set_values[self._select_type])
         except:
             return []
 

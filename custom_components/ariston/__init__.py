@@ -54,6 +54,7 @@ from .const import (
     PARAM_CH_ECONOMY_TEMPERATURE,
     PARAM_CH_DETECTED_TEMPERATURE,
     PARAM_CH_PROGRAM,
+    PARAM_CH_FIXED_TEMP,
     PARAM_CH_WATER_TEMPERATURE,
     PARAM_ERRORS,
     PARAM_ERRORS_COUNT,
@@ -392,6 +393,7 @@ def setup(hass, config):
                     PARAM_UNITS,
                     PARAM_THERMAL_CLEANSE_CYCLE,
                     PARAM_THERMAL_CLEANSE_FUNCTION,
+                    PARAM_CH_FIXED_TEMP,
                 }
                 for param in ZONE_PARAMETERS:
                     if param in params_to_set:

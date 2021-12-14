@@ -15,7 +15,8 @@
             "summer": "Verano",
             "time_based": "Time based",
             "winter": "Invierno",
-            "cooling": "Refrigeración"
+            "cooling": "Refrigeración",
+            "antifreeze": "Anticongelante"
         }
     }
 }

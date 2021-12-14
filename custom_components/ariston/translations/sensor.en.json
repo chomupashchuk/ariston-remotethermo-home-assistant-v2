@@ -15,7 +15,8 @@
             "summer": "Summer",
             "time_based": "Time based",
             "winter": "Winter",
-            "cooling": "Cooling"
+            "cooling": "Cooling",
+            "antifreeze": "Antifreeze"
         }
     }
 }
