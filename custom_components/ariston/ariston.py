@@ -119,7 +119,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.51"
+    _VERSION = "1.0.52"
 
     _LOGGER = logging.getLogger(__name__)
     _LEVEL_CRITICAL = "CRITICAL"
@@ -1496,18 +1496,20 @@ class AristonHandler:
     def _get_plant_id(self, resp):
         plant_id = ""
         if resp.url.startswith(self._url + "/PlantDashboard/Index/") or resp.url.startswith(
-                self._url + "/PlantManagement/Index/") or resp.url.startswith(
-                self._url + "/PlantPreference/Index/") or resp.url.startswith(
-                self._url + "/Error/Active/") or resp.url.startswith(
-                self._url + "/PlantGuest/Index/") or resp.url.startswith(
-                self._url + "/TimeProg/Index/"):
-                plant_id = resp.url.split("/")[5]
+            self._url + "/PlantManagement/Index/") or resp.url.startswith(
+            self._url + "/PlantPreference/Index/") or resp.url.startswith(
+            self._url + "/Error/Active/") or resp.url.startswith(
+            self._url + "/PlantGuest/Index/") or resp.url.startswith(
+            self._url + "/TimeProg/Index/"):
+            plant_id = resp.url.split("/")[5]
         elif resp.url.startswith(self._url + "/PlantData/Index/") or resp.url.startswith(
-                self._url + "/UserData/Index/"):
-                plant_id_attribute = resp.url.split("/")[5]
-                plant_id = plant_id_attribute.split("?")[0]
+            self._url + "/UserData/Index/"):
+            plant_id_attribute = resp.url.split("/")[5]
+            plant_id = plant_id_attribute.split("?")[0]
         elif resp.url.startswith(self._url + "/Menu/User/Index/"):
-                plant_id = resp.url.split("/")[6]
+            plant_id = resp.url.split("/")[6]
+        elif resp.url.startswith(self._url + "/R2/Plant/Index/"):
+            plant_id = resp.url.split("/")[6].split("?")[0]
         else:
             self._LOGGER.warning('%s Authentication login error', self)
             raise Exception("Login parsing of URL failed")
