@@ -1,15 +1,11 @@
 """Suppoort for Ariston."""
 import copy
-import json
 import logging
-import math
-import os
+from multiprocessing.sharedctypes import Value
 import re
 import threading
-import time
 from typing import Union
 import requests
-from requests.models import StreamConsumedError
 
 
 class AristonHandler:
@@ -22,113 +18,37 @@ class AristonHandler:
 
     'password' - mandatory password;
 
-    'sensors' - list of wanted sensors to be monitored.
-    API automatically filters out requests based on this list to reduce amount of unique requests towards the server
-    and thus reduce a period to update the data.
-     from the allowed list of sensors:
-        - 'account_ch_gas' - gas use for CH.
-        - 'account_ch_electricity' - electricity use for CH.
-        - 'account_dhw_gas' - gas use for DHW.
-        - 'account_dhw_electricity' - electricity use for DHW.
-        - 'ch_antifreeze_temperature' - atifreeze temperature for CH.
-        - 'ch_mode' - CH mode.
-        - 'ch_set_temperature' - CH temperature set as a target.
-        - 'ch_comfort_temperature' - CH comfort temperature.
-        - 'ch_economy_temperature' - CH economy temperature.
-        - 'ch_detected_temperature' - CH detected room temperature.
-        - 'ch_program' - CH program information.
-        - 'ch_pilot' - CH pilot status.
-        - 'ch_auto_function' - CH auto function.
-        - 'ch_flame' - CH flame.
-        - 'ch_fixed_temperature' - CH fixed temperature.
-        - 'ch_flow_temperature' - CH flow setpoint temperature.
-        - 'ch_water_temperature' - CH water temperature.
-        - 'cooling_last_24h' - energy use for pump cooling in a day.
-        - 'cooling_last_7d' - energy use for pump cooling in a week.
-        - 'cooling_last_30d' - energy use for pump cooling in a month.
-        - 'cooling_last_365d' - energy use for pump cooling in a year.
-        - 'cooling_last_24h_list' - energy use for pump cooling in a day with periods.
-        - 'cooling_last_7d_list' - energy use for pump cooling in a week with periods.
-        - 'cooling_last_30d_list' - energy use for pump cooling in a month with periods.
-        - 'cooling_last_365d_list' - energy use for pump cooling in a year with periods.
-        - 'errors' - list of active errors.
-        - 'errors_count' - number of active errors
-        - 'dhw_comfort_function' - DHW comfort function.
-        - 'dhw_mode' - DHW mode.
-        - 'dhw_program' - DHW program information.
-        - 'dhw_set_temperature' - DHW temperature set as a target.
-        - 'dhw_storage_temperature' - DHW storeage probe temperature.
-        - 'dhw_comfort_temperature' - DHW comfort temperature.
-        - 'dhw_economy_temperature' - DHW economy temperature.
-        - 'dhw_thermal_cleanse_function' - DHW thermal cleanse function.
-        - 'dhw_thermal_cleanse_cycle' - DHW thermal cleanse cycle.
-        - 'dhw_flame' - approximated DHW flame status.
-        - 'heating_last_24h' - energy use for CH in a day.
-        - 'heating_last_7d' - energy use for CH in a week.
-        - 'heating_last_30d' - energy use for CH in a month.
-        - 'heating_last_365d' - energy use for CH in a year.
-        - 'heating_last_24h_list' - energy use for CH in a day with periods.
-        - 'heating_last_7d_list' - energy use for CH in a week with periods.
-        - 'heating_last_30d_list' - energy use for CH in a month with periods.
-        - 'heating_last_365d_list' - energy use for CH in a year with periods.
-        - 'mode' - general mode.
-        - 'outside_temperature' - outside temperature.
-        - 'pressure' - CH water pressure.
-        - 'signal_strength' - signal strength.
-        - 'water_last_24h' - energy use for DHW in a day.
-        - 'water_last_7d' - energy use for DHW in a week.
-        - 'water_last_30d' - energy use for DHW in a month.
-        - 'water_last_365d' - energy use for DHW in a year.
-        - 'water_last_24h_list' - energy use for DHW in a day with periods.
-        - 'water_last_7d_list' - energy use for DHW in a week with periods.
-        - 'water_last_30d_list' - energy use for DHW in a month with periods.
-        - 'water_last_365d_list' - energy use for DHW in a year with periods.
-        - 'units' - indicates if metric or imperial units to be used.
-        - 'gas_type' - type of gas.
-        - 'gas_cost' - gas cost.
-        - 'electricity_cost' - electricity cost.
-        - 'flame' - CH or DHW flame detcted.
-        - 'heat_pump' - heating pump.
-        - 'holiday_mode' - holiday mode.
-        - 'internet_time' - internet time.
-        - 'internet_weather' - internet weather.
-        - API specific 'update' - API update is available.
-        - API specific 'online_version' - API version online.
+    'sensors' - list of wanted sensors to be monitored. Check class method api_data or method supported_sensors_get
 
-    'retries' - number of retries to set the data;
+    'period_request' - period to send requests (minimum is 30 seconds)
 
     'polling' - defines multiplication factor for waiting periods to get or set the data;
 
-    'store_file' - indicates if HTTP and internal data to be stored as files for troubleshooting purposes;
-
-    'store_folder' - folder to store HTTP and internal data to. If empty string is used, then current working directory
-    is used with a folder 'http_logs' within it.
-
-    'units' - 'metric' or 'imperial' or 'auto'.
-    Value 'auto' creates additional request towards the server and as a result increases period to update other sensors.
-
-    'ch_and_dhw' - indicates if CH and DHW heating can work at the same time (usually valve allows to use one);
-
-    'dhw_unknown_as_on' - indicates if to assume 'dhw_flame' as being True if cannot be identified.
-
     'logging_level' - defines level of logging - allowed values [CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET=(default)]
-
-    'zones' - specifies number of monitored zones. By default is 1. For senors, which depend on zones,
-              new sensor values shall be set (ending with _zone_2 and _zone_3), otherwise they shall remain unset.
-
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "1.0.52"
+    _VERSION = "2.0.0"
 
-    _LOGGER = logging.getLogger(__name__)
+    _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
+
+    # API configuration
+    _MAX_RETRIES = 5
+    _GET_SENSORS_PERIOD_SECONDS = 30
+    _SET_SENSORS_PERIOD_SECONDS = 30
+    _MAX_ERRORS = 5
+    _WAIT_PERIOD_MULTIPLYER = 5
+    _TIMEOUT_MIN = 5
+    _TIMEOUT_AV = 15
+    _TIMEOUT_MAX = 25
+
+    # Log levels
     _LEVEL_CRITICAL = "CRITICAL"
     _LEVEL_ERROR = "ERROR"
     _LEVEL_WARNING = "WARNING"
     _LEVEL_INFO = "INFO"
     _LEVEL_DEBUG = "DEBUG"
     _LEVEL_NOTSET = "NOTSET"
-
     _LOGGING_LEVELS = [
         _LEVEL_CRITICAL,
         _LEVEL_ERROR,
@@ -138,30 +58,7 @@ class AristonHandler:
         _LEVEL_NOTSET
     ]
 
-    _TEMPLATE_ZONE_VAR_NAME = '{}_ZONE_{}'
-    _TEMPLATE_ZONE_VAR_VALUE = '{}_zone_{}'
-    _SETS_MODIFIED_WITH_ZONES = dict()
-
-    def duplicate_set_per_zone(var_name, locals_dict, zone_params, zone_start, zone_stop, zone_template):
-        for param in zone_params:
-            check_key = locals_dict[param]
-            if check_key in locals_dict[var_name]:
-                if var_name not in locals_dict['_SETS_MODIFIED_WITH_ZONES']:
-                    locals_dict['_SETS_MODIFIED_WITH_ZONES'][var_name] = list()
-                locals_dict['_SETS_MODIFIED_WITH_ZONES'][var_name].append(check_key)
-                for zone in range(zone_start, zone_stop + 1):
-                    locals_dict[var_name].add(zone_template.lower().format(check_key, zone))
-
-
-    _ZONE_1 = '_zone_1'
-    _ZONE_2 = '_zone_2'
-    _ZONE_3 = '_zone_3'
-
-    _ZONE_ORDER = [_ZONE_1, _ZONE_2, _ZONE_3]
-
-    _ADD_ZONES_START = 2
-    _ADD_ZONES_STOP = 3
-
+    # All sensors names
     _PARAM_ACCOUNT_CH_GAS = "account_ch_gas"
     _PARAM_ACCOUNT_CH_ELECTRICITY = "account_ch_electricity"
     _PARAM_ACCOUNT_DHW_GAS = "account_dhw_gas"
@@ -172,6 +69,7 @@ class AristonHandler:
     _PARAM_CH_COMFORT_TEMPERATURE = "ch_comfort_temperature"
     _PARAM_CH_ECONOMY_TEMPERATURE = "ch_economy_temperature"
     _PARAM_CH_DETECTED_TEMPERATURE = "ch_detected_temperature"
+    _PARAM_CH_DEROGA_TEMPERATURE = "ch_deroga_temperature"
     _PARAM_CH_PROGRAM = "ch_program"
     _PARAM_CH_WATER_TEMPERATURE = "ch_water_temperature"
     _PARAM_COOLING_LAST_24H = "cooling_last_24h"
@@ -183,7 +81,6 @@ class AristonHandler:
     _PARAM_COOLING_LAST_30D_LIST = "cooling_last_30d_list"
     _PARAM_COOLING_LAST_365D_LIST = "cooling_last_365d_list"
     _PARAM_COOLING_TODAY = "cooling_today"
-    _PARAM_ERRORS = "errors"
     _PARAM_ERRORS_COUNT = "errors_count"
     _PARAM_DHW_COMFORT_FUNCTION = "dhw_comfort_function"
     _PARAM_DHW_MODE = "dhw_mode"
@@ -226,6 +123,7 @@ class AristonHandler:
     _PARAM_HOLIDAY_MODE = "holiday_mode"
     _PARAM_INTERNET_TIME = "internet_time"
     _PARAM_INTERNET_WEATHER = "internet_weather"
+    _PARAM_WEATHER = 'weather'
     _PARAM_THERMAL_CLEANSE_FUNCTION = "dhw_thermal_cleanse_function"
     _PARAM_CH_PILOT = "ch_pilot"
     _PARAM_UPDATE = "update"
@@ -233,106 +131,6 @@ class AristonHandler:
     _PARAM_PRESSURE = "pressure"
     _PARAM_CH_FLOW_TEMP = 'ch_flow_temperature'
     _PARAM_CH_FIXED_TEMP = 'ch_fixed_temperature'
-
-    _ZONE_PARAMETERS ={
-        "_PARAM_CH_MODE",
-        "_PARAM_CH_SET_TEMPERATURE",
-        "_PARAM_CH_COMFORT_TEMPERATURE",
-        "_PARAM_CH_ECONOMY_TEMPERATURE",
-        "_PARAM_CH_DETECTED_TEMPERATURE",
-        "_PARAM_CH_ANTIFREEZE_TEMPERATURE",
-        "_PARAM_CH_FLAME",
-        "_PARAM_CH_PROGRAM",
-        "_PARAM_CH_FIXED_TEMP"
-    }
-    # Create variables for zones
-    for param in _ZONE_PARAMETERS:
-        check_key = locals()[param]
-        for zone in range(_ADD_ZONES_START, _ADD_ZONES_STOP + 1):
-            locals()[_TEMPLATE_ZONE_VAR_NAME.format(param, zone)] = _TEMPLATE_ZONE_VAR_VALUE.format(locals()[param], zone)
-
-    # Units of measurement
-    _UNIT_METRIC = "metric"
-    _UNIT_IMPERIAL = "imperial"
-    _UNIT_AUTO = "auto"
-
-    _VALUE = "value"
-    _UNITS = "units"
-
-    # parameter values
-    _VAL_WINTER = "winter"
-    _VAL_SUMMER = "summer"
-    _VAL_OFF = "off"
-    _VAL_HEATING_ONLY = "heating_only"
-    _VAL_COOLING = "cooling"
-    _VAL_MANUAL = "manual"
-    _VAL_PROGRAM = "program"
-    _VAL_ANTIFREEZE = "antifreeze"
-    _VAL_UNKNOWN = "unknown"
-    _VAL_OFFLINE = "offline"
-    _VAL_UNSUPPORTED = "unsupported"
-    _VAL_AVAILABLE = "available"
-    _VAL_DISABLED = "disabled"
-    _VAL_TIME_BASED = "time_based"
-    _VAL_ALWAYS_ACTIVE = "always_active"
-    _VAL_METRIC = "metric"
-    _VAL_IMPERIAL = "imperial"
-    _VAL_AUTO = "auto"
-    _VAL_DEFAULT = "default"
-
-    _FILE_FOLDER = "http_logs"
-    _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
-    _GITHUB_LATEST_RELEASE = \
-        'https://pypi.python.org/pypi/aristonremotethermo/json'
-
-    _DEFAULT_HVAC = _VAL_SUMMER
-    _DEFAULT_POWER_ON = _VAL_SUMMER
-    _DEFAULT_NAME = "Ariston"
-    _DEFAULT_MAX_RETRIES = 1
-    _DEFAULT_TIME = "00:00"
-    _DEFAULT_MODES = [0, 1, 5]
-    _DEFAULT_CH_MODES = [2, 3]
-    _MAX_ERRORS = 10
-    _MAX_ERRORS_TIMER_EXTEND = 7
-    _MAX_ZERO_TOLERANCE = 10
-    _MAX_ZERO_TOLERANCE_TODAY_PARAMS = 5
-    _HTTP_DELAY_MULTIPLY = 3
-    _HTTP_TIMER_SET_LOCK = 25
-    _HTTP_TIMER_SET_WAIT = 30
-    _HTTP_TIMEOUT_LOGIN = 5.0
-    _HTTP_TIMEOUT_GET_LONG = 18.0
-    _HTTP_TIMEOUT_GET_MEDIUM = 10.0
-    _HTTP_TIMEOUT_GET_SHORT = 6.0
-    _HTTP_PARAM_DELAY = 30.0
-
-    _TODAY_SENSORS = {_PARAM_COOLING_TODAY, _PARAM_HEATING_TODAY, _PARAM_WATER_TODAY}
-
-    # Conversions between parameters
-    _MODE_TO_VALUE = {_VAL_WINTER: 1, _VAL_SUMMER: 0, _VAL_OFF: 5, _VAL_HEATING_ONLY: 2, _VAL_COOLING: 3}
-    _VALUE_TO_MODE = {value: key for (key, value) in _MODE_TO_VALUE.items()}
-
-    _CH_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 3, _VAL_ANTIFREEZE: 0}
-    _VALUE_TO_CH_MODE = {value: key for (key, value) in _CH_MODE_TO_VALUE.items()}
-
-    _DHW_MODE_TO_VALUE = {_VAL_MANUAL: 2, _VAL_PROGRAM: 1, _VAL_DEFAULT: 0}
-    _VALUE_TO_DHW_MODE = {value: key for (key, value) in _DHW_MODE_TO_VALUE.items()}
-
-    _DHW_COMFORT_FUNCT_TO_VALUE = {_VAL_DISABLED: 0, _VAL_TIME_BASED: 1, _VAL_ALWAYS_ACTIVE: 2}
-    _DHW_COMFORT_VALUE_TO_FUNCT = {value: key for (key, value) in _DHW_COMFORT_FUNCT_TO_VALUE.items()}
-
-    _UNIT_TO_VALUE = {_VAL_METRIC: 0, _VAL_IMPERIAL: 1}
-    _VALUE_TO_UNIT = {value: key for (key, value) in _UNIT_TO_VALUE.items()}
-
-    _PARAM_STRING_TO_VALUE = {"true": 1, "false": 0}
-
-    _METHOD_GET = 'get'
-    _METHOD_POST = 'post'
-
-    _UNKNOWN_TEMP = 0.0
-    _UNKNOWN_UNITS = 3276
-    _UNKNOWN_TEMPERATURES = [0, 3276]
-    _INVALID_STORAGE_TEMP = 0
-    _DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
     # Ariston parameter codes in the menu
     _ARISTON_DHW_COMFORT_TEMP = "U6_9_0"
@@ -381,38 +179,53 @@ class AristonHandler:
     _ARISTON_CH_FIXED_TEMP_ZONE_2 = "U6_3_0_3"
     _ARISTON_CH_FIXED_TEMP_ZONE_3 = "U6_3_0_5"
 
-    _ARISTON_CH_FLOW_TEMP = 'ChFlowSetpointTemp'
-    _ARISTON_PRESSURE = 'HeatingCircuitPressure'
+    # Ariston parameters in Android api
+    _ARISTON_PAR_PRESSURE = 'HeatingCircuitPressure'
+    _ARISTON_PAR_CH_FLOW_TEMP = 'ChFlowSetpointTemp'
+    _ARISTON_PAR_OUTSIDE_TEMP = 'OutsideTemp'
+    _ARISTON_PAR_WEATHER = 'Weather'
+    _ARISTON_PAR_PLANT_MODE = 'PlantMode'
+    _ARISTON_PAR_HOLIDAY = 'Holiday'
+    _ARISTON_PAR_FLAME = 'IsFlameOn'
+    _ARISTON_PAR_DHW_TEMP = 'DhwTemp'
+    _ARISTON_PAR_ZONE_HEAT_REQUEST = 'ZoneHeatRequest'
+    _ARIZTON_PAR_ZONE_MODE = 'ZoneMode'
+    _ARISTON_PAR_ZONE_DESIRED_TEMP = 'ZoneDesiredTemp'
+    _ARISTON_PAR_ZONE_MEAS_TEMP = 'ZoneMeasuredTemp'
+    _ARISTON_PAR_ZONE_DEROGA_TEMP = 'ZoneDeroga'
+    _ARISTON_PAR_ZONE_CONFORT_TEMP = 'ZoneComfortTemp'
+    _ARISTON_PAR_ZONE_PILOT = 'IsZonePilotOn'
+    _ARISTON_PAR_ZONE_ECONOMY_TEMP = 'ZoneEconomyTemp'
 
-    _REQUEST_GET_MAIN = "_get_main"
-    _REQUEST_GET_CH = "_get_ch"
-    _REQUEST_GET_DHW = "_get_dhw"
-    _REQUEST_GET_ERROR = "_get_error"
-    _REQUEST_GET_GAS = "_get_gas"
-    _REQUEST_GET_OTHER = "_get_param"
-    _REQUEST_GET_UNITS = "_get_units"
-    _REQUEST_GET_CURRENCY = "_get_currency"
-    _REQUEST_GET_VERSION = "_get_version"
-    _REQUEST_SET_MAIN = "_set_main"
-    _REQUEST_SET_OTHER = "_set_param"
-    _REQUEST_SET_UNITS = "_set_units"
-    _REQUEST_GET_OTHER_2 = '_get_post_other'
-
-
-    _PARAM_2_TO_ARISTON = {
-        _PARAM_CH_FLOW_TEMP: _ARISTON_CH_FLOW_TEMP,
-        _PARAM_PRESSURE: _ARISTON_PRESSURE
+    # Parameters in Android api within zone 0, mapping to parameter names
+    _MAP_ARISTON_ZONE_0_PARAMS = {
+        _PARAM_CH_FLOW_TEMP: _ARISTON_PAR_CH_FLOW_TEMP,
+        _PARAM_PRESSURE: _ARISTON_PAR_PRESSURE,
+        _PARAM_OUTSIDE_TEMPERATURE: _ARISTON_PAR_OUTSIDE_TEMP,
+        _PARAM_WEATHER: _ARISTON_PAR_WEATHER,
+        _PARAM_MODE: _ARISTON_PAR_PLANT_MODE,
+        _PARAM_HOLIDAY_MODE: _ARISTON_PAR_HOLIDAY,
+        _PARAM_FLAME: _ARISTON_PAR_FLAME,
+        _PARAM_DHW_SET_TEMPERATURE: _ARISTON_PAR_DHW_TEMP
     }
-    _ARISTON_2_TO_PARAM = {value: key for (key, value) in _PARAM_2_TO_ARISTON.items()}
-
-    _PARAM_TO_ARISTON = {
+    # Parameters in Android api within zone 1, mapping to parameter names
+    _MAP_ARISTON_ZONE_1_PARAMS = {
+        _PARAM_CH_FLAME: _ARISTON_PAR_ZONE_HEAT_REQUEST,
+        _PARAM_CH_MODE: _ARIZTON_PAR_ZONE_MODE,
+        _PARAM_CH_SET_TEMPERATURE: _ARISTON_PAR_ZONE_DESIRED_TEMP,
+        _PARAM_CH_DETECTED_TEMPERATURE: _ARISTON_PAR_ZONE_MEAS_TEMP,
+        _PARAM_CH_DEROGA_TEMPERATURE: _ARISTON_PAR_ZONE_DEROGA_TEMP,
+        _PARAM_CH_COMFORT_TEMPERATURE: _ARISTON_PAR_ZONE_CONFORT_TEMP,
+        _PARAM_CH_PILOT: _ARISTON_PAR_ZONE_PILOT,
+        _PARAM_CH_ECONOMY_TEMPERATURE: _ARISTON_PAR_ZONE_ECONOMY_TEMP
+    }
+    # Parameters in Web menu, mapping to parameter names
+    _MAP_ARISTON_WEB_MENU_PARAMS = {
         _PARAM_INTERNET_TIME: _ARISTON_INTERNET_TIME,
         _PARAM_INTERNET_WEATHER: _ARISTON_INTERNET_WEATHER,
         _PARAM_THERMAL_CLEANSE_FUNCTION: _ARISTON_THERMAL_CLEANSE_FUNCTION,
         _PARAM_CH_AUTO_FUNCTION: _ARISTON_CH_AUTO_FUNCTION,
         _PARAM_DHW_COMFORT_FUNCTION: _ARISTON_DHW_COMFORT_FUNCTION,
-        _PARAM_CH_COMFORT_TEMPERATURE: _ARISTON_CH_COMFORT_TEMP,
-        _PARAM_CH_ECONOMY_TEMPERATURE: _ARISTON_CH_ECONOMY_TEMP,
         _PARAM_SIGNAL_STRENGTH: _ARISTON_SIGNAL_STRENGHT,
         _PARAM_THERMAL_CLEANSE_CYCLE: _ARISTON_THERMAL_CLEANSE_CYCLE,
         _PARAM_CH_WATER_TEMPERATURE: _ARISTON_CH_WATER_TEMPERATURE,
@@ -420,358 +233,126 @@ class AristonHandler:
         _PARAM_DHW_ECONOMY_TEMPERATURE: _ARISTON_DHW_TIME_PROG_ECONOMY,
         _PARAM_CH_FIXED_TEMP: _ARISTON_CH_FIXED_TEMP,
     }
-    # Create mappings for zones
-    var_name = '_PARAM_TO_ARISTON'
-    for param in _ZONE_PARAMETERS:
-        check_key = locals()[param]
-        if check_key in locals()[var_name]:
-            value_var_name = ""
-            for key in set(locals().keys()):
-                if key.startswith('_ARISTON_') and locals()[key] == locals()[var_name][check_key]:
-                    value_var_name = key
-            for zone in range(_ADD_ZONES_START, _ADD_ZONES_STOP + 1):
-                locals()[var_name][_TEMPLATE_ZONE_VAR_VALUE.format(check_key, zone)] = locals()[_TEMPLATE_ZONE_VAR_NAME.format(value_var_name, zone)]
-
-    _ARISTON_TO_PARAM = {value: key for (key, value) in _PARAM_TO_ARISTON.items()}
-
-    _MENU_TO_SENSOR = {value.replace('U','').replace('_','.'): key for (key, value) in _PARAM_TO_ARISTON.items()}
-
-    # Mapping of parameter to request
-    _GET_REQUEST_CH_PROGRAM = {
-        _PARAM_CH_PROGRAM
-    }
-    duplicate_set_per_zone('_GET_REQUEST_CH_PROGRAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_OTHER_2 = {
-        _PARAM_CH_FLOW_TEMP,
-        _PARAM_PRESSURE
-    }
-    duplicate_set_per_zone('_GET_REQUEST_OTHER_2', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_CURRENCY = {
-        _PARAM_GAS_TYPE,
-        _PARAM_GAS_COST,
-        _PARAM_ELECTRICITY_COST
-    }
-    duplicate_set_per_zone('_GET_REQUEST_CURRENCY', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_DHW_PROGRAM = {
-        _PARAM_DHW_PROGRAM
-    }
-    duplicate_set_per_zone('_GET_REQUEST_DHW_PROGRAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_ERRORS = {
-        _PARAM_ERRORS,
-        _PARAM_ERRORS_COUNT
-    }
-    duplicate_set_per_zone('_GET_REQUEST_ERRORS', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_GAS = {
-        _PARAM_ACCOUNT_CH_GAS,
-        _PARAM_ACCOUNT_CH_ELECTRICITY,
-        _PARAM_ACCOUNT_DHW_GAS,
-        _PARAM_ACCOUNT_DHW_ELECTRICITY,
-        _PARAM_HEATING_LAST_24H,
-        _PARAM_HEATING_LAST_7D,
-        _PARAM_HEATING_LAST_30D,
-        _PARAM_HEATING_LAST_365D,
-        _PARAM_HEATING_LAST_24H_LIST,
-        _PARAM_HEATING_LAST_7D_LIST,
-        _PARAM_HEATING_LAST_30D_LIST,
-        _PARAM_HEATING_LAST_365D_LIST,
-        _PARAM_HEATING_TODAY,
-        _PARAM_WATER_LAST_24H,
-        _PARAM_WATER_LAST_7D,
-        _PARAM_WATER_LAST_30D,
-        _PARAM_WATER_LAST_365D,
-        _PARAM_WATER_LAST_24H_LIST,
-        _PARAM_WATER_LAST_7D_LIST,
-        _PARAM_WATER_LAST_30D_LIST,
-        _PARAM_WATER_LAST_365D_LIST,
-        _PARAM_WATER_TODAY,
-        _PARAM_COOLING_LAST_24H,
-        _PARAM_COOLING_LAST_7D,
-        _PARAM_COOLING_LAST_30D,
-        _PARAM_COOLING_LAST_365D,
-        _PARAM_COOLING_LAST_24H_LIST,
-        _PARAM_COOLING_LAST_7D_LIST,
-        _PARAM_COOLING_LAST_30D_LIST,
-        _PARAM_COOLING_LAST_365D_LIST,
-        _PARAM_COOLING_TODAY
-    }
-    duplicate_set_per_zone('_GET_REQUEST_GAS', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_MAIN = {
-        _PARAM_CH_DETECTED_TEMPERATURE,
-        _PARAM_CH_ANTIFREEZE_TEMPERATURE,
-        _PARAM_CH_MODE,
-        _PARAM_CH_SET_TEMPERATURE,
-        _PARAM_DHW_SET_TEMPERATURE,
-        _PARAM_MODE,
-        _PARAM_DHW_COMFORT_TEMPERATURE,
-        _PARAM_DHW_ECONOMY_TEMPERATURE,
-        _PARAM_DHW_STORAGE_TEMPERATURE,
-        _PARAM_OUTSIDE_TEMPERATURE,
-        _PARAM_DHW_MODE,
-        _PARAM_HOLIDAY_MODE,
-        _PARAM_HEAT_PUMP,
-        _PARAM_CH_PILOT,
-        _PARAM_CH_FLAME,
+    _LIST_ARISTON_API_PARAMS = [
+        *_MAP_ARISTON_ZONE_0_PARAMS.keys(),
+        *_MAP_ARISTON_ZONE_1_PARAMS.keys(),
         _PARAM_DHW_FLAME,
-        _PARAM_FLAME
-    }
-    duplicate_set_per_zone('_GET_REQUEST_MAIN', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_PARAM = {
-        _PARAM_INTERNET_TIME,
-        _PARAM_INTERNET_WEATHER,
-        _PARAM_THERMAL_CLEANSE_FUNCTION,
-        _PARAM_CH_AUTO_FUNCTION,
-        _PARAM_DHW_COMFORT_FUNCTION,
-        _PARAM_CH_COMFORT_TEMPERATURE,
-        _PARAM_CH_ECONOMY_TEMPERATURE,
-        _PARAM_SIGNAL_STRENGTH,
-        _PARAM_THERMAL_CLEANSE_CYCLE,
-        _PARAM_CH_WATER_TEMPERATURE,
-        _PARAM_CH_FIXED_TEMP,
-    }
-    duplicate_set_per_zone('_GET_REQUEST_PARAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_UNITS = {
-        _PARAM_UNITS
-    }
-    duplicate_set_per_zone('_GET_REQUEST_UNITS', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _GET_REQUEST_VERSION = {
-        _PARAM_UPDATE,
-        _PARAM_ONLINE_VERSION
-    }
-    duplicate_set_per_zone('_GET_REQUEST_VERSION', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
+    ]
+    _LIST_ARISTON_WEB_PARAMS = [
+        *_MAP_ARISTON_WEB_MENU_PARAMS.keys(),
+    ]
+    # Sensors in error request
+    _LIST_ERROR_PARAMS = [
+        _PARAM_ERRORS_COUNT
+    ]
+    # Sensors in CH schedule program
+    _LIST_CH_PROGRAM_PARAMS = [
+        _PARAM_CH_PROGRAM
+    ]
 
-    # Supported sensors list
-    _SENSOR_LIST = {*_GET_REQUEST_CH_PROGRAM,
-                    *_GET_REQUEST_DHW_PROGRAM,
-                    *_GET_REQUEST_CURRENCY,
-                    *_GET_REQUEST_ERRORS,
-                    *_GET_REQUEST_GAS,
-                    *_GET_REQUEST_MAIN,
-                    *_GET_REQUEST_PARAM,
-                    *_GET_REQUEST_UNITS,
-                    *_GET_REQUEST_VERSION,
-                    *_GET_REQUEST_OTHER_2}
+    # reverse mapping of Android api to sensor names
+    _MAP_ARISTON_API_TO_PARAM = {value:key for key, value in _MAP_ARISTON_ZONE_0_PARAMS.items()}
+    for key, value in _MAP_ARISTON_ZONE_1_PARAMS.items():
+        _MAP_ARISTON_API_TO_PARAM[value] = key
+    # reverse mapping of Web menu items to sensor names
+    _MAP_ARISTON_WEB_TO_PARAM = {value:key for key, value in _MAP_ARISTON_WEB_MENU_PARAMS.items()}
 
-
-    _MAP_ZONE_TO_ORIGINAL_PARAM = dict()
-    _SUB_ORIGINAL = 'original'
-    _SUB_ZONE = 'zone'
-    # Create mapping of variables for zones
-    for sensor in _SENSOR_LIST:
-        _MAP_ZONE_TO_ORIGINAL_PARAM[sensor] = {
-            _SUB_ORIGINAL: sensor,
-            _SUB_ZONE: _ZONE_1
-        }
-    var_name = '_MAP_ZONE_TO_ORIGINAL_PARAM'
-    for param in _ZONE_PARAMETERS:
-        check_key = locals()[param]
-        for zone in range(_ADD_ZONES_START, _ADD_ZONES_STOP + 1):
-            locals()[var_name][_TEMPLATE_ZONE_VAR_VALUE.format(check_key, zone)] = {
-                _SUB_ORIGINAL: check_key,
-                _SUB_ZONE: _TEMPLATE_ZONE_VAR_VALUE.format("", zone)
-            }
-    _MAP_PARAM_NAME_TO_ZONE_PARAM_NAME = dict()
-    _MAP_PARAM_NAME_TO_ZONE_NUMBER = dict()
-    for sensor in _SENSOR_LIST:
-        if _MAP_ZONE_TO_ORIGINAL_PARAM[sensor][_SUB_ORIGINAL] == sensor:
-            _MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[sensor] = dict()
-            in_zone = False
-            for param in _ZONE_PARAMETERS:
-                check_key = locals()[param]
-                if sensor == check_key:
-                    in_zone = True
-            for zone in _ZONE_ORDER:
-                if zone == _ZONE_1 or not in_zone:
-                    _MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[sensor][zone] = sensor
-                    _MAP_PARAM_NAME_TO_ZONE_NUMBER[sensor] = _ZONE_1
-                else:
-                    _MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[sensor][zone] = sensor + zone
-                    _MAP_PARAM_NAME_TO_ZONE_NUMBER[sensor + zone] = zone
+    # List of all sensors
+    _SENSOR_LIST = [
+        *_LIST_ARISTON_API_PARAMS,
+        *_LIST_ARISTON_WEB_PARAMS,
+        *_LIST_ERROR_PARAMS,
+        *_LIST_CH_PROGRAM_PARAMS,
+        ]
     
-
-    _SET_REQUEST_MAIN = {
-        _PARAM_CH_DETECTED_TEMPERATURE,
-        _PARAM_CH_ANTIFREEZE_TEMPERATURE,
+    # List of sensors allowed to be changed
+    _SENSOR_SET_LIST = [
+        _PARAM_MODE,
         _PARAM_CH_MODE,
         _PARAM_CH_SET_TEMPERATURE,
-        _PARAM_DHW_SET_TEMPERATURE,
-        _PARAM_MODE,
-        _PARAM_DHW_STORAGE_TEMPERATURE,
-        _PARAM_OUTSIDE_TEMPERATURE,
-        _PARAM_DHW_MODE,
-        _PARAM_HOLIDAY_MODE,
-        _PARAM_HEAT_PUMP,
-        _PARAM_CH_PILOT,
-        _PARAM_CH_FLAME,
-        _PARAM_FLAME
-    }
-    duplicate_set_per_zone('_SET_REQUEST_MAIN', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _SET_REQUEST_PARAM = {
-        _PARAM_INTERNET_TIME,
-        _PARAM_INTERNET_WEATHER,
-        _PARAM_THERMAL_CLEANSE_FUNCTION,
-        _PARAM_CH_AUTO_FUNCTION,
-        _PARAM_DHW_COMFORT_FUNCTION,
-        _PARAM_DHW_COMFORT_TEMPERATURE,
-        _PARAM_DHW_ECONOMY_TEMPERATURE,
         _PARAM_CH_COMFORT_TEMPERATURE,
         _PARAM_CH_ECONOMY_TEMPERATURE,
-        _PARAM_SIGNAL_STRENGTH,
-        _PARAM_THERMAL_CLEANSE_CYCLE,
+        _PARAM_CH_AUTO_FUNCTION,
         _PARAM_CH_WATER_TEMPERATURE,
         _PARAM_CH_FIXED_TEMP,
-    }
-    duplicate_set_per_zone('_SET_REQUEST_PARAM', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _SET_REQUEST_UNITS = {
-        _PARAM_UNITS
-    }
-    duplicate_set_per_zone('_SET_REQUEST_UNITS', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
-    _SENSOR_SET_LIST = {
-        _PARAM_MODE,
-        _PARAM_CH_MODE,
-        _PARAM_CH_SET_TEMPERATURE,
-        _PARAM_CH_COMFORT_TEMPERATURE,
-        _PARAM_CH_ECONOMY_TEMPERATURE,
-        _PARAM_CH_AUTO_FUNCTION,
         _PARAM_DHW_SET_TEMPERATURE,
-        _PARAM_DHW_COMFORT_TEMPERATURE,
-        _PARAM_DHW_ECONOMY_TEMPERATURE,
-        _PARAM_DHW_MODE,
         _PARAM_DHW_COMFORT_FUNCTION,
-        _PARAM_INTERNET_TIME,
-        _PARAM_INTERNET_WEATHER,
-        _PARAM_UNITS,
         _PARAM_THERMAL_CLEANSE_CYCLE,
         _PARAM_THERMAL_CLEANSE_FUNCTION,
-        _PARAM_CH_WATER_TEMPERATURE,
-        _PARAM_CH_FIXED_TEMP
-    }
-    duplicate_set_per_zone('_SENSOR_SET_LIST', locals(), _ZONE_PARAMETERS, _ADD_ZONES_START, _ADD_ZONES_STOP, _TEMPLATE_ZONE_VAR_VALUE)
+        _PARAM_INTERNET_TIME,
+        _PARAM_INTERNET_WEATHER,
+        # _PARAM_DHW_MODE,
+    ]
 
-    _CLASS_LOCALS = locals()
+    # Requests
+    _REQUEST_MAIN = "main"
+    _REQUEST_CH_SCHEDULE = "ch_schedule"
+    _REQUEST_ERRORS = "errors"
+    _REQUEST_ADDITIONAL = "additional_params"
 
-    def _get_request_for_parameter(self, data):
-        if data in self._GET_REQUEST_CH_PROGRAM:
-            return self._REQUEST_GET_CH
-        elif data in self._GET_REQUEST_CURRENCY:
-            return self._REQUEST_GET_CURRENCY
-        elif data in self._GET_REQUEST_DHW_PROGRAM:
-            return self._REQUEST_GET_DHW
-        elif data in self._GET_REQUEST_ERRORS:
-            return self._REQUEST_GET_ERROR
-        elif data in self._GET_REQUEST_GAS:
-            return self._REQUEST_GET_GAS
-        elif data in self._GET_REQUEST_PARAM:
-            return self._REQUEST_GET_OTHER
-        elif data in self._GET_REQUEST_UNITS:
-            return self._REQUEST_GET_UNITS
-        elif data in self._GET_REQUEST_VERSION:
-            return self._REQUEST_GET_VERSION
-        elif data in self._GET_REQUEST_OTHER_2:
-            return self._REQUEST_GET_OTHER_2
-        return self._REQUEST_GET_MAIN
+    _LIST_REQUESTS = [
+        _REQUEST_MAIN,
+        _REQUEST_ADDITIONAL,
+        _REQUEST_CH_SCHEDULE,
+        _REQUEST_ERRORS,
+    ]
 
-    def _set_request_for_parameter(self, data):
-        if data in self._SET_REQUEST_PARAM:
-            return self._REQUEST_SET_OTHER
-        elif data in self._SET_REQUEST_UNITS:
-            return self._REQUEST_SET_UNITS
-        return self._REQUEST_SET_MAIN
+    # Keys used in structures
+    _VALUE = 'value'
+    _SET_VALUE = "set_value"
+    _UNITS = 'units'
+    _MIN = 'min'
+    _MAX = 'max'
+    _STEP = 'step'
+    _OPTIONS = 'options'
+    _OPTIONS_TXT = 'options_text'
+    _ATTRIBUTES = "attributes"
+    _ATTEMPT = "attempt"
 
-    def _update_units(self):
-        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_IMPERIAL:
-            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_HEATING_TODAY][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_WATER_TODAY][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
-            self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_COOLING_TODAY][self._UNITS] = 'kBtuh'
-            self._ariston_sensors[self._PARAM_CH_FLOW_TEMP][self._UNITS] = "°F"
-            self._ariston_sensors[self._PARAM_PRESSURE][self._UNITS] = "psi"
-            self._ariston_sensors[self._PARAM_CH_FIXED_TEMP][self._UNITS] = "°F"
-        elif self._ariston_sensors[self._PARAM_UNITS][self._VALUE] == self._VAL_METRIC:
-            self._ariston_sensors[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_CH_DETECTED_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_CH_WATER_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_DHW_STORAGE_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_DHW_ECONOMY_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_OUTSIDE_TEMPERATURE][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_HEATING_TODAY][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_WATER_TODAY][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_SIGNAL_STRENGTH][self._UNITS] = '%'
-            self._ariston_sensors[self._PARAM_THERMAL_CLEANSE_CYCLE][self._UNITS] = 'h'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_COOLING_TODAY][self._UNITS] = 'kWh'
-            self._ariston_sensors[self._PARAM_CH_FLOW_TEMP][self._UNITS] = "°C"
-            self._ariston_sensors[self._PARAM_PRESSURE][self._UNITS] = "bar"
-            self._ariston_sensors[self._PARAM_CH_FIXED_TEMP][self._UNITS] = "°C"
-        for key in self._ariston_sensors.keys():
-            for param_name in self._ZONE_PARAMETERS:
-                param_key = self._CLASS_LOCALS[param_name]
-                if key == param_key:
-                    for zone in range(self._ADD_ZONES_START, self._ADD_ZONES_STOP + 1):
-                        self._ariston_sensors[self._TEMPLATE_ZONE_VAR_VALUE.format(key, zone)][self._UNITS] = self._ariston_sensors[key][self._UNITS]
-                    break
+    # Values data for data mapping from received data to readable format
+    _WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    _ON = "ON"
+    _OFF = "OFF"
+    _OFF_ON_NUMERAL = [0, 1]
+    _OFF_ON_TEXT = [_OFF, _ON]
+
+    _LOGGER = logging.getLogger(__name__)
+
+
+    def _get_request_for_parameter(self, sensor):
+        if sensor in self._LIST_ARISTON_API_PARAMS:
+            return self._REQUEST_MAIN
+        if sensor in self._LIST_ERROR_PARAMS:
+            return self._REQUEST_ERRORS
+        if sensor in self._LIST_CH_PROGRAM_PARAMS:
+            return self._REQUEST_CH_SCHEDULE
+        if sensor in self._LIST_ARISTON_WEB_PARAMS:
+            return self._REQUEST_ADDITIONAL
+        else:
+            raise Exception(f"Unexpected parameter {sensor}")
+
+
+    def _reset_sensor(self, sensor):
+        self._ariston_sensors[sensor] = dict()
+        self._ariston_sensors[sensor][self._VALUE] = None
+        self._ariston_sensors[sensor][self._UNITS] = None
+        self._ariston_sensors[sensor][self._MIN] = None
+        self._ariston_sensors[sensor][self._MAX] = None
+        self._ariston_sensors[sensor][self._STEP] = None
+        self._ariston_sensors[sensor][self._OPTIONS] = None
+        self._ariston_sensors[sensor][self._OPTIONS_TXT] = None
+        self._ariston_sensors[sensor][self._ATTRIBUTES] = {}
+
 
     def __init__(self,
                  username: str,
                  password: str,
                  sensors: list = None,
-                 retries: int = 5,
-                 polling: Union[float, int] = 1.,
-                 store_file: bool = False,
-                 store_folder: str = "",
-                 units: str = _UNIT_METRIC,
-                 ch_and_dhw: bool = False,
-                 dhw_unknown_as_on: bool = True,
                  logging_level: str = _LEVEL_NOTSET,
+                 period_get_request: int = _GET_SENSORS_PERIOD_SECONDS,
+                 period_set_request: int = _SET_SENSORS_PERIOD_SECONDS,
+                 set_max_retries: int = _MAX_RETRIES,
                  gw: str = "",
-                 zones: int = 1,
                  ) -> None:
         """
         Initialize API.
@@ -779,46 +360,20 @@ class AristonHandler:
         if sensors is None:
             sensors = list()
 
-        if units not in {
-            self._UNIT_METRIC,
-            self._UNIT_IMPERIAL,
-            self._UNIT_AUTO
-        }:
-            raise Exception("Invalid unit")
-
-        if not isinstance(retries, int) or retries < 0:
-            raise Exception("Invalid retries")
-
-        if not isinstance(polling, float) and not isinstance(polling, int) or polling < 1:
-            raise Exception("Invalid poling")
-
-        if not isinstance(store_file, int):
-            raise Exception("Invalid store files")
-
-        if not isinstance(ch_and_dhw, bool):
-            raise Exception("Invalid ch_and_dhw")
-
-        if not isinstance(dhw_unknown_as_on, bool):
-            raise Exception("Invalid dhw_unknown_as_on")
-
         if not isinstance(sensors, list):
             raise Exception("Invalid sensors type")
 
         if logging_level not in self._LOGGING_LEVELS:
             raise Exception("Invalid logging_level")
 
-        if sensors:
-            for sensor in sensors:
-                if sensor not in self._SENSOR_LIST:
-                    sensors.remove(sensor)
+        if not isinstance(period_get_request, (int, float)) or period_get_request < self._GET_SENSORS_PERIOD_SECONDS:
+            raise Exception(f"Period to get sensors must be a number higher than {self._GET_SENSORS_PERIOD_SECONDS}")
 
-        if store_folder != "":
-            self._store_folder = store_folder
-        else:
-            self._store_folder = os.path.join(os.getcwd(), self._FILE_FOLDER)
-        if store_file:
-            if not os.path.isdir(self._store_folder):
-                os.makedirs(self._store_folder)
+        if not isinstance(period_set_request, (int, float)) or period_set_request < self._SET_SENSORS_PERIOD_SECONDS:
+            raise Exception(f"Period to set sensors must be a number higher than {self._SET_SENSORS_PERIOD_SECONDS}")
+
+        if not isinstance(set_max_retries, int) or set_max_retries < 1:
+            raise Exception(f"At least 1 retry to set data is expected")
 
         """
         Logging settings
@@ -831,275 +386,97 @@ class AristonHandler:
         self._console_handler.setFormatter(self._formatter)
         self._LOGGER.addHandler(self._console_handler)
 
-        self._available = False
-        self._ch_available = False
-        self._ch_available_zone_2 = False
-        self._ch_available_zone_3 = False
-        self._dhw_available = False
-        self._changing_data = False
+        if sensors:
+            for sensor in sensors:
+                if sensor not in self._SENSOR_LIST:
+                    self._LOGGER.warning(f"Unsupported sensor {sensor}")
+                    sensors.remove(sensor)
 
         self._default_gw = gw
-        if self._default_gw:
-            self._gw_name = self._default_gw + '_'
-        else:
-            self._gw_name = ""
+        self._user = username
+        self._password = password
+        self._get_period_time = period_get_request
+        self._set_period_time = period_set_request
+        self._max_set_retries = set_max_retries
 
         # clear read sensor values
         self._ariston_sensors = dict()
-        self._subscribed_sensors_old = dict()
+        self._subscribed_sensors_old_value = dict()
         for sensor in self._SENSOR_LIST:
-            self._ariston_sensors[sensor] = dict()
-            self._ariston_sensors[sensor][self._VALUE] = None
-            self._ariston_sensors[sensor][self._UNITS] = None
-            self._subscribed_sensors_old[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
+            self._reset_sensor(sensor)
+            self._subscribed_sensors_old_value[sensor] = None
         
-        if units in {self._UNIT_METRIC, self._UNIT_IMPERIAL}:
-            self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = units
-            self._update_units()
-
-        for sensor in self._SENSOR_LIST:
-            self._subscribed_sensors_old[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
-
         # clear configuration data
-        self._ariston_data = {}
-        self._ariston_gas_data = {}
-        self._ariston_error_data = {}
-        self._ariston_dhw_data = {}
-        self._ariston_currency = {}
-        self._ariston_other_data = {}
-        self._ariston_other_data_2 = {}
-        self._ariston_units = {}
-        self._zone_data_main = {
-            self._ZONE_1: dict(),
-            self._ZONE_2: dict(),
-            self._ZONE_3: dict()
-        }
-        self._zone_data_ch = {
-            self._ZONE_1: dict(),
-            self._ZONE_2: dict(),
-            self._ZONE_3: dict()
-        }
+        self._set_param = {}
+        self._features = {}
+        self._main_data = {}
+        self._additional_data = {}
+        self._error_data = {}
+        self._ch_schedule_data = {}
+
+        self._reset_set_requests()
+
         # initiate all other data
-        self._timer_periodic_read = threading.Timer(1, self._queue_get_data)
-        self._timer_queue_delay = threading.Timer(1, self._control_availability_state, [self._REQUEST_GET_MAIN])
-        self._timer_periodic_set = threading.Timer(1, self._preparing_setting_http_data)
-        self._timer_set_delay = threading.Timer(1, self._preparing_setting_http_data)
-        self._data_lock = threading.Lock()
-        self._dhw_history = [self._UNKNOWN_TEMP, self._UNKNOWN_TEMP, self._UNKNOWN_TEMP, self._UNKNOWN_TEMP]
-        self._dhw_trend_up = False
         self._errors = 0
-        self._get_request_number_low_prio = 0
-        self._get_request_number_high_prio = 0
-        self._get_time_start = {
-            self._REQUEST_GET_MAIN: 0.,
-            self._REQUEST_GET_CH: 0.,
-            self._REQUEST_GET_DHW: 0.,
-            self._REQUEST_GET_ERROR: 0.,
-            self._REQUEST_GET_GAS: 0.,
-            self._REQUEST_GET_OTHER: 0.,
-            self._REQUEST_GET_UNITS: 0.,
-            self._REQUEST_GET_CURRENCY: 0.,
-            self._REQUEST_GET_VERSION: 0.,
-            self._REQUEST_GET_OTHER_2: 0.
-        }
-        self._get_time_end = {
-            self._REQUEST_GET_MAIN: 0.,
-            self._REQUEST_GET_CH: 0.,
-            self._REQUEST_GET_DHW: 0.,
-            self._REQUEST_GET_ERROR: 0.,
-            self._REQUEST_GET_GAS: 0.,
-            self._REQUEST_GET_OTHER: 0.,
-            self._REQUEST_GET_UNITS: 0.,
-            self._REQUEST_GET_CURRENCY: 0.,
-            self._REQUEST_GET_VERSION: 0.,
-            self._REQUEST_GET_OTHER_2: 0.
-        }
-        self._get_zero_temperature = {
-            self._PARAM_CH_SET_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_CH_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_CH_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_CH_DETECTED_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_DHW_SET_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_DHW_COMFORT_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_DHW_ECONOMY_TEMPERATURE: self._UNKNOWN_TEMP,
-            self._PARAM_DHW_STORAGE_TEMPERATURE: self._UNKNOWN_TEMP
-        }
+        self._data_lock = threading.Lock()
         self._lock = threading.Lock()
-        self._login = False
-        self._password = password
-        self._plant_id = ""
         self._plant_id_lock = threading.Lock()
         self._session = requests.Session()
-        self._ch_and_dhw = ch_and_dhw
-        self._dhw_unknown_as_on = dhw_unknown_as_on
-        self._set_param = {}
-        self._set_param_group = {
-            self._REQUEST_GET_MAIN: False,
-            self._REQUEST_GET_OTHER: False,
-            self._REQUEST_GET_UNITS: False
-        }
-        self._today_count_ignore = dict()
-        for today_param in self._TODAY_SENSORS:
-            self._today_count_ignore[today_param] = 0
-        self._set_retry = {
-            self._REQUEST_SET_MAIN: 0,
-            self._REQUEST_SET_OTHER: 0,
-            self._REQUEST_SET_UNITS: 0
-        }
-        self._set_max_retries = retries
-        self._set_new_data_pending = False
-        self._set_scheduled = False
-        self._set_time_start = {
-            self._REQUEST_SET_MAIN: 0,
-            self._REQUEST_SET_OTHER: 0,
-            self._REQUEST_SET_UNITS: 0
-        }
-        self._set_time_end = {
-            self._REQUEST_SET_MAIN: 0,
-            self._REQUEST_SET_OTHER: 0,
-            self._REQUEST_SET_UNITS: 0
-        }
-        self._store_file = store_file
+        self._login = False
+        self._plant_id = ""
+        self._started = False
+        self._available = False
+        self._ch_available = False
+        self._dhw_available = False
+        self._changing_data = False
+        self._timer_periodic_read = threading.Timer(0, self._queue_get_data)
+        self._timer_queue_delay = threading.Timer(0, self._control_availability_state, [self._REQUEST_MAIN])
+        self._timer_set_delay = threading.Timer(0, self._preparing_setting_http_data)
+
+        self._last_request = self._REQUEST_MAIN
+        self._last_request_low_prio = self._REQUEST_CH_SCHEDULE
+
+        self._other_parameters = []
+        for sensor in self._MAP_ARISTON_WEB_MENU_PARAMS:
+            if sensor in sensors:
+                self._other_parameters.append(self._MAP_ARISTON_WEB_MENU_PARAMS[sensor])
+        
+        # List of requests. First list is high priority requests and second list is low priority requests.
+        # It affects frequency of the requests
+        self._requests_lists = [
+            [
+                self._REQUEST_MAIN,
+                self._REQUEST_ADDITIONAL,
+                self._REQUEST_ERRORS
+                ],
+            [
+                self._REQUEST_CH_SCHEDULE
+                ]
+            ]
+
+        # If no sensors specified then no need to send the requests thus increasing frequency of fetching data for wanted sensors
+        if not self._other_parameters:
+            # No sensors from other parameters
+            self._requests_lists[0].remove(self._REQUEST_ADDITIONAL)
+        if self._PARAM_ERRORS_COUNT not in sensors:
+            # No sensor for error count
+            self._requests_lists[0].remove(self._REQUEST_ERRORS)
+        if self._PARAM_CH_PROGRAM not in sensors:
+            # No sensor for CH schedule 
+            self._requests_lists[1].remove(self._REQUEST_CH_SCHEDULE)
+
         self._subscribed = list()
         self._subscribed_args = list()
         self._subscribed_kwargs = list()
-        self._subscribed_thread = list()
+        self._subscribed_thread = None
 
         self._subscribed2 = list()
         self._subscribed2_args = list()
         self._subscribed2_kwargs = list()
-        self._subscribed2_thread = list()
-
-        self._token_lock = threading.Lock()
-        self._token = None
-        self._units = units
-        self._url = self._ARISTON_URL
-        self._user = username
-        self._verify = True
-        self._version = ""
-        self._zones = zones
-        # check which requests should be used
-        # note that main and other are mandatory for climate and water_heater operations
-        self._valid_requests = {
-            self._REQUEST_GET_MAIN: True,
-            self._REQUEST_GET_CH: False,
-            self._REQUEST_GET_DHW: False,
-            self._REQUEST_GET_ERROR: False,
-            self._REQUEST_GET_GAS: False,
-            self._REQUEST_GET_OTHER: True,
-            self._REQUEST_GET_UNITS: False,
-            self._REQUEST_GET_CURRENCY: False,
-            self._REQUEST_GET_VERSION: False,
-            self._REQUEST_GET_OTHER_2: False
-        }
-        self._set_param_sensors = list()
-        if sensors:
-            for item in sensors:
-                self._valid_requests[self._get_request_for_parameter(item)] = True
-                if item in self._GET_REQUEST_OTHER_2:
-                    self._set_param_sensors.append(item)
-        
-        sensors_to_use = list()
-        exclude_set = {
-            self._PARAM_DHW_COMFORT_TEMPERATURE, 
-            self._PARAM_DHW_ECONOMY_TEMPERATURE
-        }
-        for sensor_to_add in sorted(self._GET_REQUEST_PARAM):
-            if sensor_to_add in sensors and sensor_to_add not in exclude_set:
-                sensors_to_use.append(self._PARAM_TO_ARISTON[sensor_to_add])
-                # duplicate zone parameters
-                if self._zones > 1:
-                    for param in self._ZONE_PARAMETERS:
-                        check_key = self._CLASS_LOCALS[param]
-                        if check_key == sensor_to_add:
-                            for zone in range(self._ADD_ZONES_START, self._ADD_ZONES_STOP + 1):
-                                sensors_to_use.append(self._PARAM_TO_ARISTON[self._TEMPLATE_ZONE_VAR_VALUE.format(check_key, zone)])
-                            break
-        self._param_sensors = sensors_to_use
-
-        if self._units == self._UNIT_AUTO:
-            self._valid_requests[self._REQUEST_GET_UNITS] = True
-        # prepare lists of requests
-        # prepare list of higher priority
-        self._request_list_high_prio = []
-        if self._valid_requests[self._REQUEST_GET_MAIN]:
-            self._request_list_high_prio.append(self._REQUEST_GET_MAIN)
-        if self._valid_requests[self._REQUEST_GET_UNITS]:
-            self._request_list_high_prio.append(self._REQUEST_GET_UNITS)
-        if self._valid_requests[self._REQUEST_GET_OTHER]:
-            self._request_list_high_prio.append(self._REQUEST_GET_OTHER)
-        if self._valid_requests[self._REQUEST_GET_OTHER_2]:
-            self._request_list_high_prio.append(self._REQUEST_GET_OTHER_2)
-        if self._valid_requests[self._REQUEST_GET_ERROR]:
-            self._request_list_high_prio.append(self._REQUEST_GET_ERROR)
-        # prepare list of lower priority
-        self._request_list_low_prio = []
-        if self._valid_requests[self._REQUEST_GET_CH]:
-            self._request_list_low_prio.append(self._REQUEST_GET_CH)
-        if self._valid_requests[self._REQUEST_GET_DHW]:
-            self._request_list_low_prio.append(self._REQUEST_GET_DHW)
-        if self._valid_requests[self._REQUEST_GET_GAS]:
-            self._request_list_low_prio.append(self._REQUEST_GET_GAS)
-        if self._valid_requests[self._REQUEST_GET_CURRENCY]:
-            self._request_list_low_prio.append(self._REQUEST_GET_CURRENCY)
-        if self._valid_requests[self._REQUEST_GET_VERSION]:
-            self._request_list_low_prio.append(self._REQUEST_GET_VERSION)
-
-        # initiate timer between requests within one loop
-        self._timer_between_param_delay = self._HTTP_PARAM_DELAY * polling
-
-        # initiate timers for http requests to reading or setting of data
-        self._timeout_long = self._HTTP_TIMEOUT_GET_LONG * polling
-        self._timeout_medium = self._HTTP_TIMEOUT_GET_MEDIUM * polling
-        self._timeout_short = self._HTTP_TIMEOUT_GET_SHORT * polling
-
-        # initiate timer between set request attempts
-        self._timer_between_set = self._timer_between_param_delay + self._HTTP_TIMER_SET_WAIT
-
-        self._current_temp_economy_ch = {
-            self._ZONE_1: None,
-            self._ZONE_2: None,
-            self._ZONE_3: None
-        }
-        self._current_temp_economy_dhw = None
-
-        self._started = False
+        self._subscribed2_thread = None
 
         self._LOGGER.info("API initiated")
 
-        if self._store_file:
-            if not os.path.isdir(self._store_folder):
-                os.makedirs(self._store_folder)
-            store_file = self._gw_name + 'data_ariston_valid_requests.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._valid_requests, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_high_prio.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._request_list_high_prio, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_low_prio.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._request_list_low_prio, ariston_fetched)
-
-    def _send_params_get_main(self):
-        request_params = '?zoneNum={}&umsys=si&firstRoundTrip=true&twoPhaseRefresh=false'
-        result = [request_params.format('{0}')]
-        if self._zones > 1:
-            for zone in range(self._ADD_ZONES_START, self._zones + 1):
-                result.append(request_params.format(zone))
-        return result
-
-    def _send_params_get_program(self):
-        result = list()
-        for zone in range(1, self._zones + 1):
-                result.append(f'?progId=ChZn{zone}&umsys=si')
-        return result
-
-    def _send_params_set(self, zone_name):
-        zone = self._ZONE_ORDER.index(zone_name) + 1
-        return f'?zoneNum={zone}&umsys=si'
 
     def subscribe_sensors(self, func, *args, **kwargs):
         """
@@ -1112,6 +489,7 @@ class AristonHandler:
         self._subscribed.append(func)
         self._subscribed_args.append(args)
         self._subscribed_kwargs.append(kwargs)
+
 
     def subscribe_statuses(self, func, *args, **kwargs):
         """
@@ -1128,6 +506,7 @@ class AristonHandler:
         self._subscribed2_args.append(args)
         self._subscribed2_kwargs.append(kwargs)
 
+
     def _subscribers_sensors_inform(self):
         """
         Inform subscribers about changed sensors
@@ -1138,25 +517,9 @@ class AristonHandler:
 
         for sensor in self._SENSOR_LIST:
             if sensor in self._ariston_sensors:
-                if self._ariston_sensors[sensor][self._VALUE] != self._subscribed_sensors_old[sensor][self._VALUE] or \
-                    self._ariston_sensors[sensor][self._UNITS] != self._subscribed_sensors_old[sensor][self._UNITS]:
-                    
-                    if isinstance(self._ariston_sensors[sensor][self._VALUE], dict) and isinstance(self._subscribed_sensors_old[sensor][self._VALUE], dict):
-                        if self._ariston_sensors[sensor][self._VALUE] == {} or self._subscribed_sensors_old[sensor][self._VALUE] == {}:
-                            inform = True
-                        elif len(self._ariston_sensors[sensor][self._VALUE]) != len(self._subscribed_sensors_old[sensor][self._VALUE]):
-                            inform = True
-                        else:
-                            inform = False
-                            for key, value in self._ariston_sensors[sensor][self._VALUE].items():
-                                if self._subscribed_sensors_old[sensor][self._VALUE][key] != value:
-                                    inform = True
-                    else:
-                        inform = True
-
-                    if inform:
-                        self._subscribed_sensors_old[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
-                        changed_data[sensor] = self._ariston_sensors[sensor]
+                if self._ariston_sensors[sensor][self._VALUE] != self._subscribed_sensors_old_value[sensor]:
+                    self._subscribed_sensors_old_value[sensor] = self._ariston_sensors[sensor][self._VALUE]
+                    changed_data[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
 
         if changed_data:
             for iteration in range(len(self._subscribed)):
@@ -1164,121 +527,40 @@ class AristonHandler:
                     0, self._subscribed[iteration], args=(changed_data, *self._subscribed_args[iteration]), kwargs=self._subscribed_kwargs[iteration])
                 self._subscribed_thread.start()
 
-    def _subscribers_statuses_inform(self, changed_data):
+
+    def _subscribers_statuses_inform(self):
         """Inform subscribers about changed API statuses"""
-        for iteration in range(len(self._subscribed2)):
-            self._subscribed2_thread = threading.Timer(
-                0, self._subscribed2[iteration], args=(changed_data, *self._subscribed2_args[iteration]), kwargs=self._subscribed2_kwargs[iteration])
-            self._subscribed2_thread.start()
-            
-
-    def _change_to_24h_format(self, time_str_12h=""):
-        """Convert to 24H format if in 12H format"""
-        if not isinstance(time_str_12h, str):
-            time_str_12h = self._DEFAULT_TIME
-        try:
-            if len(time_str_12h) > 5:
-                time_and_indic = time_str_12h.split(' ')
-                if time_and_indic[1] == "AM":
-                    if time_and_indic[0] == "12:00":
-                        time_str_24h = "00:00"
-                    else:
-                        time_str_24h = time_and_indic[0]
-                elif time_and_indic[1] == "PM":
-                    if time_and_indic[0] == "12:00":
-                        time_str_24h = "12:00"
-                    else:
-                        time_hour_minute = time_and_indic[0].split(":")
-                        time_str_24h = str(int(time_hour_minute[0]) + 12) + ":" + time_hour_minute[1]
-                else:
-                    time_str_24h = self._DEFAULT_TIME
-            else:
-                time_str_24h = time_str_12h
-        except IndexError:
-            time_str_24h = self._DEFAULT_TIME
-        return time_str_24h
-
-    @staticmethod
-    def _json_validator(data):
-        try:
-            if isinstance(data, dict):
-                if data == {}:
-                    return False
-                else:
-                    return True
-            if isinstance(data, list):
-                if not data:
-                    return False
-                else:
-                    for item in data:
-                        if not isinstance(item, dict):
-                            return False
-                    return True
-            else:
-                return False
-        except KeyError:
-            return False
-
-    def _set_statuses(self):
-        """Set availablility states"""
         old_available = self._available
         old_ch_available = self._ch_available
-        old_ch_available_zone_2 = self._ch_available_zone_2
-        old_ch_available_zone_3 = self._ch_available_zone_3
         old_dhw_available = self._dhw_available
         old_changing = self._changing_data
 
         changed_data = dict()
 
-        self._available = self._errors <= self._MAX_ERRORS and self._login and self._plant_id != "" and self._ariston_data != {}
+        self._available = self._errors <= self._MAX_ERRORS and self._login and self._plant_id != "" and self._main_data != {}
 
-        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
-            self._ch_available = False
-        elif self._ariston_other_data == {}:
-            self._ch_available = False
-        elif self._available and self._zone_data_main[self._ZONE_1] and self._zone_data_main[self._ZONE_1]["mode"]["allowedOptions"]:
+        if self._available and self._main_data != {} and self._additional_data != {} and \
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] != None:
             self._ch_available = True
         else:
             self._ch_available = False
 
-        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
-            self._ch_available_zone_2 = False
-        elif self._ariston_other_data == {}:
-            self._ch_available_zone_2 = False
-        elif self._available and self._zone_data_main[self._ZONE_2] and self._zone_data_main[self._ZONE_2]["mode"]["allowedOptions"]:
-            self._ch_available_zone_2 = True
+        if self._available and self._main_data != {} and self._additional_data != {} and \
+            self._ariston_sensors[self._PARAM_DHW_SET_TEMPERATURE][self._VALUE] != None:
+            self._dhw_available = True
         else:
-            self._ch_available_zone_2 = False
-
-        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
-            self._ch_available_zone_3 = False
-        elif self._ariston_other_data == {}:
-            self._ch_available_zone_3 = False
-        elif self._available and self._zone_data_main[self._ZONE_3] and self._zone_data_main[self._ZONE_3]["mode"]["allowedOptions"]:
-            self._ch_available_zone_3 = True
-        else:
-            self._ch_available_zone_3 = False
-
-        if self._ariston_sensors[self._PARAM_UNITS][self._VALUE] not in {self._VAL_METRIC, self._VAL_IMPERIAL}:
             self._dhw_available = False
-        elif self._ariston_other_data == {}:
-            self._dhw_available = False
-        else:
-            self._dhw_available = self._available
 
-        self._changing_data = self._set_param != {}
+        if self._set_param != {}:
+            self._changing_data = True
+        else:
+            self._changing_data = False
 
         if old_available != self._available:
             changed_data['available'] = self._available
 
         if old_ch_available != self._ch_available:
             changed_data['ch_available'] = self._ch_available
-
-        if old_ch_available_zone_2 != self._ch_available_zone_2:
-            changed_data['ch_available_zone_2'] = self._ch_available_zone_2
-
-        if old_ch_available_zone_3 != self._ch_available_zone_3:
-            changed_data['ch_available_zone_3'] = self._ch_available_zone_3
 
         if old_dhw_available != self._dhw_available:
             changed_data['dhw_available'] = self._dhw_available
@@ -1287,7 +569,36 @@ class AristonHandler:
             changed_data['setting_data'] = self._changing_data
 
         if changed_data:
-            self._subscribers_statuses_inform(changed_data)
+            for iteration in range(len(self._subscribed2)):
+                self._subscribed2_thread = threading.Timer(
+                    0, self._subscribed2[iteration], args=(changed_data, *self._subscribed2_args[iteration]), kwargs=self._subscribed2_kwargs[iteration])
+                self._subscribed2_thread.start()
+
+
+    def _json_validator(self, data, request_type):
+        json_data = data.json()
+        try:
+            if isinstance(json_data, dict):
+                if json_data == {}:
+                    return False
+                else:
+                    return True
+            if isinstance(json_data, list):
+                if not json_data:
+                    if request_type in (self._REQUEST_ERRORS):
+                        return True
+                    else:
+                        return False
+                else:
+                    for item in json_data:
+                        if not isinstance(item, dict):
+                            return False
+                    return True
+            else:
+                return False
+        except KeyError:
+            return False
+
 
     @classmethod
     def api_data(cls):
@@ -1299,40 +610,36 @@ class AristonHandler:
         """
         return cls._VERSION, cls._SENSOR_LIST, cls._SENSOR_SET_LIST
 
+
     @property
     def plant_id(self) -> str:
         """Return the unique plant_id."""
         return self._plant_id
+
 
     @property
     def available(self) -> bool:
         """Return if Aristons's API is responding."""
         return self._available
 
+
     @property
     def ch_available(self) -> bool:
         """Return if Aristons's API is responding and if there is data available for the CH."""
         return self._ch_available
 
-    @property
-    def ch_available_zone_2(self) -> bool:
-        """Return if Aristons's API is responding and if there is data available for the CH."""
-        return self._ch_available_zone_2
-
-    @property
-    def ch_available_zone_3(self) -> bool:
-        """Return if Aristons's API is responding and if there is data available for the CH."""
-        return self._ch_available_zone_3
 
     @property
     def dhw_available(self) -> bool:
         """Return if Aristons's API is responding and if there is data available for the DHW."""
         return self._dhw_available
 
+
     @property
     def version(self) -> str:
         """Return version of the API in use."""
         return self._VERSION
+
 
     @property
     def sensor_values(self) -> dict:
@@ -1345,12 +652,14 @@ class AristonHandler:
         'units' key is used to fetch units of measurement for specific sensor/parameter.
 
         """
-        return self._ariston_sensors
+        return copy.deepcopy(self._ariston_sensors)
+
 
     @property
     def setting_data(self) -> bool:
         """Return if setting of data is in progress."""
         return self._changing_data
+
 
     @property
     def supported_sensors_get(self) -> set:
@@ -1358,7 +667,8 @@ class AristonHandler:
         Return set of all supported sensors/parameters in API.
         Note that it is sensors supported by API, not the server, so some might never have valid values.
         """
-        return self._SENSOR_LIST
+        return copy.deepcopy(self._SENSOR_LIST)
+
 
     @property
     def supported_sensors_set(self) -> set:
@@ -1367,1717 +677,449 @@ class AristonHandler:
         Note that it is parameters supported by API, not the server, so some might be impossible to be set.
         use property 'supported_sensors_set_values' to find allowed values to be set.
         """
-        return self._SENSOR_SET_LIST
+        return copy.deepcopy(self._SENSOR_SET_LIST)
+
 
     @property
     def supported_sensors_set_values(self) -> dict:
         """
         Return dictionary of sensors/parameters to be set and allowed values.
         Allowed values can be returned as:
-            - set of allowed options;
             - dictionary with following keys:
                 - 'min' is used to indicate minimum value in the range;
                 - 'max' is used to indicate maximum value in the range;
                 - 'step' is used to indicate step;
+                - 'options' is list of options numeric;
+                - 'options_text' is list of options literal;
 
         data from this property is used for 'set_http_data' method.
         """
-        sensors_dictionary = {}
-        for parameter in self._SENSOR_SET_LIST:
-            zone_number = self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter]
-            if self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_MODE:
-                param_values = set()
-                if self._ariston_data != {}:
-                    for value in self._ariston_data["allowedModes"]:
-                        if value in self._VALUE_TO_MODE:
-                            param_values.add(self._VALUE_TO_MODE[value])
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_MODE:
-                param_values = set()
-                if self._ariston_data != {} and self._zone_data_main[zone_number]:
-                    for value in self._zone_data_main[zone_number]["mode"]["allowedOptions"]:
-                        if value in self._VALUE_TO_CH_MODE:
-                            param_values.add(self._VALUE_TO_CH_MODE[value])
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_SET_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {} and self._zone_data_main[zone_number]:
-                    param_values["min"] = self._zone_data_main[zone_number]["comfortTemp"]["min"]
-                    param_values["max"] = self._zone_data_main[zone_number]["comfortTemp"]["max"]
-                    param_values["step"] = 0.5
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_COMFORT_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {} and self._zone_data_main[zone_number]:
-                    param_values["min"] = self._zone_data_main[zone_number]["comfortTemp"]["min"]
-                    param_values["max"] = self._zone_data_main[zone_number]["comfortTemp"]["max"]
-                    param_values["step"] = 0.5
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
-                param_values = dict()
-                if self._ariston_other_data != {} and self._zone_data_main[zone_number]:
-                    for param_item in self._ariston_other_data:
-                        if param_item["id"] == self._ARISTON_CH_FIXED_TEMP:
-                            param_values["min"] = param_item["min"]
-                            param_values["max"] = param_item["max"]
-                            param_values["step"] = 1.
-                            break
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_ECONOMY_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {} and self._zone_data_main[zone_number]:
-                    param_values["min"] = self._zone_data_main[zone_number]["comfortTemp"]["min"]
-                    param_values["max"] = self._zone_data_main[zone_number]["comfortTemp"]["max"]
-                    param_values["step"] = 0.5
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_AUTO_FUNCTION:
-                sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_SET_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {}:
-                    param_values["min"] = self._ariston_data["dhwTemp"]["min"]
-                    param_values["max"] = self._ariston_data["dhwTemp"]["max"]
-                    param_values["step"] = 1
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {}:
-                    param_values["min"] = max(self._ariston_data["dhwTemp"]["min"],
-                                              self._ariston_data["dhwTimeProgComfortTemp"]["min"])
-                    param_values["max"] = max(self._ariston_data["dhwTemp"]["max"],
-                                              self._ariston_data["dhwTimeProgComfortTemp"]["max"])
-                    param_values["step"] = 1
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_ECONOMY_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_data != {}:
-                    param_values["min"] = self._ariston_data["dhwTemp"]["min"]
-                    param_values["max"] = self._ariston_data["dhwTemp"]["max"]
-                    param_values["step"] = 1
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_MODE:
-                param_values = set()
-                if self._ariston_data != {}:
-                    if not self._ariston_data["dhwModeNotChangeable"]:
-                        param_values = {self._VAL_MANUAL, self._VAL_PROGRAM}
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_FUNCTION:
-                sensors_dictionary[parameter] = [*self._DHW_COMFORT_FUNCT_TO_VALUE]
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_TIME:
-                sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_WEATHER:
-                sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_UNITS:
-                sensors_dictionary[parameter] = [*self._UNIT_TO_VALUE]
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_CYCLE:
-                param_values = dict()
-                if self._ariston_other_data != {}:
-                    for param_item in self._ariston_other_data:
-                        if param_item["id"] == self._ARISTON_THERMAL_CLEANSE_CYCLE:
-                            param_values["min"] = param_item["min"]
-                            param_values["max"] = param_item["max"]
-                            param_values["step"] = 1.
-                            break
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_WATER_TEMPERATURE:
-                param_values = dict()
-                if self._ariston_other_data != {}:
-                    for param_item in self._ariston_other_data:
-                        if param_item["id"] == self._ARISTON_CH_WATER_TEMPERATURE:
-                            param_values["min"] = param_item["min"]
-                            param_values["max"] = param_item["max"]
-                            param_values["step"] = 1.
-                            break
-                sensors_dictionary[parameter] = param_values
-            elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_FUNCTION:
-                sensors_dictionary[parameter] = [*self._PARAM_STRING_TO_VALUE]
+        sensors_dictionary = copy.deepcopy(self._ariston_sensors)
+        for parameter in self._ariston_sensors:
+            if parameter in self._SENSOR_SET_LIST:
+                del sensors_dictionary[parameter][self._VALUE]
+                del sensors_dictionary[parameter][self._UNITS]
+                del sensors_dictionary[parameter][self._ATTRIBUTES]
+            else:
+                del sensors_dictionary[parameter]
         return sensors_dictionary
 
-    def _get_plant_id(self, resp):
-        plant_id = ""
-        if resp.url.startswith(self._url + "/PlantDashboard/Index/") or resp.url.startswith(
-            self._url + "/PlantManagement/Index/") or resp.url.startswith(
-            self._url + "/PlantPreference/Index/") or resp.url.startswith(
-            self._url + "/Error/Active/") or resp.url.startswith(
-            self._url + "/PlantGuest/Index/") or resp.url.startswith(
-            self._url + "/TimeProg/Index/"):
-            plant_id = resp.url.split("/")[5]
-        elif resp.url.startswith(self._url + "/PlantData/Index/") or resp.url.startswith(
-            self._url + "/UserData/Index/"):
-            plant_id_attribute = resp.url.split("/")[5]
-            plant_id = plant_id_attribute.split("?")[0]
-        elif resp.url.startswith(self._url + "/Menu/User/Index/"):
-            plant_id = resp.url.split("/")[6]
-        elif resp.url.startswith(self._url + "/R2/Plant/Index/"):
-            plant_id = resp.url.split("/")[6].split("?")[0]
-        else:
-            self._LOGGER.warning('%s Authentication login error', self)
-            raise Exception("Login parsing of URL failed")
-        if plant_id:
-            if self._default_gw:
-                # If GW is specified, it can differ from the default
-                url = self._url + "/PlantManagement/Index/" + plant_id
-                try:
-                    resp = self._session.get(
-                            url,
-                            auth=self._token,
-                            timeout=self._HTTP_TIMEOUT_LOGIN,
-                            verify=True)
-                except requests.exceptions.RequestException:
-                    self._LOGGER.warning('%s Checking gateways error', self)
-                    raise Exception("Checking gateways error")
-                if resp.status_code != 200:
-                    self._LOGGER.warning('%s Checking gateways error', self)
-                    raise Exception("Checking gateways error")
-                gateways = set()
-                for item in re.findall(r'"GwId":"[a-zA-Z0-9]+"', resp.text):
-                    detected_gw = item.replace('"GwId"', '').replace(':', '').replace('"', '').replace(' ', '')
-                    gateways.add(detected_gw)
-                gateways_txt = ", ".join(gateways)
-                if self._default_gw not in gateways:
-                    self._LOGGER.error(f'Gateway "{self._default_gw}" is not in the list of allowed gateways: {gateways_txt}')
-                    raise Exception(f'Gateway "{self._default_gw}" is not in the list of allowed gateways: {gateways_txt}')
-                else:
-                    self._LOGGER.info(f'Allowed gateways: {gateways_txt}')
-                plant_id = self._default_gw
 
-        return plant_id
+    def _request_post(self, url, json_data, timeout=_TIMEOUT_MIN, error_msg=''):
+        """ post request """
+        try:
+            resp = self._session.post(
+                url,
+                timeout=timeout,
+                json=json_data,
+                verify=True)
+        except requests.exceptions.RequestException as ex:
+            self._LOGGER.warning(f'{error_msg} exception: {ex}')
+            raise Exception(f'{error_msg} exception: {ex}')
+        if not resp.ok:
+            self._LOGGER.warning(f'{error_msg} reply code: {resp.status_code}')
+            self._LOGGER.warning(f'{resp.text}')
+            raise Exception(f'{error_msg} reply code: {resp.status_code}')
+        return resp
+
+
+    def _request_get(self, url, timeout=_TIMEOUT_MIN, error_msg='', ignore_errors=False):
+        try:
+            resp = self._session.get(
+                url,
+                timeout=timeout,
+                verify=True)
+        except requests.exceptions.RequestException as ex:
+            self._LOGGER.warning(f'{error_msg} exception: {ex}')
+            if not ignore_errors:
+                raise Exception(f'{error_msg} exception: {ex}')
+        if not resp.ok:
+            log_text = True
+            if resp.status_code == 500:
+                # Unsupported additional parameters are visible in the HTML reply, remove them if available
+                for re_string in re.findall('Violated Postcondition.*menu', resp.text):
+                    for sensor, menu_item in self._MAP_ARISTON_WEB_MENU_PARAMS.items():
+                        html_item = menu_item.replace('U','').replace('_','.')
+                        check_menu = f"&quot;{html_item}&quot;"
+                        if check_menu in re_string:
+                            self._LOGGER.error(f'Unsupported sensor {sensor} detected with menu item {menu_item}')
+                            self._other_parameters.remove(menu_item)
+                            if not self._other_parameters:
+                                self._requests_lists[0].remove(self._REQUEST_ADDITIONAL)
+                            log_text = False
+            self._LOGGER.warning(f'{error_msg} reply code: {resp.status_code}')
+            if log_text:
+                self._LOGGER.warning(f'{resp.text}')
+            if not ignore_errors:
+                raise Exception(f'{error_msg} reply code: {resp.status_code}')
+        return resp
+
 
     def _login_session(self):
         """Login to fetch Ariston Plant ID and confirm login"""
         if not self._login and self._started:
-            url = self._url + '/Account/Login'
-            login_data = {"Email": self._user, "Password": self._password}
-            try:
-                with self._token_lock:
-                    self._token = requests.auth.HTTPDigestAuth(self._user, self._password)
-                resp = self._session.post(
-                    url,
-                    auth=self._token,
-                    timeout=self._HTTP_TIMEOUT_LOGIN,
-                    json=login_data,
-                    verify=True)
-            except requests.exceptions.RequestException:
-                self._LOGGER.warning('%s Authentication login error', self)
-                raise Exception("Login request exception")
-            if resp.status_code != 200:
-                if self._store_file:
-                    if not os.path.isdir(self._store_folder):
-                        os.makedirs(self._store_folder)
-                    store_file = self._gw_name + "data_ariston_login_" + str(resp.status_code) + "_error.txt"
-                    store_file_path = os.path.join(self._store_folder, store_file)
-                    with open(store_file_path, "w") as f:
-                        f.write(resp.text)
-                self._LOGGER.warning('%s Unexpected reply during login: %s', self, resp.status_code)
-                raise Exception("Login unexpected reply code")
-            plant_id = self._get_plant_id(resp)
-            
+            # First login
+            login_data = {
+                "email": self._user,
+                "password": self._password,
+                "rememberMe": False,
+                "language": "English_Us"
+                }
+            self._request_post(
+                url=f'{self._ARISTON_URL}/R2/Account/Login?returnUrl=%2FR2%2FHome',
+                json_data=login_data,
+                error_msg='Login'
+            )
+
+            # Fetch plant IDs
+            resp = self._request_get(
+                url=f'{self._ARISTON_URL}/api/v2/remote/plants/lite',
+                error_msg='Gateways'
+            )
+            gateways = [item['gwId'] for item in resp.json()]
+            if self._default_gw:
+                if self._default_gw not in gateways:
+                    self._LOGGER.error(f'Specified gateway {self._default_gw} not found in {gateways}')
+                    raise Exception(f'Specified gateway {self._default_gw} not found in {gateways}')
+                else:
+                    plant_id = self._default_gw
+            else:
+                if len(gateways) == 0:
+                    self._LOGGER.error(f'At least one gateway is expected to be found')
+                    raise Exception(f'At least one gateway is expected to be found')
+                # Use first plant plant id
+                plant_id = gateways[0]
+            resp = self._request_get(
+                url=f'{self._ARISTON_URL}/api/v2/remote/plants/{plant_id}/features?eagerMode=True',
+                error_msg='Features'
+            )
+            features = resp.json()
             if plant_id:
                 with self._plant_id_lock:
+                    self._features = copy.deepcopy(features)
                     self._plant_id = plant_id
                     self._gw_name = plant_id + '_'
                     self._login = True
-                    self._LOGGER.info('%s Plant ID is %s', self, self._plant_id)
-
+                    self._LOGGER.info(f'Plant ID is {self._plant_id}')
         return
 
-    def _set_sensors(self, request_type="", zone_number=_ZONE_1):
 
-        self._LOGGER.info(f"Setting sensors for {request_type} and {zone_number}")
-
-        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
-
-            if self.available and self._ariston_data != {}:
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_DETECTED_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._zone_data_main[zone_number]["roomTemp"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_ANTIFREEZE_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._zone_data_main[zone_number]["antiFreezeTemp"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_MODE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._VALUE_TO_CH_MODE[self._zone_data_main[zone_number]["mode"]["value"]]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_SET_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._zone_data_main[zone_number]["desiredTemp"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_SET_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._ariston_data["dhwTemp"]["value"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_MODE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._VALUE_TO_MODE[self._ariston_data["mode"]]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_STORAGE_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._ariston_data["dhwStorageTemp"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_OUTSIDE_TEMPERATURE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._ariston_data["outsideTemp"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_COMFORT_TEMPERATURE][zone_number]
-                try:
-                    if self._ariston_data["dhwTimeProgComfortTemp"]["value"] != 0:
-                        self._ariston_sensors[parameter][self._VALUE] = \
-                            self._ariston_data["dhwTimeProgComfortTemp"]["value"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_ECONOMY_TEMPERATURE][zone_number]
-                try:
-                    if self._ariston_data["dhwTimeProgEconomyTemp"]["value"] != 0:
-                        self._ariston_sensors[parameter][self._VALUE] = \
-                            self._ariston_data["dhwTimeProgEconomyTemp"]["value"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_MODE][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_HOLIDAY_MODE][zone_number]
-                try:
-                    if self._zone_data_main[zone_number]["comfortTemp"]["value"] == \
-                            self._zone_data_main[zone_number]["antiFreezeTemp"] or self._ariston_data["holidayEnabled"]:
-                        self._ariston_sensors[parameter][self._VALUE] = True
-                    else:
-                        self._ariston_sensors[parameter][self._VALUE] = False
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_FLAME][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._ariston_data["flameSensor"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_HEAT_PUMP][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._ariston_data["heatingPumpOn"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_PILOT][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._zone_data_main[zone_number]["pilotOn"]
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_FLAME][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = \
-                        self._zone_data_main[zone_number]["heatRequest"]
-                    if self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP \
-                            and self._dhw_trend_up \
-                            and self._VALUE_TO_MODE[self._ariston_data["mode"]] in {self._VAL_SUMMER, self._VAL_WINTER}\
-                            and self._ariston_data["flameSensor"] and not self._ch_and_dhw:
-                        self._ariston_sensors[parameter][self._VALUE] = False
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_FLAME][zone_number]
-                try:
-                    if self._ariston_data["dhwStorageTemp"] != self._INVALID_STORAGE_TEMP:
-                        # trend can be used
-                        _dhw_automation_possible = True
-                    else:
-                        _dhw_automation_possible = False
-                    _dhw_flame = False
-                    if self._ariston_data["flameSensor"] and \
-                        self._VALUE_TO_MODE[self._ariston_data["mode"]] in [self._VAL_SUMMER, self._VAL_WINTER]:
-                        if self._ariston_data["flameForDhw"]:
-                            # wow, does DHW flag actually work for someone
-                            _dhw_flame = True
-                        elif _dhw_automation_possible and self._dhw_trend_up:
-                            # temeparture increases, assume flame on
-                            _dhw_flame = True
-                        elif not _dhw_automation_possible and self._dhw_unknown_as_on:
-                            # no automation, use default value
-                            _dhw_flame = True
-                        else:
-                            any_ch_flame = False
-                            for zone in self._ZONE_ORDER:
-                                if self._zone_data_main[zone_number] and self._zone_data_main[zone_number]["heatRequest"]:
-                                    any_ch_flame = True
-                                    break
-                            if not any_ch_flame:
-                                # flame is not CH meaning it is DHW
-                                _dhw_flame = True
-                    self._ariston_sensors[parameter][self._VALUE] = _dhw_flame
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
+    def _get_visible_sensor_value(self, sensor):
+        value = self._get_sensor_value(sensor)
+        if sensor in self._set_param:
+            if value == self._set_param[sensor][self._VALUE]:
+                # Value is assumed to be set
+                del self._set_param[sensor]
+                self._subscribers_statuses_inform()
+                self._reset_set_requests()
+                self._LOGGER.debug(f'Sensor {sensor} value {value} matches expected set value')
             else:
-                for parameter in self._GET_REQUEST_MAIN:
-                    self._ariston_sensors[parameter][self._VALUE] = None
+                self._LOGGER.debug(f'Sensor {sensor} expected value {self._set_param[sensor][self._VALUE]} but actual value is {value}')
+                value = self._set_param[sensor][self._VALUE]
+        return value
 
-        if request_type == self._REQUEST_GET_CH:
 
-            if self.available and self._zone_data_ch[zone_number] != {}:
-
-                parameter = self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_PROGRAM][zone_number]
-                try:
-                    self._ariston_sensors[parameter][self._VALUE] = {}
-                    for day_of_week in self._DAYS_OF_WEEK:
-                        if day_of_week in self._zone_data_ch[zone_number]:
-                            for day_slices in self._zone_data_ch[zone_number][day_of_week]["slices"]:
-                                attribute_name = day_of_week + '_' + day_slices["from"] + '_' + day_slices["to"]
-                                if day_slices["temperatureId"] == 1:
-                                    attribute_value = "Comfort"
-                                else:
-                                    attribute_value = "Economy"
-                                self._ariston_sensors[parameter][self._VALUE][attribute_name] = \
-                                    attribute_value
-                except KeyError:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-            else:
-                self._ariston_sensors[parameter][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_DHW:
-
-            if self.available and self._ariston_dhw_data != {}:
-
-                try:
-                    self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = {}
-                    for day_of_week in self._DAYS_OF_WEEK:
-                        if day_of_week in self._ariston_dhw_data:
-                            for day_slices in self._ariston_dhw_data[day_of_week]["slices"]:
-                                attribute_name = day_of_week + '_' + day_slices["from"] + '_' + day_slices["to"]
-                                if day_slices["temperatureId"] == 1:
-                                    attribute_value = "Comfort"
-                                else:
-                                    attribute_value = "Economy"
-                                self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE][attribute_name] = \
-                                    attribute_value
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
-
-            else:
-                self._ariston_sensors[self._PARAM_DHW_PROGRAM][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_ERROR:
-
-            if self.available and self._ariston_error_data != {}:
-
-                try:
-                    error_struct = dict()
-                    self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = \
-                        len(self._ariston_error_data["result"])
-                    for count, error in enumerate(self._ariston_error_data["result"]):
-                        error_struct[f"Error{count + 1}_Slogan"] = error["Fault"]
-                        error_struct[f"Error{count + 1}_Severity"] = error["Severity"]
-                        error_struct[f"Error{count + 1}_Timestamp"] = error["Timestamp"]
-                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = error_struct
-                except KeyError as ex:
-                    self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
-
-            else:
-                self._ariston_sensors[self._PARAM_ERRORS][self._VALUE] = None
-                self._ariston_sensors[self._PARAM_ERRORS_COUNT][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_GAS:
-
-            if self.available and self._ariston_gas_data != {}:
-
-                try:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._VALUE] = \
-                        self._ariston_gas_data["account"]["gasHeat"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_GAS][self._VALUE] = None
-
-                try:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._VALUE] = \
-                        self._ariston_gas_data["account"]["gasDhw"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_GAS][self._VALUE] = None
-
-                try:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._VALUE] = \
-                        self._ariston_gas_data["account"]["elecHeat"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_CH_ELECTRICITY][self._VALUE] = None
-
-                try:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = \
-                        self._ariston_gas_data["account"]["elecDhw"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_ACCOUNT_DHW_ELECTRICITY][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y2"]
-                        sum_obj = sum_obj + item["y2"]
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_24H_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y3"]
-                        sum_obj = sum_obj + item["y3"]
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_24H_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["daily"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y"]
-                        sum_obj = sum_obj + item["y"]
-                    self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_WATER_LAST_24H][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_WATER_LAST_24H_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE]["Period" +
-                                                                                             str(iteration)] = \
-                            item["y2"]
-                        sum_obj = sum_obj + item["y2"]
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_7D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE]["Period" +
-                                                                                             str(iteration)] = \
-                            item["y3"]
-                        sum_obj = sum_obj + item["y3"]
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_7D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["weekly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE]["Period" +
-                                                                                           str(iteration)] = \
-                            item["y"]
-                        sum_obj = sum_obj + item["y"]
-                    self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_WATER_LAST_7D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_WATER_LAST_7D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y2"]
-                        sum_obj = sum_obj + item["y2"]
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_30D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y3"]
-                        sum_obj = sum_obj + item["y3"]
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_30D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["monthly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE]["Period" +
-                                                                                            str(iteration)] = \
-                            item["y"]
-                        sum_obj = sum_obj + item["y"]
-                    self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_WATER_LAST_30D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_WATER_LAST_30D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y2"]
-                        sum_obj = sum_obj + item["y2"]
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_HEATING_LAST_365D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE][
-                            "Period" + str(iteration)] = item["y3"]
-                        sum_obj = sum_obj + item["y3"]
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_COOLING_LAST_365D_LIST][self._VALUE] = None
-
-                try:
-                    sum_obj = 0
-                    self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = {}
-                    for iteration, item in enumerate(self._ariston_gas_data["yearly"]["data"], 1):
-                        self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE]["Period" +
-                                                                                             str(iteration)] = \
-                            item["y"]
-                        sum_obj = sum_obj + item["y"]
-                    self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = round(sum_obj, 3)
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_WATER_LAST_365D][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_WATER_LAST_365D_LIST][self._VALUE] = None
-
-                new_todays_values = dict()
-                old_todays_values = dict()
-
-                for today_sensor in self._TODAY_SENSORS:
-                    try:
-                        if today_sensor == self._PARAM_COOLING_TODAY:
-                            key = "y3"
-                        elif today_sensor == self._PARAM_HEATING_TODAY:
-                            key = "y2"
-                        elif today_sensor == self._PARAM_WATER_TODAY:
-                            key = "y"
-                        else:
-                            # Unknown key
-                            continue
-                        # Store old values
-                        old_todays_values[today_sensor] = self._ariston_sensors[today_sensor][self._VALUE]
-                        sum_obj = 0
-                        start_hour = int(self._ariston_gas_data["daily"]["leftColumnLabel"])
-                        use_iterated = False
-                        for item in self._ariston_gas_data["daily"]["data"]:
-                            if start_hour == 0 or start_hour == 24:
-                                use_iterated = True
-                            start_hour += 2
-                            if use_iterated:
-                                sum_obj = sum_obj + item[key]
-                        new_todays_values[today_sensor] = round(sum_obj, 3)
-                    except KeyError:
-                        new_todays_values[today_sensor] = None
-                        continue
-
-                if all(new_todays_values[today_sensor] == 0 for today_sensor in self._TODAY_SENSORS):
-                    all_zero = True
-                else:
-                    all_zero = False
-                
-                for today_sensor in self._TODAY_SENSORS:
-                    try:
-                        if all_zero and old_todays_values[today_sensor] and self._today_count_ignore < self._MAX_ZERO_TOLERANCE_TODAY_PARAMS:
-                            # Use old value if reports are all 0, old value is non-zero and we have not exceeded tolarance
-                            self._ariston_sensors[today_sensor][self._VALUE] = old_todays_values[today_sensor]
-                            self._today_count_ignore[today_sensor] += 1
-                        else:
-                            # Use new value
-                            self._ariston_sensors[today_sensor][self._VALUE] = new_todays_values[today_sensor]
-                            self._today_count_ignore[today_sensor] = 0
-                    except:
-                        continue
-
-            else:
-                for parameter in self._GET_REQUEST_GAS:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_OTHER:
-
-            if self.available and self._ariston_other_data != {}:
-
-                for param_item in self._ariston_other_data:
-                    ariston_param = param_item["id"]
-                    if ariston_param in self._ARISTON_TO_PARAM:
-                        parameter = self._ARISTON_TO_PARAM[ariston_param]
-                        try:
-                            if parameter in {
-                                self._PARAM_INTERNET_TIME,
-                                self._ARISTON_INTERNET_WEATHER,
-                                self._ARISTON_CH_AUTO_FUNCTION,
-                                self._ARISTON_THERMAL_CLEANSE_FUNCTION
-                            }:
-                                if param_item["value"] == 1:
-                                    self._ariston_sensors[parameter][self._VALUE] = True
-                                else:
-                                    self._ariston_sensors[parameter][self._VALUE] = False
-                            elif parameter == self._PARAM_DHW_COMFORT_FUNCTION:
-                                 self._ariston_sensors[parameter][self._VALUE] = \
-                                     self._DHW_COMFORT_VALUE_TO_FUNCT[param_item["value"]]
-                            else:
-                                self._ariston_sensors[parameter][self._VALUE] = param_item["value"]
-                        except KeyError:
-                            self._ariston_sensors[parameter][self._VALUE] = None
-                            continue
-
-            else:
-                for parameter in self._GET_REQUEST_PARAM:
-                    self._ariston_sensors[parameter][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_UNITS:
-
-            if self._units == self._UNIT_AUTO:
-                if self.available and self._ariston_units != {}:
-                    try:
-                        self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = \
-                            self._VALUE_TO_UNIT[self._ariston_units["measurementSystem"]]
-                        self._update_units()
-                    except KeyError:
-                        self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = None
-                else:
-                    self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = None
-            else:
-                self._ariston_sensors[self._PARAM_UNITS][self._VALUE] = self._units
-
-            self._set_statuses()
-
-        if request_type == self._REQUEST_GET_CURRENCY:
-
-            if self.available and self._ariston_currency != {}:
-
-                try:
-                    type_fetch = next((item for item in self._ariston_currency["gasTypeOptions"] if
-                                       item["value"] == self._ariston_currency["gasType"]), {})
-                    currency_fetch = next((item for item in self._ariston_currency["gasEnergyUnitOptions"] if
-                                           item["value"] == self._ariston_currency["gasEnergyUnit"]), {})
-                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = type_fetch["text"]
-                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._UNITS] = currency_fetch["text"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_GAS_TYPE][self._UNITS] = None
-
-                try:
-                    currency_symbol = next((item for item in self._ariston_currency["currencySymbols"] if
-                                            item["Key"] == self._ariston_currency["currency"]), {})
-                    """
-                    currency_description = next((item for item in self._ariston_currency["currencyOptions"] if
-                                                 item["value"] == self._ariston_currency["currency"]), {})
-                    """
-                    if self._ariston_currency["gasCost"] is None:
-                        self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
-                        self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = None
-                    else:
-                        self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = \
-                            str(self._ariston_currency["gasCost"])
-                        self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = currency_symbol["Value"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_GAS_COST][self._UNITS] = None
-
-                try:
-                    currency_symbol = next((item for item in self._ariston_currency["currencySymbols"] if
-                                            item["Key"] == self._ariston_currency["currency"]), {})
-                    """
-                    currency_description = next((item for item in self._ariston_currency["currencyOptions"] if
-                                                 item["value"] == self._ariston_currency["currency"]), {})
-                    """
-                    if self._ariston_currency["gasCost"] is None:
-                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
-                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = None
-                    else:
-                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = \
-                            str(self._ariston_currency["electricityCost"])
-                        self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = currency_symbol["Value"]
-                except KeyError:
-                    self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._UNITS] = None
-
-            else:
-                self._ariston_sensors[self._PARAM_GAS_TYPE][self._VALUE] = None
-                self._ariston_sensors[self._PARAM_GAS_COST][self._VALUE] = None
-                self._ariston_sensors[self._PARAM_ELECTRICITY_COST][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_VERSION:
-            try:
-                if self._version != "":
-                    self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = self._version
-                    web_version = self._version.split(".")
-                    installed_version = self._VERSION.split(".")
-                    web_symbols = len(web_version)
-                    installed_symbols = len(installed_version)
-                    if web_symbols <= installed_symbols:
-                        # same amount of symbols to check, update available if web has higher value
-                        for symbol in range(0, web_symbols):
-                            if int(web_version[symbol]) > int(installed_version[symbol]):
-                                self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = True
+    def _get_sensor_value(self, sensor):
+        value = None
+        request_type = self._get_request_for_parameter(sensor)
+        if request_type == self._REQUEST_MAIN:
+            for item in self._main_data["items"]:
+                if sensor == self._MAP_ARISTON_API_TO_PARAM[item["id"]]:
+                    value = item["value"]
+                    if "options" in item:
+                        use_index = item["options"].index(int(item["value"]))
+                        if "optTexts" in item:
+                            value = item["optTexts"][use_index]
+                        elif item["options"] == self._OFF_ON_NUMERAL:
+                            value = self._OFF_ON_TEXT[use_index]
+                    break
+        elif request_type == self._REQUEST_ADDITIONAL:
+            for item in self._additional_data["data"]:
+                if sensor == self._MAP_ARISTON_WEB_TO_PARAM[item["id"]]:
+                    value = item["value"]
+                    if "dropDownOptions" in item and item["dropDownOptions"]:
+                        for option in item["dropDownOptions"]:
+                            if option["value"] == item["value"]:
+                                value = option["text"]
                                 break
-                        else:
-                            self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = False
-                    else:
-                        # update available if web has higher value
-                        self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = True
-                else:
-                    self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = None
-                    self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = None
-
-            except KeyError:
-                self._ariston_sensors[self._PARAM_UPDATE][self._VALUE] = None
-                self._ariston_sensors[self._PARAM_ONLINE_VERSION][self._VALUE] = None
-
-        if request_type == self._REQUEST_GET_OTHER_2:
-            if self.available and self._ariston_other_data_2:
-                try:
-
-                    for item in self._ariston_other_data_2:
-                        if item["id"] in self._ARISTON_2_TO_PARAM:
-                            self._ariston_sensors[self._ARISTON_2_TO_PARAM[item["id"]]][self._VALUE] = item["value"]
-                            
-                except KeyError:
-                    for sensor in self._PARAM_2_TO_ARISTON:
-                        self._ariston_sensors[sensor][self._VALUE] = None
+                    break
+        if sensor == self._PARAM_DHW_FLAME:
+            value = None
+            if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] in self._OFF_ON_TEXT and \
+                self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] in self._OFF_ON_TEXT:
+                if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] == self._OFF:
+                    value == self._OFF
+                elif self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] == self._OFF:
+                    value == self._ON
+                # else:
+                #     # Unknown state of DHW
+                #     value == self._OFF
+        return value
 
 
-    def _set_visible_data(self, zone_number):
-        # set visible values as if they have in fact changed
-        for parameter, value in self._set_param.items():
-            try:
-                if parameter in self._SENSOR_SET_LIST:
-                    if parameter in self._ariston_sensors \
-                            and self._valid_requests[self._get_request_for_parameter(parameter)]:
-
-                        if self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_MODE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_MODE[value]
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_MODE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_CH_MODE[value]
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_SET_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if self._current_temp_economy_ch[zone_number]:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_ECONOMY_TEMPERATURE][zone_number]][self._VALUE] = value
-                            elif self._current_temp_economy_ch[zone_number] is False:
-                                self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_COMFORT_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if self._current_temp_economy_ch[zone_number] is False:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_SET_TEMPERATURE][zone_number]][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_ECONOMY_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if self._current_temp_economy_ch[zone_number]:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_SET_TEMPERATURE][zone_number]][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_SET_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if self._current_temp_economy_dhw:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_ECONOMY_TEMPERATURE][zone_number]][self._VALUE] = value
-                            else:
-                                self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if not self._current_temp_economy_dhw:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_SET_TEMPERATURE][zone_number]][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_ECONOMY_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-                            if self._current_temp_economy_dhw:
-                                self._ariston_sensors[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_SET_TEMPERATURE][zone_number]][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_MODE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_DHW_MODE[value]
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_FUNCTION:
-
-                            self._ariston_sensors[parameter][self._VALUE] = self._DHW_COMFORT_VALUE_TO_FUNCT[value]
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_TIME:
-
-                            if value == 1:
-                                self._ariston_sensors[parameter][self._VALUE] = True
-                            else:
-                                self._ariston_sensors[parameter][self._VALUE] = False
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_WEATHER:
-
-                            if value == 1:
-                                self._ariston_sensors[parameter][self._VALUE] = True
-                            else:
-                                self._ariston_sensors[parameter][self._VALUE] = False
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_AUTO_FUNCTION:
-
-                            if value == 1:
-                                self._ariston_sensors[parameter][self._VALUE] = True
-                            else:
-                                self._ariston_sensors[parameter][self._VALUE] = False
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_UNITS:
-
-                            self._ariston_sensors[parameter][self._VALUE] = self._VALUE_TO_UNIT[value]
-                            self._update_units()
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_CYCLE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_WATER_TEMPERATURE:
-
-                            self._ariston_sensors[parameter][self._VALUE] = value
-
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_FUNCTION:
-
-                            if value == 1:
-                                self._ariston_sensors[parameter][self._VALUE] = True
-                            else:
-                                self._ariston_sensors[parameter][self._VALUE] = False
-
-            except KeyError:
-                continue
-
-        self._subscribers_sensors_inform()
-
-        if self._store_file:
-            if not os.path.isdir(self._store_folder):
-                os.makedirs(self._store_folder)
-            store_file = self._gw_name + 'data_ariston_temp_main.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_data, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_temp_param.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_other_data, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_temp_units.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_units, ariston_fetched)
-
-    def _store_data(self, resp, request_type="", zone_number=_ZONE_1):
+    def _store_data(self, resp, request_type=""):
         """Store received dictionary"""
-        if resp.status_code != 200:
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                store_file = self._gw_name + "data_ariston" + request_type + "_" + str(resp.status_code) + "_error.txt"
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, "w") as f:
-                    f.write(resp.text)
-            if request_type == self._REQUEST_GET_OTHER and resp.status_code == 500:
-                not_supported = set()
-                for re_string in re.findall('Violated Postcondition.*menu', resp.text):
-                    for menu_item in self._MENU_TO_SENSOR:
-                        check_menu = f"&quot;{menu_item}&quot;"
-                        if check_menu in re_string:
-                            not_supported.add(self._MENU_TO_SENSOR[menu_item])
-                if not_supported:
-                    self._LOGGER.error('%s Unsupported sensors detected: %s, disable corresponding binary_sensors/sensors/switches in the configuration', self, not_supported)
-            self._LOGGER.warning('%s %s invalid reply code %s', self, request_type, resp.status_code)
-            raise Exception("Unexpected code {} received for the request {}".format(resp.status_code, request_type))
-        if not self._json_validator(resp.json()):
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                store_file = self._gw_name + "data_ariston" + request_type + "_non_json_error.txt"
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, "w") as f:
-                    f.write(resp.text)
-            self._LOGGER.warning('%s %s No json detected', self, request_type)
-            raise Exception("JSON did not pass validation for the request {}".format(request_type))
-        store_none_zero = False
-        last_temp = {}
-        last_temp_min = {}
-        last_temp_max = {}
-        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
-            """ 
-            It happens occasionally that modes are not reported and/or temperatures are not reported.
-            If this happens then use last valid value.
-            """
-            try:
-                allowed_modes = \
-                    self._ariston_data["allowedModes"]
-                last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] = \
-                    self._ariston_data["dhwStorageTemp"]
-                last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["value"]
-                last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["value"]
-                last_temp[self._PARAM_DHW_SET_TEMPERATURE] = \
-                    self._ariston_data["dhwTemp"]["value"]
-                last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["min"]
-                last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["min"]
-                last_temp_min[self._PARAM_DHW_SET_TEMPERATURE] = \
-                    self._ariston_data["dhwTemp"]["min"]
-                last_temp_max[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgComfortTemp"]["max"]
-                last_temp_max[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
-                    self._ariston_data["dhwTimeProgEconomyTemp"]["max"]
-                last_temp_max[self._PARAM_DHW_SET_TEMPERATURE] = \
-                    self._ariston_data["dhwTemp"]["max"]
-                allowed_ch_modes = \
-                    self._zone_data_main[zone_number]["mode"]["allowedOptions"]
-                last_temp_min[self._PARAM_CH_SET_TEMPERATURE] = \
-                    self._zone_data_main[zone_number]["comfortTemp"]["min"]
-                last_temp_max[self._PARAM_CH_SET_TEMPERATURE] = \
-                    self._zone_data_main[zone_number]["comfortTemp"]["max"]
-                last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] = \
-                    self._zone_data_main[zone_number]["roomTemp"]
-                last_temp[self._PARAM_CH_SET_TEMPERATURE] = \
-                    self._zone_data_main[zone_number]["desiredTemp"]
-            except KeyError:
-                # Reading failed or no data was present in the first place
-                allowed_modes = []
-                allowed_ch_modes = []
-                last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_DHW_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_SET_TEMPERATURE] = self._UNKNOWN_TEMP
-            try:
-                self._ariston_data = copy.deepcopy(resp.json())
-                del self._ariston_data["zone"]
-                self._zone_data_main[zone_number] = copy.deepcopy(resp.json()["zone"])
-                
-            except copy.error:
-                self._ariston_data = {}
-                self._zone_data_main = {
-                    self._ZONE_1: dict(),
-                    self._ZONE_2: dict(),
-                    self._ZONE_3: dict()
-                }
-                self._set_statuses()
-                self._LOGGER.warning("%s Invalid data received for Main, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-            try:
-                # force default modes if received none
-                if not self._ariston_data["allowedModes"]:
-                    if allowed_modes:
-                        self._ariston_data["allowedModes"] = allowed_modes
-                    else:
-                        self._ariston_data = {}
-                        self._zone_data_main = {
-                            self._ZONE_1: dict(),
-                            self._ZONE_2: dict(),
-                            self._ZONE_3: dict()
-                        }
-                        self._set_statuses()
-                        raise Exception("Invalid allowed modes in the request {}".format(request_type))
-                # force default CH modes if received none
-                if not self._zone_data_main[zone_number]["mode"]["allowedOptions"]:
-                    if allowed_ch_modes:
-                        self._zone_data_main[zone_number]["mode"]["allowedOptions"] = allowed_ch_modes
-                # keep latest DHW storage temperature if received invalid
-                if self._ariston_data["dhwStorageTemp"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["dhwStorageTemp"] = last_temp[self._PARAM_DHW_STORAGE_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_DHW_STORAGE_TEMPERATURE] = 0
-                # keep latest DHW comfort temperature if received invalid
-                if self._ariston_data["dhwTimeProgComfortTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and \
-                            last_temp_min[self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP and \
-                            last_temp_max[self._PARAM_DHW_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["dhwTimeProgComfortTemp"]["value"] = last_temp[
-                                self._PARAM_DHW_COMFORT_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
-                # keep latest DHW economy temperature if received invalid
-                if self._ariston_data["dhwTimeProgEconomyTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and \
-                            last_temp_min[self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP and \
-                            last_temp_max[self._PARAM_DHW_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["dhwTimeProgEconomyTemp"]["value"] = last_temp[
-                                self._PARAM_DHW_ECONOMY_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
-                # keep latest DHW set temperature if received invalid
-                if self._ariston_data["dhwTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_DHW_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._ariston_data["dhwTemp"]["value"] = last_temp[
-                                self._PARAM_DHW_SET_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_DHW_SET_TEMPERATURE] = 0
-                # keep latest CH detected temperature if received invalid
-                if self._zone_data_main[zone_number]["roomTemp"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_CH_DETECTED_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._zone_data_main[zone_number]["roomTemp"] = last_temp[
-                                self._PARAM_CH_DETECTED_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_CH_DETECTED_TEMPERATURE] = 0
-                # keep latest CH set temperature if received invalid
-                if self._zone_data_main[zone_number]["desiredTemp"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_CH_SET_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._zone_data_main[zone_number]["desiredTemp"] = last_temp[
-                                self._PARAM_CH_SET_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_CH_SET_TEMPERATURE] = 0
-            except KeyError:
-                self._ariston_data = {}
-                self._zone_data_main = {
-                    self._ZONE_1: dict(),
-                    self._ZONE_2: dict(),
-                    self._ZONE_3: dict()
-                }
-                self._set_statuses()
-                self._LOGGER.warning("%s Invalid data received for Main", self)
-                store_file = self._gw_name + 'main_data_from_web.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(resp.json(), ariston_fetched)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
+        if not self._json_validator(resp, request_type):
+            self._LOGGER.warning(f"JSON did not pass validation for the request {request_type}")
+            raise Exception(f"JSON did not pass validation for the request {request_type}")
 
-            self._set_statuses()
+        if request_type == self._REQUEST_MAIN:
 
-            try:
-                self._dhw_trend_up = False
-                if len(self._dhw_history) > 3:
-                    del self._dhw_history[0]
-                if self._ariston_data["dhwStorageTemp"] != self._UNKNOWN_TEMP:
-                    for dhw_value in reversed(self._dhw_history):
-                        if dhw_value != self._UNKNOWN_TEMP:
-                            if self._ariston_data["dhwStorageTemp"] < dhw_value:
-                                # down trend
-                                break
-                            elif self._ariston_data["dhwStorageTemp"] > dhw_value:
-                                # up trend
-                                self._dhw_trend_up = True
-                                break
-                self._dhw_history.append(self._ariston_data["dhwStorageTemp"])
-            except KeyError:
-                self._LOGGER.warning('%s Error handling DHW temperature history', self)
-
-            self._set_sensors(request_type, zone_number)
-            self._set_sensors(self._REQUEST_GET_VERSION, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_CH:
-            """ 
-            It happens occasionally that temperatures are not reported.
-            If this happens then use last valid value.
-            """
-            try:
-                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._zone_data_ch[zone_number]["comfortTemp"]["value"]
-                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._zone_data_ch[zone_number]["economyTemp"]["value"]
-                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._zone_data_ch[zone_number]["comfortTemp"]["min"]
-                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._zone_data_ch[zone_number]["economyTemp"]["min"]
-                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._zone_data_ch[zone_number]["comfortTemp"]["max"]
-                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._zone_data_ch[zone_number]["economyTemp"]["max"]
-            except KeyError:
-                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-            try:
-                self._zone_data_ch[zone_number] = copy.deepcopy(resp.json())
-            except copy.error:
-                self._zone_data_ch[zone_number] = {}
-                self._LOGGER.warning("%s Invalid data received for CH, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-            try:
-                # keep latest CH comfort temperature if received invalid
-                if self._zone_data_ch[zone_number]["comfortTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._zone_data_ch[zone_number]["comfortTemp"]["value"] = last_temp[
-                                self._PARAM_CH_COMFORT_TEMPERATURE]
-                else:
-                    self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] = 0
-                # keep latest CH comfort temperature if received invalid
-                if self._zone_data_ch[zone_number]["economyTemp"]["value"] == self._UNKNOWN_TEMP:
-                    if last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                        self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] += 1
-                        store_none_zero = True
-                        if self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] < self._MAX_ZERO_TOLERANCE:
-                            self._zone_data_ch[zone_number]["economyTemp"]["value"] = last_temp[
-                                self._PARAM_CH_ECONOMY_TEMPERATURE]
-                    else:
-                        self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] = 0
-            except KeyError:
-                self._LOGGER.warning("%s Invalid data received for CH", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_ERROR:
-
-            try:
-                self._ariston_error_data = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_error_data = {}
-                self._LOGGER.warning("%s Invalid data received for error, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_GAS:
-
-            try:
-                self._ariston_gas_data = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_gas_data = {}
-                self._LOGGER.warning("%s Invalid data received for energy use, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_OTHER:
-            """ 
-            It happens occasionally that temperatures are not reported.
-            If this happens then use last valid value.
-            """
-            try:
-                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                for param_item in self._ariston_other_data:
-                    try:
-                        # Copy latest DHW temperatures
-                        if param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                            last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = param_item["value"]
-                        elif param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                            last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = param_item["value"]
-                    except KeyError:
-                        continue
-            except KeyError:
-                last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_min[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                last_temp_max[self._PARAM_CH_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-            try:
-                self._ariston_other_data = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_other_data = {}
-                self._set_statuses()
-                self._LOGGER.warning("%s Invalid data received for parameters, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_statuses()
-
-            for item, param_item in enumerate(self._ariston_other_data):
+            self._main_data = copy.deepcopy(resp.json())
+            for item in self._main_data["items"]:
                 try:
-                    # Copy latest DHW temperatures
-                    if param_item["id"] == self._ARISTON_DHW_TIME_PROG_COMFORT and param_item["value"] != \
-                            self._UNKNOWN_TEMP:
-                        if "dhwTimeProgComfortTemp" in self._ariston_data and "value" in \
-                                self._ariston_data["dhwTimeProgComfortTemp"]:
-                            self._ariston_data["dhwTimeProgComfortTemp"]["value"] = param_item["value"]
-                            self._ariston_data["dhwTimeProgComfortTemp"]["value"] = param_item["value"]
-                    elif param_item["id"] == self._ARISTON_DHW_TIME_PROG_ECONOMY and param_item["value"] != \
-                            self._UNKNOWN_TEMP:
-                        if "dhwTimeProgEconomyTemp" in self._ariston_data and "value" in \
-                                self._ariston_data["dhwTimeProgEconomyTemp"]:
-                            self._ariston_data["dhwTimeProgEconomyTemp"]["value"] = param_item["value"]
-                            self._ariston_data["dhwTimeProgEconomyTemp"]["value"] = param_item["value"]
-                    elif param_item["id"] == self._ARISTON_CH_COMFORT_TEMP:
-                        # keep latest CH comfort temperature if received invalid
-                        if param_item["value"] == self._UNKNOWN_TEMP:
-                            if last_temp[self._PARAM_CH_COMFORT_TEMPERATURE] != self._UNKNOWN_TEMP:
-                                self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] += 1
-                                store_none_zero = True
-                                if self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] < \
-                                        self._MAX_ZERO_TOLERANCE:
-                                    self._ariston_other_data[item]["value"] = last_temp[
-                                        self._PARAM_CH_COMFORT_TEMPERATURE]
+                    sensor = self._MAP_ARISTON_API_TO_PARAM[item["id"]]
+                    self._ariston_sensors[sensor]
+                    try:
+                        self._ariston_sensors[sensor][self._VALUE] = self._get_visible_sensor_value(sensor)
+                        if "min" in item:
+                            self._ariston_sensors[sensor][self._MIN] = item["min"]
+                        if "max" in item:
+                            self._ariston_sensors[sensor][self._MAX] = item["max"]
+                        if "step" in item:
+                            self._ariston_sensors[sensor][self._STEP] = item["step"]
+                        if "unit" in item and item["unit"]:
+                            self._ariston_sensors[sensor][self._UNITS] = item["unit"]
+                        if "options" in item:
+                            self._ariston_sensors[sensor][self._OPTIONS] = copy.deepcopy(item["options"])
+                            if "optTexts" in item:
+                                self._ariston_sensors[sensor][self._OPTIONS_TXT] = copy.deepcopy(item["optTexts"])
+                            elif item["options"] == self._OFF_ON_NUMERAL:
+                                self._ariston_sensors[sensor][self._OPTIONS_TXT] = self._OFF_ON_TEXT
+                    except Exception as ex:
+                        self._LOGGER.warn(f"Issue reading {sensor} {ex}")
+                        self._reset_sensor(sensor)
+                        continue
+                except Exception as ex:
+                    self._LOGGER.warn(f'Issue reading {item["id"]}, {ex}')
+                    continue
+            
+            # Extrapolate DHW Flame
+            sensor = self._PARAM_DHW_FLAME
+            dhw_flame = self._get_visible_sensor_value(sensor)
+            self._ariston_sensors[sensor][self._VALUE] = dhw_flame
+            if dhw_flame:
+                self._ariston_sensors[sensor][self._OPTIONS] = self._OFF_ON_NUMERAL
+                self._ariston_sensors[sensor][self._OPTIONS_TXT] = self._OFF_ON_TEXT
+            else:
+                self._ariston_sensors[sensor][self._OPTIONS] = None
+                self._ariston_sensors[sensor][self._OPTIONS_TXT] = None
+
+            # Fix min and Max for CH set temperature
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._MIN] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._MIN]
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._MAX] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._MAX]
+            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._STEP] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._STEP]
+
+        elif request_type == self._REQUEST_ERRORS:
+
+            self._error_data = copy.deepcopy(resp.json())
+            sensor = self._PARAM_ERRORS_COUNT
+            try:
+                # TEST DATA BELOW FOR PARSING PURPOSES
+                # self._error_data = [{"gw":"F0AD4E0590BD","timestamp":"2022-07-14T10:55:04","fault":45,"mult":0,"code":"501","pri":1053500,"errDex":"No flame detected","res":False,"blk":True}]
+                self._ariston_sensors[sensor][self._VALUE] = len(self._error_data)
+                attributes = {}
+                for index, item in enumerate(self._error_data):
+                    attributes[f'Error_{index+1}'] = f'{item["timestamp"]}, {item["errDex"]}'
+                self._ariston_sensors[sensor][self._ATTRIBUTES] = attributes
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue reading {sensor}, {ex}')
+                self._reset_sensor(sensor)
+
+        elif request_type == self._REQUEST_CH_SCHEDULE:
+
+            self._ch_schedule_data = copy.deepcopy(resp.json())
+            sensor = self._PARAM_CH_PROGRAM
+            try:
+                self._ariston_sensors[sensor][self._VALUE] = "Available"
+                attributes = {key: None for key in self._WEEKDAYS}
+                for item in self._ch_schedule_data["ChZn1"]["plans"]:
+                    time_slices = []
+                    for slice in item["slices"]:
+                        if slice['temp'] == 0:
+                            temp_name = "Economy"
                         else:
-                            self._get_zero_temperature[self._PARAM_CH_COMFORT_TEMPERATURE] = 0
-                    elif param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                        # keep latest CH economy temperature if received invalid
-                        if param_item["value"] == self._UNKNOWN_TEMP:
-                            if last_temp[self._PARAM_CH_ECONOMY_TEMPERATURE] != self._UNKNOWN_TEMP:
-                                self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] += 1
-                                store_none_zero = True
-                                if self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] < \
-                                        self._MAX_ZERO_TOLERANCE:
-                                    self._ariston_other_data[item]["value"] = last_temp[
-                                        self._PARAM_CH_ECONOMY_TEMPERATURE]
-                            else:
-                                self._get_zero_temperature[self._PARAM_CH_ECONOMY_TEMPERATURE] = 0
-                except KeyError:
+                            temp_name = "Comfort"
+                        time_slices.append(f'From {slice["from"]//60:02}:{slice["from"]%60:02} {temp_name}')
+                    for day_num in item["days"]:
+                        attributes[self._WEEKDAYS[day_num]] = time_slices
+                self._ariston_sensors[sensor][self._ATTRIBUTES] = attributes
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue reading {sensor}, {ex}')
+                self._reset_sensor(sensor)
+
+        elif request_type == self._REQUEST_ADDITIONAL:
+            
+            self._additional_data = copy.deepcopy(resp.json())
+            for item in self._additional_data["data"]:
+                try:
+                    sensor = self._MAP_ARISTON_WEB_TO_PARAM[item["id"]]
+                    self._ariston_sensors[sensor]
+                    try:
+                        self._ariston_sensors[sensor][self._VALUE] = self._get_visible_sensor_value(sensor)
+                        if "min" in item:
+                            self._ariston_sensors[sensor][self._MIN] = item["min"]
+                        if "max" in item:
+                            self._ariston_sensors[sensor][self._MAX] = item["max"]
+                        if "increment" in item:
+                            self._ariston_sensors[sensor][self._STEP] = item["increment"]
+                        if "unitLabel" in item and item["unitLabel"]:
+                            self._ariston_sensors[sensor][self._UNITS] = item["unitLabel"]
+                        if "dropDownOptions" in item and item["dropDownOptions"]:
+                            self._ariston_sensors[sensor][self._OPTIONS] = [option["value"] for option in item["dropDownOptions"]]
+                            self._ariston_sensors[sensor][self._OPTIONS_TXT] = [option["text"] for option in item["dropDownOptions"]]
+                    except Exception as ex:
+                        self._LOGGER.warn(f"Issue reading {sensor} {ex}")
+                        self._reset_sensor(sensor)
+                        continue
+                except Exception as ex:
+                    self._LOGGER.warn(f'Issue reading {item["id"]}, {ex}')
                     continue
 
-            self._set_sensors(request_type, zone_number)
-            self._set_sensors(self._REQUEST_GET_MAIN, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_UNITS:
-            try:
-                self._ariston_units = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_units = {}
-                self._LOGGER.warning("%s Invalid data received for units, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_CURRENCY:
-            try:
-                self._ariston_currency = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_currency = {}
-                self._LOGGER.warning("%s Invalid data received for currency, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_DHW:
-            try:
-                self._ariston_dhw_data = copy.deepcopy(resp.json())
-            except copy.error:
-                self._ariston_dhw_data = {}
-                self._LOGGER.warning("%s Invalid data received for DHW, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_VERSION:
-            try:
-                self._version = resp.json()["info"]["version"]
-            except KeyError:
-                self._version = ""
-                self._LOGGER.warning("%s Invalid version fetched", self)
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        elif request_type == self._REQUEST_GET_OTHER_2:
-
-            try:
-                self._ariston_other_data_2 = copy.deepcopy(resp.json()["items"])
-            except copy.error:
-                self._ariston_other_data_2 = list()
-                self._LOGGER.warning("%s Invalid data received for POST parameters, not JSON", self)
-                raise Exception("Corruption at reading data of the request {}".format(request_type))
-
-            self._set_sensors(request_type, zone_number)
-            self._set_visible_data(zone_number)
-
-        self._get_time_end[request_type] = time.time()
-
-        if self._store_file:
-            if not os.path.isdir(self._store_folder):
-                os.makedirs(self._store_folder)
-            store_file = self._gw_name + 'data_ariston' + request_type + '.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
-                    json.dump({"ariston": self._ariston_data, "zone": self._zone_data_main}, ariston_fetched)
-                elif request_type == self._REQUEST_GET_CH:
-                    json.dump(self._zone_data_ch, ariston_fetched)
-                elif request_type == self._REQUEST_GET_DHW:
-                    json.dump(self._ariston_dhw_data, ariston_fetched)
-                elif request_type == self._REQUEST_GET_ERROR:
-                    json.dump(self._ariston_error_data, ariston_fetched)
-                elif request_type == self._REQUEST_GET_GAS:
-                    json.dump(self._ariston_gas_data, ariston_fetched)
-                elif request_type == self._REQUEST_GET_OTHER:
-                    json.dump(self._ariston_other_data, ariston_fetched)
-                elif request_type == self._REQUEST_GET_UNITS:
-                    json.dump(self._ariston_units, ariston_fetched)
-                elif request_type == self._REQUEST_GET_CURRENCY:
-                    json.dump(self._ariston_currency, ariston_fetched)
-                elif request_type == self._REQUEST_GET_VERSION:
-                    ariston_fetched.write(self._version)
-                elif request_type == self._REQUEST_GET_OTHER_2:
-                    json.dump(self._ariston_other_data_2, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_timers.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump([self._set_time_start, self._set_time_end, self._get_time_start, self._get_time_end],
-                          ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_temp_main.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_data, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_temp_param.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_other_data, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_temp_units.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._ariston_units, ariston_fetched)
-            store_file = self._gw_name + 'data_ariston_dhw_history.json'
-            store_file_path = os.path.join(self._store_folder, store_file)
-            with open(store_file_path, 'w') as ariston_fetched:
-                json.dump(self._dhw_history, ariston_fetched)
-            if store_none_zero:
-                store_file = self._gw_name + 'data_ariston' + request_type + '_last_temp.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump([last_temp, last_temp_min, last_temp_max], ariston_fetched)
-                store_file = self._gw_name + 'data_ariston' + request_type + '_reply_zero.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(resp.json(), ariston_fetched)
-                store_file = self._gw_name + 'data_ariston_zero_count.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(self._get_zero_temperature, ariston_fetched)
+        self._subscribers_sensors_inform()
 
 
     def _get_http_data(self, request_type=""):
         """Common fetching of http data"""
         self._login_session()
-        method = self._METHOD_GET
-        post_data = dict()
         if self._login and self._plant_id != "":
-            try:
-                last_set_of_data = \
-                    self._set_time_start[max(self._set_time_start.keys(), key=(lambda k: self._set_time_start[k]))]
-            except KeyError:
-                last_set_of_data = 0
-            if time.time() - last_set_of_data > self._HTTP_TIMER_SET_LOCK:
-                # do not read immediately during set attempt
-                if request_type == self._REQUEST_GET_CH:
-                    url = self._url + '/TimeProg/GetWeeklyPlan/' + self._plant_id
-                    http_timeout = self._timeout_medium
-                    send_params = self._send_params_get_program()
-                elif request_type == self._REQUEST_GET_DHW:
-                    url = self._url + '/TimeProg/GetWeeklyPlan/' + self._plant_id + '?progId=Dhw&umsys=si'
-                    http_timeout = self._timeout_medium
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_ERROR:
-                    url = self._url + '/Error/ActiveDataSource/' + self._plant_id + \
-                          '?$inlinecount=allpages&$skip=0&$top=100'
-                    http_timeout = self._timeout_medium
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_GAS:
-                    url = self._url + '/Metering/GetData/' + self._plant_id + '?kind=1&umsys=si'
-                    http_timeout = self._timeout_medium
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_OTHER:
-                    list_to_send = [
-                        self._ARISTON_DHW_COMFORT_TEMP,
-                        self._ARISTON_DHW_COMFORT_FUNCTION,
-                        self._ARISTON_CH_COMFORT_TEMP,
-                        self._ARISTON_CH_ECONOMY_TEMP,
-                        self._ARISTON_CH_AUTO_FUNCTION
-                    ]
-                    # Add defined sensors
-                    if self._param_sensors:
-                        for param_to_add in self._param_sensors:
-                            if param_to_add not in list_to_send:
-                                list_to_send.append(param_to_add)
-                    ids_to_fetch = ",".join(map(str, list_to_send))
-                    url = self._url + '/Menu/User/Refresh/' + self._plant_id + '?paramIds=' + ids_to_fetch + '&umsys=si'
-                    http_timeout = self._timeout_long
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_UNITS:
-                    url = self._url + '/PlantPreference/GetData/' + self._plant_id
-                    http_timeout = self._timeout_short
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_CURRENCY:
-                    url = self._url + '/Metering/GetCurrencySettings/' + self._plant_id
-                    http_timeout = self._timeout_medium
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_VERSION:
-                    url = self._GITHUB_LATEST_RELEASE
-                    http_timeout = self._timeout_short
-                    send_params = ['']
-                elif request_type == self._REQUEST_GET_OTHER_2:
-                    url = self._url + '/api/v2/remote/dataItems/' + self._plant_id + '/get?umsys=si'
-                    http_timeout = self._timeout_medium
-                    send_params = ['']
-                    method = self._METHOD_POST
-                    post_data = {
-	                    "useCache": False,
-                        "items": list(),
-                        "features": dict()
-                    }
-                    for item in self._set_param_sensors:
-                        post_data["items"].append({"id": self._PARAM_2_TO_ARISTON[item], "zn": 0})
-                else:
-                    url = self._url + '/PlantDashboard/GetPlantData/' + self._plant_id
-                    if self.available:
-                        http_timeout = self._timeout_long
-                    else:
-                        # for not available give a bit more time
-                        http_timeout = (self._timeout_long + 4)
-                    send_params = self._send_params_get_main()
-                with self._data_lock:
-                    for order, param in enumerate(send_params):
-                        current_zone = self._ZONE_ORDER[order]
-                        try:
-                            self._get_time_start[request_type] = time.time()
-                            if method == self._METHOD_POST:
-                                resp = self._session.post(
-                                    url + param,
-                                    auth=self._token,
-                                    timeout=http_timeout,
-                                    json=post_data,
-                                    verify=True)
-                            else:
-                                resp = self._session.get(
-                                    url + param,
-                                    auth=self._token,
-                                    timeout=http_timeout,
-                                    verify=True)
-                        except requests.exceptions.RequestException as ex:
-                            self._LOGGER.warning("%s %s Problem reading data: %s", self, request_type, ex)
-                            raise Exception("Request {} has failed with an exception".format(request_type))
-                        self._store_data(resp, request_type, current_zone)
-                        if order + 1 < len(send_params):
-                            time.sleep(self._timer_between_param_delay)
 
-            else:
-                self._LOGGER.debug("%s %s Still setting data, read restricted", self, request_type)
-                return False
+            if request_type == self._REQUEST_MAIN:
+
+                request_data = {
+                    "useCache": False,
+                    "items": [],
+                    "features": self._features
+                    }
+                for param in self._MAP_ARISTON_ZONE_0_PARAMS.values():
+                    request_data['items'].append({"id": param, "zn":0})
+                for param in self._MAP_ARISTON_ZONE_1_PARAMS.values():
+                    request_data['items'].append({"id": param, "zn":1})
+                with self._data_lock:
+                    resp = self._request_post(
+                        url=f'{self._ARISTON_URL}/api/v2/remote/dataItems/{self._plant_id}/get?umsys=si',
+                        json_data=request_data,
+                        timeout=self._TIMEOUT_MAX,
+                        error_msg="Main read"
+                    )
+                    self._store_data(resp, request_type)
+
+            elif request_type == self._REQUEST_ERRORS:
+
+                with self._data_lock:
+                    resp = self._request_get(
+                        url=f'{self._ARISTON_URL}/api/v2/busErrors?gatewayId={self._plant_id}&blockingOnly=False&culture=en-US',
+                        timeout=self._TIMEOUT_AV,
+                        error_msg="Errors read"
+                    )
+                    self._store_data(resp, request_type)
+
+            elif request_type == self._REQUEST_CH_SCHEDULE:
+
+                with self._data_lock:
+                    resp = self._request_get(
+                        url=f'{self._ARISTON_URL}/api/v2/remote/timeProgs/{self._plant_id}/ChZn1?umsys=si',
+                        timeout=self._TIMEOUT_AV,
+                        error_msg="CH Schedule read"
+                    )
+                    self._store_data(resp, request_type)
+
+            elif request_type == self._REQUEST_ADDITIONAL:
+
+                with self._data_lock:
+                    resp = self._request_get(
+                        url=f'{self._ARISTON_URL}/R2/PlantMenu/Refresh?id={self._plant_id}&paramIds={",".join(self._other_parameters)}',
+                        timeout=self._TIMEOUT_AV,
+                        error_msg="Additional data read"
+                    )
+                    self._store_data(resp, request_type)
+
         else:
-            self._LOGGER.warning("%s %s Not properly logged in to get the data", self, request_type)
-            raise Exception("Not logged in to fetch the data")
-        self._LOGGER.info(f'Data fetched for {request_type}')
+            self._LOGGER.warning(f"Not properly logged in to read {request_type}")
+            raise Exception(f"Not properly logged in to read {request_type}")
+        self._LOGGER.info(f'Data read for {request_type}')
         return True
 
-    def _add_delay(self, req_name):
-        delay = 0
-        if req_name in {
-            self._REQUEST_GET_MAIN,
-            self._REQUEST_GET_CH,
-            self._REQUEST_SET_MAIN
-        }:
-            if self._zones > 1:
-                delay = self._timer_between_param_delay * (self._zones - 1)
-        return delay
 
     def _queue_get_data(self):
         """Queue all request items"""
         with self._data_lock:
             # schedule next get request
-            if self._errors >= self._MAX_ERRORS_TIMER_EXTEND:
+            if self._errors >= self._MAX_ERRORS:
                 # give a little rest to the system if too many errors
-                retry_in = self._timer_between_param_delay * self._HTTP_DELAY_MULTIPLY
-                self._timer_between_set = self._timer_between_param_delay * self._HTTP_DELAY_MULTIPLY + \
-                                          self._HTTP_TIMER_SET_WAIT
+                retry_in = self._get_period_time * self._WAIT_PERIOD_MULTIPLYER
             else:
                 # work as usual
-                retry_in = self._timer_between_param_delay
-                self._timer_between_set = self._timer_between_param_delay + self._HTTP_TIMER_SET_WAIT
+                retry_in = self._get_period_time
             self._timer_periodic_read.cancel()
-
-            try:
-                    
-                if not self.available or self._errors > 0:
-                    # first always initiate main data
-                    self._timer_queue_delay.cancel()
-                    if self._started:
-                        self._timer_queue_delay = threading.Timer(1, self._control_availability_state,
-                                                                [self._REQUEST_GET_MAIN])
-                        retry_in += self._add_delay(self._REQUEST_GET_MAIN)
-                        self._timer_queue_delay.start()
-                    # force skip after fetching data
-                    self._get_request_number_high_prio = 1
-                # next trigger fetching parameters that are being changed
-                elif self._set_param_group[self._REQUEST_GET_MAIN]:
-                    # setting of main data is ongoing, prioritize it
-                    self._timer_queue_delay.cancel()
-                    if self._started:
-                        self._timer_queue_delay = threading.Timer(1, self._control_availability_state,
-                                                                [self._REQUEST_GET_MAIN])
-                        retry_in += self._add_delay(self._REQUEST_GET_MAIN)
-                        self._timer_queue_delay.start()
-                    if not self._set_scheduled:
-                        self._set_param_group[self._REQUEST_GET_MAIN] = False
-                elif self._set_param_group[self._REQUEST_GET_OTHER]:
-                    # setting of parameter data is ongoing, prioritize it
-                    self._timer_queue_delay.cancel()
-                    if self._started:
-                        self._timer_queue_delay = threading.Timer(1, self._control_availability_state,
-                                                                [self._REQUEST_GET_OTHER])
-                        retry_in += self._add_delay(self._REQUEST_GET_OTHER)
-                        self._timer_queue_delay.start()
-                    if not self._set_scheduled:
-                        self._set_param_group[self._REQUEST_GET_OTHER] = False
-                elif self._set_param_group[self._REQUEST_GET_UNITS]:
-                    # setting of parameter units is ongoing, prioritize it
-                    self._timer_queue_delay.cancel()
-                    if self._started:
-                        self._timer_queue_delay = threading.Timer(1, self._control_availability_state,
-                                                                [self._REQUEST_GET_UNITS])
-                        retry_in += self._add_delay(self._REQUEST_GET_UNITS)
-                        self._timer_queue_delay.start()
-                    if not self._set_scheduled:
-                        self._set_param_group[self._REQUEST_GET_UNITS] = False
+            if not self.available or self._errors > 0:
+                # Initial or error situation, use main request
+                if self.available and self._last_request == self._REQUEST_ADDITIONAL and self._last_request in self._requests_lists[0]:
+                    # Potential error with parameters where they are removed 1 by 1 request
+                    request_to_send = self._last_request
                 else:
-                    # last is fetch higher priority list items
-                    # select next item from high priority list
-                    if self._get_request_number_high_prio < len(self._request_list_high_prio):
-                        # item is available in the list
-                        self._timer_queue_delay.cancel()
-                        if self._started:
-                            self._timer_queue_delay = threading.Timer(
-                                1, self._control_availability_state,
-                                [self._request_list_high_prio[self._get_request_number_high_prio]])
-                            retry_in += self._add_delay(self._request_list_high_prio[self._get_request_number_high_prio])
-                            self._timer_queue_delay.start()
-                        self._get_request_number_high_prio += 1
-                    elif self._get_request_number_high_prio > len(self._request_list_high_prio):
-                        # start from the beginning of the list
-                        self._get_request_number_high_prio = 0
+                    request_to_send = self._requests_lists[0][0]
+            else:
+                if self._set_requests[self._REQUEST_MAIN]:
+                    # Changing parameters
+                    request_to_send = self._REQUEST_MAIN
+                elif self._set_requests[self._REQUEST_ADDITIONAL]:
+                    # Changing parameters
+                    request_to_send = self._REQUEST_ADDITIONAL
+                elif self._last_request in self._requests_lists[0]:
+                    # High prio more frequent (e.g. current temperatures, flame, errors)
+                    last_index = self._requests_lists[0].index(self._last_request)
+                    if len(self._requests_lists[0]) <= last_index + 1:
+                        # Last request was the last item
+                        if self._requests_lists[1]:
+                            # There are requests
+                            last_index_low_prio = self._requests_lists[1].index(self._last_request_low_prio)
+                            if len(self._requests_lists[1]) <= last_index_low_prio + 1:
+                                # Last request in low prio item
+                                request_to_send = self._requests_lists[1][0]
+                            else:
+                                request_to_send = self._requests_lists[1][last_index_low_prio + 1]
+                            self._last_request_low_prio = request_to_send
+                        else:
+                            # No low prio requests
+                            request_to_send = self._requests_lists[0][0]
                     else:
-                        # third we reserve one place for one of lower priority tasks among higher priority ones
-                        self._get_request_number_high_prio += 1
-                        if self._errors < self._MAX_ERRORS_TIMER_EXTEND:
-                            # skip lower priority requests if too many errors and give time to recover
-                            # other data is not that important, so just handle in queue
-                            if self._get_request_number_low_prio < len(self._request_list_low_prio):
-                                # item is available in the list
-                                self._timer_queue_delay.cancel()
-                                if self._started:
-                                    self._timer_queue_delay = threading.Timer(
-                                        1, self._control_availability_state,
-                                        [self._request_list_low_prio[self._get_request_number_low_prio]])
-                                    retry_in += self._add_delay(self._request_list_low_prio[self._get_request_number_low_prio])
-                                    self._timer_queue_delay.start()
-                                self._get_request_number_low_prio += 1
-                            if self._get_request_number_low_prio >= len(self._request_list_low_prio):
-                                self._get_request_number_low_prio = 0
-            
-            except Exception as ex:
-                self._LOGGER.warning(f'Could not handle availability state due to: {ex}')
+                        request_to_send = self._requests_lists[0][last_index + 1]
+                else:
+                    # Low prio less frequent requests (e.g. energy use)
+                    request_to_send = self._requests_lists[0][0]
+            self._last_request = request_to_send
 
             if self._started:
-                self._LOGGER.info('%s Shall send next request in %s seconds', self, retry_in)
+                self._LOGGER.info(f'Shall send next request in {retry_in} seconds, current request is {request_to_send}')
+                self._timer_queue_delay = threading.Timer(0, self._control_availability_state, [request_to_send])
+                self._timer_queue_delay.start()
                 self._timer_periodic_read = threading.Timer(retry_in, self._queue_get_data)
                 self._timer_periodic_read.start()
+                
 
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                store_file = self._gw_name + 'data_ariston_all_set_get.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(self._set_param_group, ariston_fetched)
-
-    def _error_detected(self, request_type):
+    def _error_detected(self):
         """Error detected"""
-        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN, self._REQUEST_SET_OTHER}:
-            with self._lock:
-                was_online = self.available
-                self._errors += 1
-                self._set_statuses()
-                self._LOGGER.warning("Connection errors: %i", self._errors)
-                offline = not self.available
-            if offline and was_online:
-                self._clear_data()
-                self._LOGGER.error("Ariston is offline: Too many errors")
+        with self._lock:
+            was_online = self.available
+            self._errors += 1
+            self._subscribers_statuses_inform()
+            self._LOGGER.warning(f"Connection errors: {self._errors}")
+            offline = not self.available
+        if offline and was_online:
+            self._clear_data()
+            self._LOGGER.error("Ariston is offline: Too many errors")
 
-    def _no_error_detected(self, request_type):
+
+    def _no_error_detected(self):
         """No errors detected"""
-        if request_type in {self._REQUEST_GET_MAIN, self._REQUEST_SET_MAIN}:
-            with self._lock:
-                was_offline = not self.available
-                self._errors = 0
-                self._set_statuses()
-            if was_offline:
-                self._LOGGER.info("No more errors")
+        with self._lock:
+            was_offline = not self.available
+            self._errors = 0
+            self._subscribers_statuses_inform()
+        if was_offline:
+            self._LOGGER.info("No more errors")
+
 
     def _control_availability_state(self, request_type=""):
         """Control component availability"""
@@ -3085,1017 +1127,273 @@ class AristonHandler:
             result_ok = self._get_http_data(request_type)
             self._LOGGER.info(f"ariston action ok for {request_type}")
         except Exception as ex:
-            self._error_detected(request_type)
+            self._error_detected()
             self._LOGGER.warning(f"ariston action nok for {request_type}: {ex}")
             return
         if result_ok:
-            self._no_error_detected(request_type)
+            self._no_error_detected()
         return
 
-    def _setting_http_data(self, set_data, request_type="", zone_number=_ZONE_1):
-        """setting of data"""
-        self._LOGGER.info('setting http data')
-        try:
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                if request_type == self._SET_REQUEST_MAIN:
-                    store_file = self._gw_name + 'data_ariston' + request_type + zone_number + '.json'
-                else:
-                    store_file = self._gw_name + 'data_ariston' + request_type + '.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(set_data, ariston_fetched)
-                store_file = self._gw_name + 'data_ariston_all_set.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump(self._set_param, ariston_fetched)
-                store_file = self._gw_name + 'data_ariston_timers.json'
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, 'w') as ariston_fetched:
-                    json.dump([self._set_time_start, self._set_time_end, self._get_time_start, self._get_time_end],
-                              ariston_fetched)
-        except TypeError:
-            self._LOGGER.warning('%s Problem storing files', self)
-
-        if request_type == self._REQUEST_SET_OTHER:
-            url = self._url + '/Menu/User/Submit/' + self._plant_id + '?umsys=si'
-            http_timeout = self._timeout_medium
-        elif request_type == self._REQUEST_SET_UNITS:
-            url = self._url + '/PlantPreference/SetData/' + self._plant_id
-            http_timeout = self._timeout_short
-        else:
-            url = self._url + '/PlantDashboard/SetPlantAndZoneData/' + self._plant_id + self._send_params_set(zone_number)
-            http_timeout = self._timeout_long
-        try:
-            self._set_time_start[request_type] = time.time()
-            resp = self._session.post(
-                url,
-                auth=self._token,
-                timeout=http_timeout,
-                json=set_data,
-                verify=True)
-        except requests.exceptions.RequestException:
-            self._error_detected(request_type)
-            self._LOGGER.warning('%s %s error', self, request_type)
-            raise Exception("Unexpected error for setting in the request {}".format(request_type))
-        if resp.status_code != 200:
-            self._error_detected(request_type)
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                store_file = self._gw_name + "data_ariston" + request_type + "_" + str(resp.status_code) + "_error.txt"
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, "w") as f:
-                    f.write(resp.text)
-            self._LOGGER.warning("%s %s Command to set data failed with code: %s", self, request_type, resp.status_code)
-            raise Exception("Unexpected code {} for setting in the request {}".format(resp.status_code, request_type))
-        self._set_time_end[request_type] = time.time()
-        self._no_error_detected(request_type)
-        if request_type == self._REQUEST_SET_MAIN:
-            """
-            data in reply cannot be fully trusted as occasionally we receive changed data but on next read turns out 
-            that it was in fact not changed, so uncomment below on your own risk
-            """
-            # self._store_data(resp, request_type, zone_num)
-            if self._store_file:
-                if not os.path.isdir(self._store_folder):
-                    os.makedirs(self._store_folder)
-                if request_type == self._SET_REQUEST_MAIN:
-                    store_file = self._gw_name + "data_ariston" + request_type + zone_number + "_reply.txt"
-                else:
-                    store_file = self._gw_name + "data_ariston" + request_type + "_reply.txt"
-                store_file_path = os.path.join(self._store_folder, store_file)
-                with open(store_file_path, "w") as f:
-                    f.write(resp.text)
-        self._LOGGER.info('%s %s Data was presumably changed', self, request_type)
 
     def _preparing_setting_http_data(self):
         """Preparing and setting http data"""
         self._login_session()
         with self._data_lock:
-            if not self._set_new_data_pending:
-                # initiated from schedule, no longer scheduled
-                self._set_scheduled = False
-            else:
-                # initiated from set_http_data, no longer pending
-                self._set_new_data_pending = False
-                for request_item in self._set_retry:
-                    self._set_retry[request_item] = 0
-                if self._set_scheduled:
-                    # we wait for another attempt after timeout, data will be set then
-                    return
-            if self._login and self.available and self._plant_id != "":
+            if self._available and self._set_param:
 
-                changed_parameter = {
-                    self._REQUEST_SET_MAIN: {},
-                    self._REQUEST_SET_OTHER: {},
-                    self._REQUEST_SET_UNITS: {}
-                }
+                set_additional_params = []
+                parameters = [key for key in self._set_param.keys()]
 
-                zone_changes = set()
-                for key in self._set_param:
-                    if key in self._SET_REQUEST_MAIN:
-                        for zone in reversed(self._ZONE_ORDER):
-                            if zone != self._ZONE_1:
-                                if key.endswith(zone):
-                                    zone_changes.add(zone)
-                                    break
-                            else:
-                                zone_changes.add(self._ZONE_1)
-
-                for zone in self._ZONE_ORDER:
-                    if not zone_changes:
-                        zone_number = self._ZONE_1
-                        break
-                    elif zone in zone_changes:
-                        zone_number = zone
-                        break
-
-                set_data = dict()
-                # prepare setting of main data dictionary
-                set_data["NewValue"] = copy.deepcopy(self._ariston_data)
-                set_data["OldValue"] = copy.deepcopy(self._ariston_data)
-                set_data["NewValue"]["zone"] = copy.deepcopy(self._zone_data_main[zone_number])
-                set_data["OldValue"]["zone"] = copy.deepcopy(self._zone_data_main[zone_number])
-
-                # Format is received in 12H format but for some reason python must send 24H format, not other tools
-                try:
-                    set_data["NewValue"]["zone"]["derogaUntil"] = self._change_to_24h_format(
-                        self._zone_data_main[zone_number]["derogaUntil"])
-                    set_data["OldValue"]["zone"]["derogaUntil"] = self._change_to_24h_format(
-                        self._zone_data_main[zone_number]["derogaUntil"])
-                except KeyError:
-                    set_data["NewValue"]["zone"]["derogaUntil"] = self._DEFAULT_TIME
-                    set_data["OldValue"]["zone"]["derogaUntil"] = self._DEFAULT_TIME
-
-                set_units_data = {}
-                try:
-                    set_units_data["measurementSystem"] = self._ariston_units["measurementSystem"]
-                except KeyError:
-                    set_units_data["measurementSystem"] = self._UNKNOWN_UNITS
-
-                dhw_temp = {}
-                dhw_temp_time = {}
-                try:
-                    dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
-                    dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
-                    if self._get_time_end[self._REQUEST_GET_MAIN] > self._get_time_end[self._REQUEST_GET_OTHER] and \
-                            self._get_zero_temperature[self._PARAM_DHW_COMFORT_TEMPERATURE] == 0:
-                        if set_data["NewValue"]["dhwTimeProgSupported"]:
-                            dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                                set_data["NewValue"]["dhwTimeProgComfortTemp"]["value"]
-                            dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                                self._get_time_end[self._REQUEST_GET_MAIN]
-                        else:
-                            dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = set_data["NewValue"]["dhwTemp"]["value"]
-                            dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                                self._get_time_end[self._REQUEST_GET_MAIN]
-                    else:
-                        for param_item in self._ariston_other_data:
-                            if param_item["id"] == self._ARISTON_DHW_TIME_PROG_COMFORT:
-                                dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = param_item["value"]
-                                dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = \
-                                    self._get_time_end[self._REQUEST_GET_OTHER]
-
-                    if self._get_time_end[self._REQUEST_GET_MAIN] > self._get_time_end[self._REQUEST_GET_OTHER] and \
-                            self._get_zero_temperature[self._PARAM_DHW_ECONOMY_TEMPERATURE] == 0 \
-                            and set_data["NewValue"]["dhwTimeProgSupported"]:
-                        dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = set_data["NewValue"]["dhwTimeProgEconomyTemp"][
-                            "value"]
-                        dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._get_time_end[self._REQUEST_GET_MAIN]
-                    else:
-                        for param_item in self._ariston_other_data:
-                            if param_item["id"] == self._ARISTON_DHW_TIME_PROG_ECONOMY:
-                                dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = param_item["value"]
-                                dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = \
-                                    self._get_time_end[self._REQUEST_GET_OTHER]
-
-                except KeyError:
-                    dhw_temp[self._PARAM_DHW_COMFORT_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp[self._PARAM_DHW_ECONOMY_TEMPERATURE] = self._UNKNOWN_TEMP
-                    dhw_temp_time[self._PARAM_DHW_COMFORT_TEMPERATURE] = 0
-                    dhw_temp_time[self._PARAM_DHW_ECONOMY_TEMPERATURE] = 0
-
-                # prepare setting of parameter data dictionary
-                set_param_data = []
-
-                temp_dict = copy.deepcopy(self._set_param)
-
-                for parameter in temp_dict:
-
-                    if self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                        self._PARAM_MODE,
-                        self._PARAM_CH_MODE,
-                        self._PARAM_DHW_MODE,
-                    }:
-                        checked_param = self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL]
-                        if checked_param == self._PARAM_MODE:
-                            temp_dict = set_data["NewValue"]
-                            temp_key = "mode"
-                        elif checked_param == self._PARAM_CH_MODE:
-                            temp_dict = set_data["NewValue"]["zone"]["mode"]
-                            temp_key = "value"
-                        elif checked_param == self._PARAM_DHW_MODE:
-                            temp_dict = set_data["NewValue"]
-                            temp_key = "dhwMode"
-
-                        if temp_dict[temp_key] == self._set_param[parameter]:
-                            if self._set_time_start[self._set_request_for_parameter(parameter)] < \
-                                    self._get_time_end[self._get_request_for_parameter(parameter)]:
-                                # value should be up to date and match to remove from setting
-                                del self._set_param[parameter]
-                            else:
-                                # assume data was not yet changed
-                                changed_parameter[self._set_request_for_parameter(parameter)][
-                                    self._get_request_for_parameter(parameter)] = True
-                        else:
-                            temp_dict[temp_key] = self._set_param[parameter]
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-                    elif self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                        self._PARAM_DHW_COMFORT_TEMPERATURE,
-                        self._PARAM_DHW_ECONOMY_TEMPERATURE,
-                    }:
-
-                        checked_param = self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL]
-                        if checked_param == self._PARAM_DHW_COMFORT_TEMPERATURE:
-                            temp_value = set_data["NewValue"]["dhwTimeProgComfortTemp"]["value"]
-                        elif checked_param == self._PARAM_DHW_ECONOMY_TEMPERATURE:
-                            temp_value = set_data["NewValue"]["dhwTimeProgEconomyTemp"]["value"]
-
-                        if math.isclose(
-                                dhw_temp[parameter],
-                                self._set_param[parameter],
-                                abs_tol=0.01):
-                            if self._set_time_start[self._set_request_for_parameter(parameter)] <\
-                                    dhw_temp_time[parameter]:
-                                # value should be up to date and match to remove from setting
-                                del self._set_param[parameter]
-                            else:
-                                # assume data was not yet changed
-                                param_data = {
-                                    "id": self._PARAM_TO_ARISTON[parameter],
-                                    "newValue": self._set_param[parameter],
-                                    "oldValue": temp_value}
-                                set_param_data.append(param_data)
-                                changed_parameter[self._set_request_for_parameter(parameter)][
-                                    self._get_request_for_parameter(parameter)] = True
-                        else:
-                            param_data = {
-                                "id": self._PARAM_TO_ARISTON[parameter],
-                                "newValue": self._set_param[parameter],
-                                "oldValue": temp_value}
-                            set_param_data.append(param_data)
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-                    elif self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                        self._PARAM_CH_SET_TEMPERATURE,
-                        self._PARAM_DHW_SET_TEMPERATURE,
-                    }:
-
-                        checked_param = self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL]
-                        if checked_param == self._PARAM_CH_SET_TEMPERATURE:
-                            temp_dict = set_data["NewValue"]["zone"]
-                            temp_key = "desiredTemp"
-                        elif checked_param == self._PARAM_DHW_SET_TEMPERATURE:
-                            temp_dict = set_data["NewValue"]["dhwTemp"]
-                            temp_key = "value"
-
-                        if math.isclose(
-                                set_data["NewValue"]["zone"]["desiredTemp"],
-                                self._set_param[parameter],
-                                abs_tol=0.01):
-                            if self._set_time_start[self._set_request_for_parameter(parameter)] < \
-                                    self._get_time_end[self._get_request_for_parameter(parameter)] and\
-                                    self._get_zero_temperature[parameter] == 0:
-                                # value should be up to date and match to remove from setting
-                                del self._set_param[parameter]
-                            else:
-                                # assume data was not yet changed
-                                changed_parameter[self._set_request_for_parameter(parameter)][
-                                    self._get_request_for_parameter(parameter)] = True
-                        else:
-                            set_data["NewValue"]["zone"]["desiredTemp"] = \
-                                self._set_param[parameter]
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-
-                    elif self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                        self._PARAM_THERMAL_CLEANSE_CYCLE,
-                        self._PARAM_CH_WATER_TEMPERATURE,
-                        self._PARAM_CH_COMFORT_TEMPERATURE,
-                        self._PARAM_CH_ECONOMY_TEMPERATURE,
-                        self._PARAM_CH_FIXED_TEMP
-                    }:
-
-                        try:
-                            for param_item in self._ariston_other_data:
-                                if param_item["id"] == self._PARAM_TO_ARISTON[parameter]:
-                                    if math.isclose(
-                                            param_item["value"],
-                                            self._set_param[parameter],
-                                            abs_tol=0.01):
-                                        if self._set_time_start[self._set_request_for_parameter(
-                                                parameter)] < \
-                                                self._get_time_end[
-                                                    self._get_request_for_parameter(parameter)]:
-                                            # value should be up to date and match to remove from setting
-                                            del self._set_param[parameter]
-                                        else:
-                                            # assume data was not yet changed
-                                            param_data = {
-                                                "id": self._PARAM_TO_ARISTON[parameter],
-                                                "newValue": self._set_param[parameter],
-                                                "oldValue": param_item["value"]}
-                                            set_param_data.append(param_data)
-                                            changed_parameter[self._set_request_for_parameter(
-                                                parameter)][
-                                                self._get_request_for_parameter(parameter)] = True
-                                        break
-                                    else:
-                                        param_data = {
-                                            "id": self._PARAM_TO_ARISTON[parameter],
-                                            "newValue": self._set_param[parameter],
-                                            "oldValue": param_item["value"]}
-                                        set_param_data.append(param_data)
-                                        changed_parameter[self._set_request_for_parameter(
-                                            parameter)][
-                                            self._get_request_for_parameter(parameter)] = True
-                                        break
-                        except KeyError:
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-                    elif self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                        self._PARAM_DHW_COMFORT_FUNCTION,
-                        self._PARAM_INTERNET_TIME,
-                        self._PARAM_INTERNET_WEATHER,
-                        self._PARAM_THERMAL_CLEANSE_FUNCTION,
-                        self._PARAM_CH_AUTO_FUNCTION,
-                    }:
-
-                        try:
-                            for param_item in self._ariston_other_data:
-                                if param_item["id"] == self._PARAM_TO_ARISTON[parameter]:
-                                    if param_item["value"] == self._set_param[parameter]:
-                                        if self._set_time_start[self._set_request_for_parameter(
-                                                parameter)] < \
-                                                self._get_time_end[self._get_request_for_parameter(
-                                                    parameter)]:
-                                            # value should be up to date and match to remove from setting
-                                            del self._set_param[parameter]
-                                        else:
-                                            # assume data was not yet changed
-                                            param_data = {
-                                                "id": self._PARAM_TO_ARISTON[parameter],
-                                                "newValue": self._set_param[parameter],
-                                                "oldValue": param_item["value"]}
-                                            set_param_data.append(param_data)
-                                            changed_parameter[self._set_request_for_parameter(
-                                                parameter)][self._get_request_for_parameter(
-                                                    parameter)] = True
-                                        break
-                                    else:
-                                        param_data = {
-                                            "id": self._PARAM_TO_ARISTON[parameter],
-                                            "newValue": self._set_param[parameter],
-                                            "oldValue": param_item["value"]}
-                                        set_param_data.append(param_data)
-                                        changed_parameter[self._set_request_for_parameter(
-                                            parameter)][
-                                            self._get_request_for_parameter(parameter)] = True
-                                        break
-                        except KeyError:
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-                    elif self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter] == zone_number and \
-                        self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_UNITS:
-
-                        if set_units_data["measurementSystem"] == self._set_param[parameter]:
-                            if self._set_time_start[self._set_request_for_parameter(parameter)] < \
-                                    self._get_time_end[self._get_request_for_parameter(parameter)]:
-                                # value should be up to date and match to remove from setting
-                                del self._set_param[parameter]
-                            else:
-                                # assume data was not yet changed
-                                changed_parameter[self._set_request_for_parameter(parameter)][
-                                    self._get_request_for_parameter(parameter)] = True
-                        else:
-                            set_units_data["measurementSystem"] = self._set_param[parameter]
-                            changed_parameter[self._set_request_for_parameter(parameter)][
-                                self._get_request_for_parameter(parameter)] = True
-
-                for request_item in self._set_param_group:
-                    self._set_param_group[request_item] = False
-
-                for key, value in changed_parameter.items():
-                    if value != {} and self._set_retry[key] < self._set_max_retries:
-                        if not self._set_scheduled:
-                            # retry again after enough time
-                            retry_in = self._timer_between_set
-                            self._timer_periodic_set.cancel()
-                            if self._started:
-                                self._timer_periodic_set = threading.Timer(retry_in, self._preparing_setting_http_data)
-                                self._timer_periodic_set.start()
-                            self._set_retry[key] += 1
-                            self._set_scheduled = True
-                    elif value != {} and self._set_retry[key] == self._set_max_retries:
-                        # last retry, we keep changed parameter but do not schedule anything
-                        self._set_retry[key] += 1
-                    else:
-                        changed_parameter[key] = {}
-
-                try:
-                    for parameter, value in self._set_param.items():
-                        if self._get_request_for_parameter(parameter) not in \
-                                changed_parameter[self._set_request_for_parameter(parameter)]:
-                            del self._set_param[parameter]
-                except KeyError:
-                    self._LOGGER.warning('%s Can not clear set parameters', self)
-
-                # show data as changed in case we were able to read data in between requests
-                self._set_visible_data(zone_number)
-
-                if changed_parameter[self._REQUEST_SET_MAIN] != {}:
-                    try:
-                        self._setting_http_data(set_data, self._REQUEST_SET_MAIN, zone_number)
-                    except TypeError:
-                        self._LOGGER.warning('%s Setting main data failed', self)
-                    except requests.exceptions.RequestException:
-                        self._LOGGER.warning('%s Setting main data failed', self)
-                    except Exception:
-                        self._LOGGER.warning('%s Setting main data failed with code', self)
-
-                elif changed_parameter[self._REQUEST_SET_OTHER] != {}:
+                for parameter in parameters:
 
                     try:
-                        if set_param_data:
-                            self._setting_http_data(set_param_data, self._REQUEST_SET_OTHER, zone_number)
-                        else:
-                            self._LOGGER.warning('%s No valid data to set parameters', self)
-                    except TypeError:
-                        self._LOGGER.warning('%s Setting parameter data failed', self)
-                    except requests.exceptions.RequestException:
-                        self._LOGGER.warning('%s Setting parameter data failed', self)
-                    except Exception:
-                        self._LOGGER.warning('%s Setting parameter data failed with code', self)
 
-                elif changed_parameter[self._REQUEST_SET_UNITS]:
-                    try:
-                        self._setting_http_data(set_units_data, self._REQUEST_SET_UNITS, zone_number)
-                    except TypeError:
-                        self._LOGGER.warning('%s Setting units data failed', self)
-                    except requests.exceptions.RequestException:
-                        self._LOGGER.warning('%s Setting units data failed', self)
-                    except Exception:
-                        self._LOGGER.warning('%s Setting parameter data failed with code', self)
+                        set_value = self._set_param[parameter][self._SET_VALUE]
+                        self._LOGGER.info(f'Setting {parameter} new value {self._set_param[parameter][self._VALUE]} [{set_value}]')
+                        
+                        if parameter == self._PARAM_MODE:
+
+                            old_value = self._string_option_to_number(parameter, self._get_sensor_value(parameter))
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/plantData/{self._plant_id}/mode',
+                                json_data={"new": set_value,"old": old_value},
+                                error_msg='Set Mode',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter == self._PARAM_CH_MODE:
+
+                            old_value = self._string_option_to_number(parameter, self._get_sensor_value(parameter))
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/mode',
+                                json_data={"new": set_value,"old": old_value},
+                                error_msg='Set CH Mode',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter == self._PARAM_CH_SET_TEMPERATURE:
+                            
+                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
+                            comfort_new = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE]
+                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
+                            economy_new = self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE]
+                            set_temp = self._get_sensor_value(self._PARAM_CH_SET_TEMPERATURE)
+                            if set_temp == economy_old and self._get_sensor_value(self._PARAM_CH_MODE) == "Time program":
+                                economy_new = set_value
+                            else:
+                                comfort_new = set_value
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                json_data={"new":{"comf": comfort_new, "econ": economy_new}, "old":{"comf": comfort_old, "econ": economy_old}},
+                                error_msg='Set CH Temperature',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter == self._PARAM_CH_COMFORT_TEMPERATURE:
+                            
+                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
+                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
+                            economy_new = self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE]
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                json_data={"new":{"comf": set_value, "econ": economy_new}, "old":{"comf": comfort_old, "econ": economy_old}},
+                                error_msg='Set CH Temperature',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter == self._PARAM_CH_ECONOMY_TEMPERATURE:
+                            
+                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
+                            comfort_new = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE]
+                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                json_data={"new":{"comf": comfort_new, "econ": set_value}, "old":{"comf": comfort_old, "econ": economy_old}},
+                                error_msg='Set CH Temperature',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter == self._PARAM_DHW_SET_TEMPERATURE:
+
+                            old_value = self._get_sensor_value(parameter) 
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/api/v2/remote/plantData/{self._plant_id}/dhwTemp?umsys=si',
+                                json_data={"new": set_value,"old": old_value},
+                                error_msg='Set DHW Temperature',
+                                timeout=self._TIMEOUT_AV
+                            )
+                            break
+
+                        elif parameter in self._LIST_ARISTON_WEB_PARAMS:
+
+                            # Many parameters in one request
+                            
+                            set_additional_params.append(
+                                {
+                                    "id": self._MAP_ARISTON_WEB_MENU_PARAMS[parameter],
+                                    "value": set_value,
+                                    "prevValue": self._string_option_to_number(parameter, self._get_sensor_value(parameter))
+                                }
+                            )
+
+                        else:
+                            self._LOGGER.error(f"Unsupported parameter to set {parameter}")
+                            raise Exception(f"Unsupported parameter to set {parameter}")
+
+                    except Exception as ex:
+                        self._LOGGER.warning(f"Problem setting {parameter}: {ex}")
+                        del self._set_param[parameter]
+                        continue
+
+                    self._set_param[parameter][self._ATTEMPT] += 1
+                    if self._set_param[parameter][self._ATTEMPT] > self._max_set_retries:
+                        del self._set_param[parameter]
 
                 else:
-                    self._LOGGER.debug('%s Same data was used', self)
+                    try:
+                        if set_additional_params:
+                            self._request_post(
+                                url=f'{self._ARISTON_URL}/R2/PlantMenu/Submit/{self._plant_id}',
+                                json_data=set_additional_params,
+                                error_msg='Set additional parameters',
+                                timeout=self._TIMEOUT_AV
+                            )
+                    except Exception as ex:
+                        self._LOGGER.warning(f"Problem setting multiple parameters: {ex}")
 
-                for key, value in changed_parameter.items():
-                    if value != {}:
-                        for request_item in value:
-                            self._set_param_group[request_item] = True
+                self._subscribers_sensors_inform()
+                self._subscribers_statuses_inform()
+                self._reset_set_requests()
 
-                if not self._set_scheduled:
-                    # no more retries or no changes, no need to keep any changed data
-                    self._set_param = {}
-                    self._set_statuses()
+                if self._set_param:
+                    self._timer_set_delay.cancel()
+                    if self._started:
+                        self._LOGGER.info(f"Attempting to set parameter values in {self._set_period_time} seconds")
+                        self._timer_set_delay = threading.Timer(self._set_period_time, self._preparing_setting_http_data)
+                        self._timer_set_delay.start()
+                
 
-                if self._store_file:
-                    if not os.path.isdir(self._store_folder):
-                        os.makedirs(self._store_folder)
-                    store_file = self._gw_name + 'data_ariston_all_set_get.json'
-                    store_file_path = os.path.join(self._store_folder, store_file)
-                    with open(store_file_path, 'w') as ariston_fetched:
-                        json.dump(self._set_param_group, ariston_fetched)
-                    store_file = self._gw_name + 'data_ariston_all_set.json'
-                    store_file_path = os.path.join(self._store_folder, store_file)
-                    with open(store_file_path, 'w') as ariston_fetched:
-                        json.dump(self._set_param, ariston_fetched)
+    def _reset_set_requests(self):
+        self._set_requests = {request: False for request in self._LIST_REQUESTS}
+        for parameter in self._set_param:
+            self._set_requests[self._get_request_for_parameter(parameter)] = True
 
-            else:
-                # api is down
-                if not self._set_scheduled:
-                    if self._set_retry[self._REQUEST_SET_MAIN] < self._set_max_retries:
-                        # retry again after enough time to fetch data twice
-                        retry_in = self._timer_between_set
-                        self._timer_periodic_set.cancel()
-                        if self._started:
-                            self._timer_periodic_set = threading.Timer(retry_in, self._preparing_setting_http_data)
-                            self._timer_periodic_set.start()
-                        self._set_retry[self._REQUEST_SET_MAIN] += 1
-                        self._set_scheduled = True
-                    else:
-                        # no more retries, no need to keep changed data
-                        self._set_param = {}
-                        self._set_statuses()
 
-                        for request_item in self._set_param_group:
-                            self._set_param_group[request_item] = False
-
-                        self._LOGGER.warning("%s No stable connection to set the data", self)
-                        raise Exception("Unstable connection to set the data")
-
-    def _check_if_dhw_economy(self):
+    def _is_digit_string(self, text):
         try:
-            dhw_params = [
-                self._PARAM_DHW_SET_TEMPERATURE,
-                self._PARAM_DHW_COMFORT_TEMPERATURE,
-                self._PARAM_DHW_ECONOMY_TEMPERATURE
-            ]
-            if any([i in self._set_param for i in dhw_params]) and self._current_temp_economy_dhw is not None:
-                # data is still changing, assume it is the least value
-                return self._current_temp_economy_dhw
-            if self._ariston_data != {}:
-                if self._VALUE_TO_DHW_MODE[self._ariston_data["dhwMode"]] == self._VAL_PROGRAM:
-                    if not self._ariston_data["dhwTimeProgComfortActive"]:
-                        # economy temperature is being used
-                        self._current_temp_economy_dhw = True
-                    else:
-                        self._current_temp_economy_dhw = False
-                else:
-                    self._current_temp_economy_dhw = False
-            else:
-                self._current_temp_economy_dhw = None
-        except KeyError:
-            self._current_temp_economy_dhw = None
-        return self._current_temp_economy_dhw
+            value = float(text)
+            return value
+        except ValueError:
+            return None
 
-    def _check_if_ch_economy(self, zone_number):
-        try:
-            ch_params = [
-                self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_SET_TEMPERATURE][zone_number],
-                self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_COMFORT_TEMPERATURE][zone_number],
-                self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_ECONOMY_TEMPERATURE][zone_number]
-            ]
-            if any([i in self._set_param for i in ch_params]) and self._current_temp_economy_ch[zone_number] is not None:
-                # data is still changing, assume it is the least value
-                return self._current_temp_economy_ch[zone_number]
-            if self._ariston_other_data != {} and self._ariston_data != {}:
-                if self._VALUE_TO_CH_MODE[self._zone_data_main[zone_number]["mode"]["value"]] == self._VAL_PROGRAM:
-                    for param_item in self._ariston_other_data:
-                        if param_item["id"] == self._ARISTON_CH_ECONOMY_TEMP:
-                            if math.isclose(
-                                    self._zone_data_main[zone_number]["desiredTemp"],
-                                    param_item["value"],
-                                    abs_tol=0.01):
-                                self._current_temp_economy_ch[zone_number] = True
-                                break
-                        else:
-                            self._current_temp_economy_ch[zone_number] = False
-                else:
-                    self._current_temp_economy_ch[zone_number] = False
-            else:
-                self._current_temp_economy_ch[zone_number] = None
-        except KeyError:
-            self._current_temp_economy_ch[zone_number] = None
-        return self._current_temp_economy_ch[zone_number]
+
+    def _string_option_to_number(self, sensor, value):
+        if self._ariston_sensors[sensor][self._OPTIONS_TXT]:
+            index = self._ariston_sensors[sensor][self._OPTIONS_TXT].index(value)
+            return self._ariston_sensors[sensor][self._OPTIONS][index]
+        return self._ariston_sensors[sensor][self._VALUE]
+
 
     def set_http_data(self, **parameter_list: Union[str, int, float, bool]) -> None:
         """
         Set data over http, where **parameter_list excepts parameters and wanted values.
 
-        Supported parameters:
-            - 'mode'
-            - 'ch_mode'
-            - 'ch_mode_zone_2'
-            - 'ch_mode_zone_3'
-            - 'ch_set_temperature'
-            - 'ch_set_temperature_zone_2'
-            - 'ch_set_temperature_zone_3'
-            - 'ch_comfort_temperature'
-            - 'ch_comfort_temperature_zone_2'
-            - 'ch_comfort_temperature_zone_3'
-            - 'ch_economy_temperature'
-            - 'ch_economy_temperature_zone_2'
-            - 'ch_economy_temperature_zone_3'
-            - 'ch_auto_function'
-            - 'ch_water_temperature'
-            - 'dhw_mode'
-            - 'dhw_set_temperature'
-            - 'dhw_comfort_temperature'
-            - 'dhw_economy_temperature'
-            - 'dhw_comfort_function'
-            - 'internet_time'
-            - 'internet_weather'
-            - 'dhw_thermal_cleanse_function'
-            - 'dhw_thermal_cleanse_cycle'
-            - 'units'
+        Supported parameters and their values are specified in supported_sensors_set_values method
 
         Supported values must be viewed in the property 'supported_sensors_set_values',
         which are generated dynamically based on reported values.
 
         Example:
-            set_http_data(mode='off',internet_time=True)
+            set_http_data(mode='OFF',internet_time="ON")
         """
 
-        if self._ariston_data != {}:
+        if self._main_data != {}:
             with self._data_lock:
-
-                allowed_values = self.supported_sensors_set_values
-                good_values = {}
+                # First check values and pre-process the value
                 bad_values = {}
-                for parameter in parameter_list:
-                    value = parameter_list[parameter]
-                    try:
-                        good_parameter = False
-                        if self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                            self._PARAM_MODE,
-                            self._PARAM_CH_MODE,
-                            self._PARAM_CH_AUTO_FUNCTION,
-                            self._PARAM_DHW_MODE,
-                            self._PARAM_DHW_COMFORT_FUNCTION,
-                            self._PARAM_INTERNET_TIME,
-                            self._PARAM_INTERNET_WEATHER,
-                            self._PARAM_THERMAL_CLEANSE_FUNCTION,
-                            self._PARAM_UNITS
-                        }:
-                            value = str(value).lower()
-                            if value in allowed_values[parameter]:
-                                good_values[parameter] = value
-                                good_parameter = True
-                        elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] in {
-                            self._PARAM_CH_SET_TEMPERATURE,
-                            self._PARAM_CH_COMFORT_TEMPERATURE,
-                            self._PARAM_CH_ECONOMY_TEMPERATURE,
-                            self._PARAM_DHW_SET_TEMPERATURE,
-                            self._PARAM_DHW_COMFORT_TEMPERATURE,
-                            self._PARAM_DHW_ECONOMY_TEMPERATURE,
-                            self._PARAM_THERMAL_CLEANSE_CYCLE,
-                            self._PARAM_CH_WATER_TEMPERATURE,
-                            self._PARAM_CH_FIXED_TEMP
-                        }:
-                            value = float(value)
-                            if allowed_values[parameter]["min"] - 0.01 <= value \
-                                    <= allowed_values[parameter]["max"] + 0.01:
-                                good_values[parameter] = value
-                                good_parameter = True
-                        if not good_parameter:
-                            bad_values[parameter] = value
-                    except KeyError:
+                for parameter, value in parameter_list.items():
+                    if parameter not in self._SENSOR_SET_LIST:
                         bad_values[parameter] = value
                         continue
-
-                for parameter in good_values:
-
-                    zone_number = self._MAP_PARAM_NAME_TO_ZONE_NUMBER[parameter]
-
-                    # check mode and set it
-                    if self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_MODE:
-                        try:
-                            self._set_param[parameter] = self._MODE_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New mode %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported mode or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check CH temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_SET_TEMPERATURE:
-                        try:
-                            # round to nearest 0.5
-                            temperature = round(float(good_values[parameter]) * 2.0) / 2.0
-                            temperature = float(temperature)
-                            self._check_if_ch_economy(zone_number)
-                            if self._current_temp_economy_ch[zone_number]:
-                                self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_ECONOMY_TEMPERATURE][zone_number]] = temperature
-                                self._LOGGER.info('%s New economy CH temperature %s', self, temperature)
-                            elif self._current_temp_economy_ch[zone_number] is False:
-                                self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_CH_COMFORT_TEMPERATURE][zone_number]] = temperature
-                                self._LOGGER.info('%s New comfort CH temperature %s', self, temperature)
+                    if self._ariston_sensors[parameter][self._OPTIONS_TXT] != None:
+                        if value in self._ariston_sensors[parameter][self._OPTIONS_TXT]:
+                            set_value = self._string_option_to_number(parameter, value)
+                            if value != self._ariston_sensors[parameter][self._VALUE]:
+                                self._set_param[parameter] = {self._VALUE: value, self._SET_VALUE: set_value, self._ATTEMPT: 0}
+                                self._ariston_sensors[parameter][self._VALUE] = value
+                        else:
+                            bad_values[parameter] = value
+                    if self._is_digit_string(value) != None:
+                        value = self._is_digit_string(value)
+                        if self._ariston_sensors[parameter][self._MIN] != None and \
+                            self._ariston_sensors[parameter][self._MAX] != None and \
+                            self._ariston_sensors[parameter][self._STEP] != None and \
+                            value >= self._ariston_sensors[parameter][self._MIN] and \
+                            value <= self._ariston_sensors[parameter][self._MAX]:
+                            if self._ariston_sensors[parameter][self._STEP] == 0.5:
+                                value = round(value * 2.0) / 2.0
                             else:
-                                # None value
-                                self._set_param[parameter] = temperature
-                                self._LOGGER.info('%s New CH temperature %s', self, temperature)
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported CH temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
+                                value = round(value)
+                            if value != self._ariston_sensors[parameter][self._VALUE]:
+                                self._set_param[parameter] = {self._VALUE: value, self._SET_VALUE: value, self._ATTEMPT: 0}
+                                self._ariston_sensors[parameter][self._VALUE] = value
+                        else:
+                            bad_values[parameter] = value
 
-                    # check dhw temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_SET_TEMPERATURE:
-                        try:
-                            # round to nearest 1
-                            temperature = round(float(good_values[parameter]))
-                            temperature = float(temperature)
-                            self._check_if_dhw_economy()
-                            if self._current_temp_economy_dhw:
-                                self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_ECONOMY_TEMPERATURE][zone_number]] = temperature
-                            else:
-                                self._set_param[self._MAP_PARAM_NAME_TO_ZONE_PARAM_NAME[self._PARAM_DHW_COMFORT_TEMPERATURE][zone_number]] = temperature
-                            self._LOGGER.info('%s New DHW temperature %s', self, temperature)
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported DHW temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check dhw comfort temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_TEMPERATURE:
-                        try:
-                            # round to nearest 1
-                            temperature = round(float(good_values[parameter]))
-                            temperature = float(temperature)
-                            self._set_param[parameter] = temperature
-                            self._LOGGER.info('%s New DHW scheduled comfort temperature %s', self,
-                                        good_values[parameter])
-                            self._check_if_dhw_economy()
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported DHW scheduled comfort temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check dhw economy temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_ECONOMY_TEMPERATURE:
-                        try:
-                            # round to nearest 1
-                            temperature = round(float(good_values[parameter]))
-                            temperature = float(temperature)
-                            self._set_param[parameter] = temperature
-                            self._LOGGER.info('%s New DHW scheduled economy temperature %s', self, temperature)
-                            self._check_if_dhw_economy()
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported DHW scheduled economy temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check ch fixed temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_FIXED_TEMP:
-                        try:
-                            # round to nearest 1
-                            temperature = round(float(good_values[parameter]))
-                            temperature = float(temperature)
-                            self._set_param[parameter] = temperature
-                            self._LOGGER.info('%s New CH fixed temperature %s', self, temperature)
-                            self._check_if_dhw_economy()
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported CH fixed temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check CH comfort scheduled temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_COMFORT_TEMPERATURE:
-                        try:
-                            # round to nearest 0.5
-                            temperature = round(float(good_values[parameter]) * 2.0) / 2.0
-                            temperature = float(temperature)
-                            self._set_param[parameter] = temperature
-                            self._LOGGER.info('%s New CH temperature %s', self, temperature)
-                            self._check_if_ch_economy(zone_number)
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported CH comfort scheduled temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check CH economy scheduled temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_ECONOMY_TEMPERATURE:
-                        try:
-                            # round to nearest 0.5
-                            temperature = round(float(good_values[parameter]) * 2.0) / 2.0
-                            temperature = float(temperature)
-                            self._set_param[parameter] = temperature
-                            self._LOGGER.info('%s New CH temperature %s', self, temperature)
-                            self._check_if_ch_economy(zone_number)
-                        except KeyError:
-                            self._LOGGER.warning('%s Not supported CH economy scheduled temperature value: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check CH mode
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_MODE:
-                        try:
-                            self._set_param[parameter] = self._CH_MODE_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New CH mode %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported CH mode or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check DHW mode
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_MODE:
-                        try:
-                            self._set_param[parameter] = self._DHW_MODE_TO_VALUE[parameter]
-                            self._LOGGER.info('%s New DHW mode %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported DHW mode or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check DHW Comfort mode
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_DHW_COMFORT_FUNCTION:
-                        try:
-                            self._set_param[parameter] = \
-                                self._DHW_COMFORT_FUNCT_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New DHW Comfort function %s', self,
-                                        good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported DHW Comfort function or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check internet time
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_TIME:
-                        try:
-                            self._set_param[parameter] = \
-                                self._PARAM_STRING_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New Internet time is %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported Internet time or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check internet time
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_INTERNET_WEATHER:
-                        try:
-                            self._set_param[parameter] = \
-                                self._PARAM_STRING_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New Internet weather is %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported Internet weather or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check cleanse cycle
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_CYCLE:
-                        try:
-                            item_present = False
-                            for param_item in self._ariston_other_data:
-                                if param_item["id"] == self._PARAM_TO_ARISTON[parameter]:
-                                    self._set_param[parameter] = \
-                                        good_values[parameter]
-                                    item_present = True
-                                    self._LOGGER.info('%s New Thermal Cleanse Cycle is %s', self,
-                                                good_values[parameter])
-                                    break
-                            if not item_present:
-                                self._LOGGER.warning('%s Can not set Thermal Cleanse Cycle: %s', self,
-                                                good_values[parameter])
-                                bad_values[parameter] = \
-                                    good_values[parameter]
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported Thermal Cleanse Cycle or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check ch water temperature
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_WATER_TEMPERATURE:
-                        try:
-                            item_present = False
-                            for param_item in self._ariston_other_data:
-                                if param_item["id"] == self._PARAM_TO_ARISTON[parameter]:
-                                    self._set_param[parameter] = \
-                                        good_values[parameter]
-                                    item_present = True
-                                    self._LOGGER.info('%s New CH water temperature is %s', self,
-                                                good_values[parameter])
-                                    break
-                            if not item_present:
-                                self._LOGGER.warning('%s Can not set CH water temperature: %s', self,
-                                                good_values[parameter])
-                                bad_values[parameter] = \
-                                    good_values[parameter]
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported CH water temperature or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check cleanse function
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_THERMAL_CLEANSE_FUNCTION:
-                        try:
-                            item_present = False
-                            for param_item in self._ariston_other_data:
-                                if param_item["id"] == self._PARAM_TO_ARISTON[parameter]:
-                                    self._set_param[parameter] = \
-                                        self._PARAM_STRING_TO_VALUE[good_values[parameter]]
-                                    item_present = True
-                                    self._LOGGER.info('%s New Thermal Cleanse Function is %s', self,
-                                                good_values[parameter])
-                                    break
-                            if not item_present:
-                                self._LOGGER.warning('%s Can not set Thermal Cleanse Function: %s', self,
-                                                good_values[parameter])
-                                bad_values[parameter] = \
-                                    good_values[parameter]
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported Thermal Cleanse Function or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = \
-                                good_values[parameter]
-
-                    # check CH auto function
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_CH_AUTO_FUNCTION:
-                        try:
-                            self._set_param[parameter] = \
-                                self._PARAM_STRING_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New Internet weather is %s', self,
-                                        good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported CH auto function or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # check units of measurement
-                    elif self._MAP_ZONE_TO_ORIGINAL_PARAM[parameter][self._SUB_ORIGINAL] == self._PARAM_UNITS:
-                        try:
-                            self._set_param[parameter] = self._UNIT_TO_VALUE[good_values[parameter]]
-                            self._LOGGER.info('%s New units of measurement is %s', self, good_values[parameter])
-                        except KeyError:
-                            self._LOGGER.warning('%s Unknown or unsupported units of measurement or key error: %s', self,
-                                            good_values[parameter])
-                            bad_values[parameter] = good_values[parameter]
-
-                    # show data as changed
-                    self._set_visible_data(zone_number)
-
-                self._set_statuses()
-
-                self._set_new_data_pending = True
-                # set after short delay to not affect switch or climate or water_heater
                 self._timer_set_delay.cancel()
                 if self._started:
                     self._timer_set_delay = threading.Timer(1, self._preparing_setting_http_data)
                     self._timer_set_delay.start()
 
-                if bad_values != {}:
-                    raise Exception("Following values could not be set: {}".format(bad_values))
+                if bad_values:
+                    self._LOGGER.error(f"Unsupported parameters to be set: {bad_values}")
+                    raise Exception(f"Unsupported parameters to be set: {bad_values}")
 
         else:
-            self._LOGGER.warning("%s No valid data fetched from server to set changes", self)
+            self._LOGGER.warning("Connection data error, problem to set data")
             raise Exception("Connection data error, problem to set data")
 
     def _clear_data(self):
         with self._plant_id_lock:
             self._login = False
-        self._ariston_data = {}
-        self._ariston_gas_data = {}
-        self._ariston_error_data = {}
-        self._ariston_dhw_data = {}
-        self._ariston_currency = {}
-        self._ariston_other_data = {}
-        self._ariston_other_data_2 = {}
-        self._ariston_units = {}
-        self._zone_data_ch = {
-            self._ZONE_1: dict(),
-            self._ZONE_2: dict(),
-            self._ZONE_3: dict()
-        }
-        self._zone_data_main = {
-            self._ZONE_1: dict(),
-            self._ZONE_2: dict(),
-            self._ZONE_3: dict()
-        }
-        for today_param in self._TODAY_SENSORS:
-            self._today_count_ignore[today_param] = 0
+        self._features = {}
+        self._main_data = {}
+        self._additional_data = {}
+        self._error_data = {}
+        self._ch_schedule_data = {}
+        self._set_param = {}
         for sensor in self._SENSOR_LIST:
-            if sensor in self._ariston_sensors and sensor != self._PARAM_UNITS:
-                self._ariston_sensors[sensor][self._VALUE] = None
+            self._reset_sensor(sensor)
+        self._reset_set_requests()
         self._subscribers_sensors_inform()
+        self._subscribers_statuses_inform()
 
     def start(self) -> None:
         """Start communication with the server."""
-        self._timer_periodic_read = threading.Timer(1, self._queue_get_data)
-        self._timer_periodic_read.start()
         self._started = True
         self._LOGGER.info("Connection started")
+        self._timer_periodic_read = threading.Timer(0, self._queue_get_data)
+        self._timer_periodic_read.start()
+
 
     def stop(self) -> None:
         """Stop communication with the server."""
         self._started = False
         self._timer_periodic_read.cancel()
         self._timer_queue_delay.cancel()
-        self._timer_periodic_set.cancel()
-        self._timer_set_delay.cancel()
 
         if self._login and self.available:
-            url = self._url + "/Account/Logout"
-            try:
-                self._session.post(
-                    url,
-                    auth=self._token,
-                    timeout=self._HTTP_TIMEOUT_LOGIN,
-                    json={},
-                    verify=True)
-            except requests.exceptions.RequestException:
-                self._LOGGER.warning('%s Logout error', self)
+            self._request_get(
+                url=f'{self._ARISTON_URL}/R2/Account/Logout',
+                error_msg="Logout",
+                ignore_errors=True
+            )
         self._session.close()
         self._clear_data()
-        self._set_statuses()
+        self._subscribers_statuses_inform()
         self._LOGGER.info("Connection stopped")

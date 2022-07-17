@@ -28,6 +28,7 @@ from homeassistant.components.sensor import (
 from .const import (
     DATA_ARISTON,
     DEVICES,
+    OPTIONS,
     PARAM_ACCOUNT_CH_GAS,
     PARAM_ACCOUNT_CH_ELECTRICITY,
     PARAM_ACCOUNT_DHW_GAS,
@@ -45,7 +46,6 @@ from .const import (
     PARAM_COOLING_LAST_30D,
     PARAM_COOLING_LAST_365D,
     PARAM_COOLING_TODAY,
-    PARAM_ERRORS,
     PARAM_ERRORS_COUNT,
     PARAM_DHW_COMFORT_FUNCTION,
     PARAM_DHW_MODE,
@@ -77,9 +77,11 @@ from .const import (
     PARAM_CH_FIXED_TEMP,
     VALUE,
     UNITS,
-    ZONE_PARAMETERS,
-    ZONE_TEMPLATE, 
-    ZONE_NAME_TEMPLATE
+    ATTRIBUTES,
+    MIN,
+    MAX,
+    STEP,
+    OPTIONS_TXT,
 )
 
 SCAN_INTERVAL = timedelta(seconds=2)
@@ -184,16 +186,7 @@ SENSORS = {
     PARAM_WATER_TODAY: [SENSOR_WATER_TODAY, DEVICE_CLASS_ENERGY, "mdi:cash", STATE_CLASS_TOTAL_INCREASING],
     PARAM_PRESSURE: [SENSOR_PRESSURE, DEVICE_CLASS_PRESSURE, "mdi:gauge", None],
 }
-for param in ZONE_PARAMETERS:
-    if param in SENSORS:
-        for zone in range(2, 4):
-            SENSORS[ZONE_TEMPLATE.format(param, zone)] = (
-                ZONE_NAME_TEMPLATE.format(SENSORS[param][0], zone),
-                SENSORS[param][1],
-                SENSORS[param][2],
-                SENSORS[param][3]
-            )
-            
+
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up a sensor for Ariston."""
@@ -296,84 +289,24 @@ class AristonSensor(Entity):
             and not self._api.sensor_values[self._sensor_type][VALUE] is None
         )
 
-    def _original_sensor(self, sensor):
-        for param in ZONE_PARAMETERS:
-            if sensor in {
-                ZONE_TEMPLATE.format(param, 2),
-                ZONE_TEMPLATE.format(param, 3)
-                }:
-                return param
-        return sensor
-
 
     def update(self):
         """Get the latest data and updates the state."""
         try:
             if not self._api.available:
                 return
-            if not self._api.sensor_values[self._sensor_type][VALUE] is None:
-                if self._original_sensor(self._sensor_type) in {PARAM_CH_PROGRAM, PARAM_DHW_PROGRAM}:
-                    if self._api.sensor_values[self._sensor_type][VALUE] != {}:
-                        self._state = STATE_AVAILABLE
-                    else:
-                        self._state = None
-                else:
-                    self._state = self._api.sensor_values[self._sensor_type][VALUE]
-            else:
-                self._state = None
-
-            self._attrs = {}
-            if self._original_sensor(self._sensor_type) in {
-                PARAM_CH_SET_TEMPERATURE,
-                PARAM_DHW_SET_TEMPERATURE,
-                PARAM_CH_WATER_TEMPERATURE
-            }:
-                try:
-                    self._attrs["Min"] = self._api.supported_sensors_set_values[
-                        self._sensor_type
-                    ]["min"]
-                    self._attrs["Max"] = self._api.supported_sensors_set_values[
-                        self._sensor_type
-                    ]["max"]
-                except KeyError:
-                    self._attrs["Min"] = None
-                    self._attrs["Max"] = None
-
-            elif self._original_sensor(self._sensor_type) in {
-                PARAM_ERRORS_COUNT
-            }:
-                self._attrs = self._api.sensor_values[PARAM_ERRORS][VALUE]
-
-            elif self._original_sensor(self._sensor_type) in {
-                PARAM_HEATING_LAST_24H,
-                PARAM_WATER_LAST_24H,
-                PARAM_COOLING_LAST_24H,
-                PARAM_HEATING_LAST_7D,
-                PARAM_WATER_LAST_7D,
-                PARAM_COOLING_LAST_7D,
-                PARAM_HEATING_LAST_30D,
-                PARAM_WATER_LAST_30D,
-                PARAM_COOLING_LAST_30D,
-                PARAM_HEATING_LAST_365D,
-                PARAM_WATER_LAST_365D,
-                PARAM_COOLING_LAST_365D,
-            }:
-                list_param = self._sensor_type + "_list"
-                self._attrs = self._api.sensor_values[list_param][VALUE]
-
-            elif self._original_sensor(self._sensor_type) in {
-                PARAM_CH_PROGRAM,
-                PARAM_DHW_PROGRAM
-            }:
-                if self._state:
-                    self._attrs = self._api.sensor_values[self._sensor_type][VALUE]
-
-            elif self._original_sensor(self._sensor_type) in {
-                PARAM_WATER_TODAY,
-                PARAM_HEATING_TODAY,
-                PARAM_COOLING_TODAY
-            }:
-                self._attrs["state_class"] = self._state_class
+            self._state = self._api.sensor_values[self._sensor_type][VALUE]
+            self._attrs = self._api.sensor_values[self._sensor_type][ATTRIBUTES]
+            if not self._attrs:
+                if self._api.sensor_values[self._sensor_type][OPTIONS_TXT]:
+                    self._attrs[OPTIONS_TXT] = self._api.sensor_values[self._sensor_type][OPTIONS_TXT]
+                    self._attrs[OPTIONS] = self._api.sensor_values[self._sensor_type][OPTIONS]
+                elif self._api.sensor_values[self._sensor_type][MIN] and \
+                    self._api.sensor_values[self._sensor_type][MAX] and \
+                    self._api.sensor_values[self._sensor_type][STEP]:
+                    self._attrs[MIN] = self._api.sensor_values[self._sensor_type][MIN]
+                    self._attrs[MAX] = self._api.sensor_values[self._sensor_type][MAX]
+                    self._attrs[STEP] = self._api.sensor_values[self._sensor_type][STEP]
 
         except KeyError:
             _LOGGER.warning("Problem updating sensors for Ariston")

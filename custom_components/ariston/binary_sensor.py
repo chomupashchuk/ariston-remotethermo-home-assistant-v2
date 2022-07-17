@@ -1,15 +1,12 @@
 """Suppoort for Ariston binary sensors."""
-
+import logging
+from datetime import timedelta
 from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_HEAT,
     BinarySensorEntity,
 )
 from homeassistant.const import CONF_BINARY_SENSORS, CONF_NAME
-
-import logging
-from copy import deepcopy
-from datetime import timedelta
 
 from .const import (
     DATA_ARISTON,
@@ -26,12 +23,8 @@ from .const import (
     PARAM_DHW_FLAME,
     PARAM_THERMAL_CLEANSE_FUNCTION,
     PARAM_CH_PILOT,
-    PARAM_UPDATE,
-    PARAM_ONLINE_VERSION,
     VALUE,
-    ZONE_PARAMETERS,
-    ZONE_TEMPLATE,
-    ZONE_NAME_TEMPLATE
+    VAL_ON
 )
 
 BINARY_SENSOR_CH_FLAME = "CH Flame"
@@ -46,7 +39,6 @@ BINARY_SENSOR_INTERNET_TIME = "Internet Time"
 BINARY_SENSOR_INTERNET_WEATHER = "Internet Weather"
 BINARY_SENSOR_THERMAL_CLEANSE_FUNCTION = "Thermal Cleanse Function"
 BINARY_SENSOR_CH_PILOT = "CH Pilot"
-BINARY_SENSOR_UPDATE = "Update Available"
 
 SCAN_INTERVAL = timedelta(seconds=2)
 
@@ -74,16 +66,7 @@ BINARY_SENSORS = {
         "mdi:allergy",
     ),
     PARAM_CH_PILOT: (BINARY_SENSOR_CH_PILOT, None, "mdi:head-cog-outline"),
-    PARAM_UPDATE: (BINARY_SENSOR_UPDATE, None, "mdi:package-down"),
 }
-for param in ZONE_PARAMETERS:
-    if param in BINARY_SENSORS:
-        for zone in range(2, 4):
-            BINARY_SENSORS[ZONE_TEMPLATE.format(param, zone)] = (
-                ZONE_NAME_TEMPLATE.format(BINARY_SENSORS[param][0], zone),
-                BINARY_SENSORS[param][1],
-                BINARY_SENSORS[param][2]
-            )
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -170,17 +153,11 @@ class AristonBinarySensor(BinarySensorEntity):
                 self._state = self._api.available
             elif self._sensor_type == PARAM_CHANGING_DATA:
                 self._state = self._api.setting_data
-            elif self._sensor_type == PARAM_UPDATE:
-                self._attrs["Installed"] = self._api.version
-                self._state = self._api.sensor_values[self._sensor_type][VALUE]
-                self._attrs["Online"] = self._api.sensor_values[PARAM_ONLINE_VERSION][
-                    VALUE
-                ]
             else:
                 if not self._api.available:
                     return
-                if not self._api.sensor_values[self._sensor_type][VALUE] is None:
-                    self._state = self._api.sensor_values[self._sensor_type][VALUE]
+                if self._api.sensor_values[self._sensor_type][VALUE] == VAL_ON:
+                    self._state = True
                 else:
                     self._state = False
         except KeyError:

@@ -22,7 +22,6 @@ PARAM_COOLING_LAST_7D_LIST = "cooling_last_7d_list"
 PARAM_COOLING_LAST_30D_LIST = "cooling_last_30d_list"
 PARAM_COOLING_LAST_365D_LIST = "cooling_last_365d_list"
 PARAM_COOLING_TODAY = "cooling_today"
-PARAM_ERRORS = "errors"
 PARAM_ERRORS_COUNT = "errors_count"
 PARAM_DHW_COMFORT_FUNCTION = "dhw_comfort_function"
 PARAM_DHW_MODE = "dhw_mode"
@@ -80,47 +79,33 @@ PARAM_PRESSURE = "pressure"
 PARAM_CH_FLOW_TEMP = 'ch_flow_temperature'
 PARAM_CH_FIXED_TEMP = 'ch_fixed_temperature'
 
-ZONE_PARAMETERS ={
-    PARAM_CH_MODE,
-    PARAM_CH_SET_TEMPERATURE,
-    PARAM_CH_COMFORT_TEMPERATURE,
-    PARAM_CH_ECONOMY_TEMPERATURE,
-    PARAM_CH_DETECTED_TEMPERATURE,
-    PARAM_CH_ANTIFREEZE_TEMPERATURE,
-    PARAM_CH_FLAME,
-    PARAM_CH_PROGRAM,
-    PARAM_CH_FIXED_TEMP,
-}
 
-ZONE_TEMPLATE = '{}_zone_{}'
-ZONE_NAME_TEMPLATE = '{} Zone {}'
+VAL_MANUAL = "Manual"
+VAL_PROGRAM = "Time program"
+VAL_WINTER = "Winter"
+VAL_SUMMER = "Summer"
+VAL_COOLING = "Cooling"
+VAL_OFF = "OFF"
+VAL_ON = "ON"
+VAL_OFFLINE = "Offline"
+VAL_ONLINE = "Online"
+VAL_HEATING_ONLY = "Heating Only"
+VAL_HOLIDAY = "Holiday"
 
-VAL_HOLIDAY = "holiday"
-VAL_WINTER = "winter"
-VAL_SUMMER = "summer"
-VAL_OFF = "off"
-VAL_HEATING_ONLY = "heating_only"
-VAL_COOLING = "cooling"
-VAL_MANUAL = "manual"
-VAL_PROGRAM = "program"
-VAL_OFFLINE = "offline"
-VAL_METRIC = "metric"
-VAL_IMPERIAL = "imperial"
-VAL_AUTO = "auto"
-
-CONF_HVAC_OFF = "hvac_off"
-CONF_MAX_RETRIES = "max_retries"
-CONF_STORE_CONFIG_FILES = "store_config_files"
-CONF_HVAC_OFF_PRESENT = "hvac_off_present"
-CONF_UNITS = "units"
-CONF_POLLING = "polling"
 CONF_LOG = "logging"
 CONF_GW = "gw"
-CONF_ZONES = "zones"
-CONF_CLIMATES = "climates"
+CONF_PERIOD_SET = "period_set"
+CONF_PERIOD_GET = "period_get"
+CONF_MAX_SET_RETRIES = "max_set_retries"
 
 VALUE = "value"
 UNITS = "units"
+OPTIONS = 'options'
+OPTIONS_TXT = 'options_text'
+MIN = 'min'
+MAX = 'max'
+STEP = 'step'
+ATTRIBUTES = "attributes"
 
 DOMAIN = "ariston"
 DATA_ARISTON = DOMAIN
@@ -128,3 +113,4 @@ DEVICES = "devices"
 SERVICE_SET_DATA = "set_data"
 CLIMATES = "climates"
 WATER_HEATERS = "water_heaters"
+CONF_CLIMATES = "climates"

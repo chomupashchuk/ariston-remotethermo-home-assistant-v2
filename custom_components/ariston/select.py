@@ -15,17 +15,16 @@ from .const import (
     PARAM_DHW_COMFORT_FUNCTION,
     PARAM_UNITS,
     VALUE,
-    ZONE_PARAMETERS,
-    ZONE_TEMPLATE, 
-    ZONE_NAME_TEMPLATE,
+    OPTIONS_TXT,
+    MIN,
+    MAX,
+    STEP,
     PARAM_CH_SET_TEMPERATURE,
     PARAM_CH_COMFORT_TEMPERATURE,
     PARAM_CH_ECONOMY_TEMPERATURE,
     PARAM_CH_WATER_TEMPERATURE,
     PARAM_CH_FIXED_TEMP,
     PARAM_DHW_SET_TEMPERATURE,
-    PARAM_DHW_COMFORT_TEMPERATURE,
-    PARAM_DHW_ECONOMY_TEMPERATURE
 )
 
 SELECT_MODE = "Boiler Mode"
@@ -49,23 +48,13 @@ SELECTS = {
     PARAM_CH_MODE: (SELECT_CH_MODE, "mdi:radiator"),
     PARAM_DHW_MODE: (SELECT_DHW_MODE, "mdi:water-pump"),
     PARAM_DHW_COMFORT_FUNCTION: (SELECT_DHW_COMFORT, "mdi:water-pump"),
-    PARAM_UNITS: (SELECT_UNITS, "mdi:scale-balance"),
     PARAM_CH_FIXED_TEMP: (SELECT_CH_FIXED_TEMP, "mdi:radiator"),
     PARAM_CH_SET_TEMPERATURE: (SELECT_CH_SET_TEMPERATURE, "mdi:radiator"),
     PARAM_CH_COMFORT_TEMPERATURE: (SELECT_CH_COMFORT_TEMPERATURE, "mdi:radiator"),
     PARAM_CH_ECONOMY_TEMPERATURE: (SELECT_CH_ECONOMY_TEMPERATURE, "mdi:radiator"),
     PARAM_CH_WATER_TEMPERATURE: (SELECT_CH_WATER_TEMPERATURE, "mdi:water-pump"),
     PARAM_DHW_SET_TEMPERATURE: (SELECT_DHW_SET_TEMPERATURE, "mdi:water-pump"),
-    PARAM_DHW_COMFORT_TEMPERATURE: (SELECT_DHW_COMFORT_TEMPERATURE, "mdi:water-pump"),
-    PARAM_DHW_ECONOMY_TEMPERATURE: (SELECT_DHW_ECONOMY_TEMPERATURE, "mdi:water-pump"),
 }
-for param in ZONE_PARAMETERS:
-    if param in SELECTS:
-        for zone in range(2, 4):
-            SELECTS[ZONE_TEMPLATE.format(param, zone)] = (
-                ZONE_NAME_TEMPLATE.format(SELECTS[param][0], zone),
-                SELECTS[param][1]
-            )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -140,18 +129,13 @@ class AristonSelect(SelectEntity):
     def options(self):
         """Return options."""
         try:
-            if self._select_type in {
-                PARAM_CH_SET_TEMPERATURE,
-                PARAM_CH_COMFORT_TEMPERATURE,
-                PARAM_CH_ECONOMY_TEMPERATURE,
-                PARAM_CH_FIXED_TEMP,
-                PARAM_DHW_SET_TEMPERATURE,
-                PARAM_DHW_COMFORT_TEMPERATURE,
-                PARAM_DHW_ECONOMY_TEMPERATURE,
-            }:
-                min_val = self._api.supported_sensors_set_values[self._select_type]["min"]
-                max_val = self._api.supported_sensors_set_values[self._select_type]["max"]
-                step_val = self._api.supported_sensors_set_values[self._select_type]["step"]
+            if self._api.sensor_values[self._select_type][VALUE] is not None and \
+                self._api.sensor_values[self._select_type][OPTIONS_TXT] is not None:
+                return self._api.sensor_values[self._select_type][OPTIONS_TXT]
+            elif self._api.sensor_values[self._select_type][VALUE] is not None:
+                min_val = self._api.sensor_values[self._select_type][MIN]
+                max_val = self._api.sensor_values[self._select_type][MAX]
+                step_val = self._api.sensor_values[self._select_type][STEP]
                 values = list()
                 value = min_val
                 while value < max_val + .1:
@@ -159,7 +143,7 @@ class AristonSelect(SelectEntity):
                     value += step_val
                 return values
             else:
-                return list(self._api.supported_sensors_set_values[self._select_type])
+                return []
         except:
             return []
 

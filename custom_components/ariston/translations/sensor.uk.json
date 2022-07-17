@@ -1,20 +1,20 @@
 {
     "state": {
         "_": {
-            "always_active": "Завжди активнй",
-            "available": "Наявний",
-            "disabled": "Вимкнений",
-            "heating_only": "Лише опалення",
+            "Always active": "Завжди активнй",
+            "Available": "Наявний",
+            "Disabled": "Вимкнений",
+            "Heating Only": "Лише опалення",
             "imperial": "Імперіальний",
             "intelligent": "Розумний",
-            "manual": "Ручний",
+            "Manual": "Ручний",
             "metric": "Метричний",
-            "off": "Вимкнений",
-            "offline": "Недоступний",
-            "program": "Програмований",
-            "summer": "Літо",
-            "time_based": "Згідно з графіком",
-            "winter": "Зима",
+            "OFF": "Вимкнений",
+            "Offline": "Недоступний",
+            "Time program": "Програмований",
+            "Summer": "Літо",
+            "Time Based": "Згідно з графіком",
+            "Winter": "Зима",
             "cooling": "Охолодження",
             "antifreeze": "Антифриз"
         }

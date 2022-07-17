@@ -44,13 +44,10 @@ Order of Installation:
   - `password` - **mandatory** password used in https://www.ariston-net.remotethermo.com
     **! It is recommended for security purposes to not use your common password, just in case !**
   - `name` - friendly name for integration, default is `Ariston`
-  - `zones` - number of zones to be monitored (`1`, `2` or `3`). The default value is `1`. It automatically adds sensors ending with `_zone_2` and `_zone_3`.
-  - `hvac_off_present` - indicates if `HVAC OFF` shall be present in climate entity. Default value is `false`.
-  - `hvac_off` - indicates how to treat `HVAC OFF` action in climate (use depends on `hvac_off_present`). Options are `off` and `summer`. By default it is `summer`, which means that turning off would keep DHW water heating on (e.g. summer mode). Presets in climate allow switching between `off`, `summer` and `winter`.
-  - `store_config_files` - `true` or `false` indicating if configuration `json` files to be stored in `/config/custom_components/ariston` folder. Can be used for troubleshooting purposes. Default value is `false`.
-  - `units` - which uniots to be used. Values are: `metric` (°C-bar-kW...), `imperial` (°F-psi-kBtu/h...), `auto` (detect automatically, which takes additional time). Default is `metric`. Note that use of `auto` requires additional request to be used, which would result in slower update of other sensors.
-  - `polling` - sets floating value of relative polling rate. Default is 1.0. Setting value to 2.0 for example would increase timeouts times and retries by 2 times. It is recommended to set this value to more than one (e.g. 1.2) in case timeouts take place very frequently.
-  - `logging` - sets logging level (`CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `NOTSET`). Default is `DEBUG`.
+  - `logging` - sets logging level (`CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `NOTSET`). Default is `WARNING`.
+  - `period_set` - period in seconds between requests to read sensor values (integer, minimum is `30`). Default is `30`.
+  - `period_get`- period in seconds between requests to set sensor values (integer, minimum is `30`). Default is `30`.
+  - `max_set_retries` - attempts to set the value until giving up setting the value. Default is `5`.
 
 #### Switches
 **Some parameters are not supported on all models**
@@ -68,11 +65,9 @@ Order of Installation:
   - `ch_set_temperature` - set CH temperature.
   - `ch_comfort_temperature` - CH comfort temperature.
   - `ch_economy_temperature` - CH economy temperature.
+  - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `ch_fixed_temperature` - CH Fixed Temperature.
   - `dhw_set_temperature` - set DHW temperature.
-  - `dhw_comfort_temperature` - DHW storage comfort temperature. Not supported on all models.
-  - `dhw_economy_temperature` - DHW storage economy temperature. Not supported on all models.
-  - `units` - Units of measurement.
 
 #### Sensors
 **Some parameters are not supported on all models**
@@ -137,7 +132,6 @@ Order of Installation:
   - `internet_weather` - Internet weather status. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `changing_data` - API is attempting to configure requested data. **API specific sensor**.
   - `online` - Online status. Indicates if API has communication with the heater. **API specific sensor**.
-  - `update` - API update status. **API specific sensor**.
 
 
 ### Example of configuration.yaml entry

@@ -1,20 +1,20 @@
 {
     "state": {
         "_": {
-            "always_active": "Zawsze aktywny",
-            "available": "Dostępny",
-            "disabled": "Wyłączony",
-            "heating_only": "Tylko ogrzewanie",
+            "Always active": "Zawsze aktywny",
+            "Available": "Dostępny",
+            "Disabled": "Wyłączony",
+            "Heating Only": "Tylko ogrzewanie",
             "imperial": "Imperialny",
             "intelligent": "Inteligentny",
-            "manual": "Ręczny",
+            "Manual": "Ręczny",
             "metric": "Metryczny",
-            "off": "Wyłączony",
-            "offline": "Offline",
-            "program": "Programowany",
-            "summer": "Lato",
-            "time_based": "Czasowa",
-            "winter": "Zima",
+            "OFF": "Wyłączony",
+            "Offline": "Offline",
+            "Time program": "Programowany",
+            "Summer": "Lato",
+            "Time Based": "Czasowa",
+            "Winter": "Zima",
             "cooling": "Chłodzenie",
             "antifreeze": "Płyn przeciw zamarzaniu"
         }

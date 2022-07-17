@@ -23,13 +23,17 @@ from .const import (
     PARAM_DHW_SET_TEMPERATURE,
     PARAM_DHW_FLAME,
     PARAM_MODE,
-    PARAM_UNITS,
     VAL_COOLING,
     VAL_SUMMER,
     VAL_WINTER,
     VAL_OFFLINE,
-    VAL_IMPERIAL,
+    VAL_ONLINE,
     VALUE,
+    UNITS,
+    MIN,
+    MAX,
+    STEP,
+    OPTIONS_TXT,
 )
 
 ACTION_IDLE = "idle"
@@ -99,7 +103,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def supported_features(self):
         """Return the list of supported features."""
         try:
-            if self._api.supported_sensors_set_values[PARAM_DHW_MODE]:
+            if self._api.sensor_values[PARAM_DHW_MODE][OPTIONS_TXT]:
                 features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE
             else:
                 features = SUPPORT_TARGET_TEMPERATURE
@@ -123,21 +127,16 @@ class AristonWaterHeater(WaterHeaterEntity):
     def temperature_unit(self):
         """Return the unit of measurement."""
         try:
-            units = self._api.sensor_values[PARAM_UNITS][VALUE]
+            units = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][UNITS]
         except KeyError:
             return TEMP_CELSIUS
-        if units == VAL_IMPERIAL:
-            return TEMP_FAHRENHEIT
-        else:
-            return TEMP_CELSIUS
+        return units
 
     @property
     def min_temp(self):
         """Return minimum temperature."""
         try:
-            minimum_temp = self._api.supported_sensors_set_values[
-                PARAM_DHW_SET_TEMPERATURE
-            ]["min"]
+            minimum_temp = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][MIN]
         except KeyError:
             return UNKNOWN_TEMP
         return minimum_temp
@@ -146,9 +145,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def max_temp(self):
         """Return the maximum temperature."""
         try:
-            maximum_temp = self._api.supported_sensors_set_values[
-                PARAM_DHW_SET_TEMPERATURE
-            ]["max"]
+            maximum_temp = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][MAX]
         except KeyError:
             return UNKNOWN_TEMP
         return maximum_temp
@@ -166,9 +163,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
         try:
-            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE][
-                "step"
-            ]
+            step = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][STEP]
         except KeyError:
             return 1.0
         return step
@@ -177,9 +172,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def extra_state_attributes(self):
         """Return the supported step of target temperature."""
         try:
-            step = self._api.supported_sensors_set_values[PARAM_DHW_SET_TEMPERATURE][
-                "step"
-            ]
+            step = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][STEP]
         except KeyError:
             step = 1.0
         try:
@@ -195,7 +188,7 @@ class AristonWaterHeater(WaterHeaterEntity):
     def operation_list(self):
         """List of available operation modes."""
         try:
-            op_list = [*self._api.supported_sensors_set_values[PARAM_DHW_MODE]]
+            op_list = self._api.sensor_values[PARAM_DHW_MODE][OPTIONS_TXT]
         except KeyError:
             return []
         return op_list
@@ -206,7 +199,10 @@ class AristonWaterHeater(WaterHeaterEntity):
         try:
             current_op = self._api.sensor_values[PARAM_DHW_MODE][VALUE]
         except KeyError:
-            return VAL_OFFLINE
+            if self._api.dhw_available:
+                return VAL_ONLINE
+            else:
+                return VAL_OFFLINE
         return current_op
 
     def set_temperature(self, **kwargs):

@@ -31,106 +31,33 @@ from .const import (
     SERVICE_SET_DATA,
     CLIMATES,
     WATER_HEATERS,
-    CONF_HVAC_OFF,
-    CONF_MAX_RETRIES,
-    CONF_STORE_CONFIG_FILES,
-    CONF_HVAC_OFF_PRESENT,
-    CONF_UNITS,
-    CONF_POLLING,
     CONF_LOG,
     CONF_GW,
-    CONF_ZONES,
-    CONF_CLIMATES,
-    PARAM_ACCOUNT_CH_GAS,
-    PARAM_ACCOUNT_CH_ELECTRICITY,
-    PARAM_ACCOUNT_DHW_GAS,
-    PARAM_ACCOUNT_DHW_ELECTRICITY,
-    PARAM_CH_ANTIFREEZE_TEMPERATURE,
+    CONF_PERIOD_SET,
+    CONF_PERIOD_GET,
+    CONF_MAX_SET_RETRIES,
     PARAM_CH_MODE,
     PARAM_CH_SET_TEMPERATURE,
-    PARAM_CH_SET_TEMPERATURE_MIN,
-    PARAM_CH_SET_TEMPERATURE_MAX,
-    PARAM_CH_COMFORT_TEMPERATURE,
-    PARAM_CH_ECONOMY_TEMPERATURE,
-    PARAM_CH_DETECTED_TEMPERATURE,
-    PARAM_CH_PROGRAM,
-    PARAM_CH_FIXED_TEMP,
     PARAM_CH_WATER_TEMPERATURE,
-    PARAM_ERRORS,
-    PARAM_ERRORS_COUNT,
     PARAM_DHW_COMFORT_FUNCTION,
-    PARAM_DHW_MODE,
-    PARAM_DHW_PROGRAM,
     PARAM_DHW_SET_TEMPERATURE,
-    PARAM_DHW_SET_TEMPERATURE_MIN,
-    PARAM_DHW_SET_TEMPERATURE_MAX,
-    PARAM_DHW_STORAGE_TEMPERATURE,
-    PARAM_DHW_COMFORT_TEMPERATURE,
-    PARAM_DHW_ECONOMY_TEMPERATURE,
-    PARAM_HEATING_LAST_24H,
-    PARAM_HEATING_LAST_7D,
-    PARAM_HEATING_LAST_30D,
-    PARAM_HEATING_LAST_365D,
-    PARAM_HEATING_LAST_24H_LIST,
-    PARAM_HEATING_LAST_7D_LIST,
-    PARAM_HEATING_LAST_30D_LIST,
-    PARAM_HEATING_LAST_365D_LIST,
     PARAM_MODE,
-    PARAM_OUTSIDE_TEMPERATURE,
-    PARAM_SIGNAL_STRENGTH,
-    PARAM_WATER_LAST_24H,
-    PARAM_WATER_LAST_7D,
-    PARAM_WATER_LAST_30D,
-    PARAM_WATER_LAST_365D,
-    PARAM_WATER_LAST_24H_LIST,
-    PARAM_WATER_LAST_7D_LIST,
-    PARAM_WATER_LAST_30D_LIST,
-    PARAM_WATER_LAST_365D_LIST,
-    PARAM_UNITS,
     PARAM_THERMAL_CLEANSE_CYCLE,
-    PARAM_GAS_TYPE,
-    PARAM_GAS_COST,
-    PARAM_ELECTRICITY_COST,
-    PARAM_GAS_TYPE_UNIT,
-    PARAM_GAS_COST_UNIT,
-    PARAM_ELECTRICITY_COST_UNIT,
     PARAM_CH_AUTO_FUNCTION,
-    PARAM_CH_FLAME,
-    PARAM_DHW_FLAME,
-    PARAM_FLAME,
-    PARAM_HEAT_PUMP,
-    PARAM_HOLIDAY_MODE,
     PARAM_INTERNET_TIME,
     PARAM_INTERNET_WEATHER,
     PARAM_ONLINE,
     PARAM_CHANGING_DATA,
     PARAM_THERMAL_CLEANSE_FUNCTION,
-    PARAM_CH_PILOT,
-    PARAM_UPDATE,
-    PARAM_ONLINE_VERSION,
-    VALUE,
-    UNITS,
-    VAL_METRIC,
-    VAL_IMPERIAL,
-    VAL_AUTO,
-    VAL_WINTER,
-    VAL_SUMMER,
-    VAL_OFF,
-    VAL_HEATING_ONLY,
-    VAL_COOLING,
-    ZONE_PARAMETERS,
-    ZONE_TEMPLATE,
-    ZONE_NAME_TEMPLATE
 )
 from .sensor import SENSORS
 from .switch import SWITCHES
 from .select import SELECTS
 
-DEFAULT_HVAC = VAL_SUMMER
 DEFAULT_NAME = "Ariston"
 DEFAULT_MAX_RETRIES = 5
-DEFAULT_POLLING = 1.0
-DEFAULT_ZONES = 1
+DEFAULT_PERIOD_GET = 30
+DEFAULT_PERIOD_SET = 30
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -144,27 +71,21 @@ ARISTON_SCHEMA = vol.Schema(
             cv.ensure_list, [vol.In(BINARY_SENSORS)]
         ),
         vol.Optional(CONF_SENSORS): vol.All(cv.ensure_list, [vol.In(SENSORS)]),
-        vol.Optional(CONF_HVAC_OFF, default=DEFAULT_HVAC): vol.In(
-            [VAL_OFF, VAL_SUMMER]
-        ),
-        vol.Optional(CONF_MAX_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
-            int, vol.Range(min=0, max=65535)
+
+        vol.Optional(CONF_MAX_SET_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
+            int, vol.Range(min=1, max=10)
         ),
         vol.Optional(CONF_SWITCHES): vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
         vol.Optional(CONF_SELECTOR): vol.All(cv.ensure_list, [vol.In(SELECTS)]),
-        vol.Optional(CONF_STORE_CONFIG_FILES, default=False): cv.boolean,
-        vol.Optional(CONF_HVAC_OFF_PRESENT, default=False): cv.boolean,
-        vol.Optional(CONF_UNITS, default=VAL_METRIC): vol.In(
-            [VAL_METRIC, VAL_IMPERIAL, VAL_AUTO]
+
+        vol.Optional(CONF_PERIOD_GET, default=DEFAULT_PERIOD_GET): vol.All(
+            int, vol.Range(min=30, max=3600)
         ),
-        vol.Optional(CONF_POLLING, default=DEFAULT_POLLING): vol.All(
-            float, vol.Range(min=1, max=5)
+        vol.Optional(CONF_PERIOD_SET, default=DEFAULT_PERIOD_SET): vol.All(
+            int, vol.Range(min=30, max=3600)
         ),
-        vol.Optional(CONF_LOG, default="DEBUG"): vol.In(
+        vol.Optional(CONF_LOG, default="WARNING"): vol.In(
             ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
-        ),
-        vol.Optional(CONF_ZONES, default=DEFAULT_ZONES): vol.All(
-            int, vol.Range(min=1, max=3)
         ),
     }
 )
@@ -192,23 +113,21 @@ class AristonChecker:
         name,
         username,
         password,
-        store_file,
-        units,
         sensors,
         binary_sensors,
         switches,
         selectors,
-        polling,
         logging,
         gw,
-        zones
+        period_set,
+        period_get,
+        retries
     ):
         """Initialize."""
 
         self.device = device
         self._hass = hass
         self.name = name
-        self.zones = zones
 
         if not sensors:
             sensors = list()
@@ -230,13 +149,11 @@ class AristonChecker:
             username=username,
             password=password,
             sensors=list_of_sensors,
-            units=units,
-            store_file=store_file,
-            polling=polling,
             logging_level=logging,
-            #store_folder="/config/ariston_http_data",
             gw=gw,
-            zones=zones
+            set_max_retries=retries,
+            period_get_request=period_get,
+            period_set_request=period_set
         )
 
 
@@ -250,18 +167,13 @@ def setup(hass, config):
     dev_names = set()
     for device in config[DOMAIN]:
         name = device[CONF_NAME]
+        gw = device.get(CONF_GW)
         username = device[CONF_USERNAME]
         password = device[CONF_PASSWORD]
-        store_file = device[CONF_STORE_CONFIG_FILES]
-        units = device[CONF_UNITS]
         binary_sensors = device.get(CONF_BINARY_SENSORS)
         sensors = device.get(CONF_SENSORS)
         switches = device.get(CONF_SWITCHES)
         selectors =  device.get(CONF_SELECTOR)
-        polling = device.get(CONF_POLLING)
-        logging = device.get(CONF_LOG)
-        zones = device.get(CONF_ZONES)
-        gw = device.get(CONF_GW)
         if gw in dev_gateways:
             _LOGGER.error(f"Duplicate value of 'gw': {gw}")
             raise Exception(f"Duplicate value of 'gw': {gw}")
@@ -277,16 +189,15 @@ def setup(hass, config):
             name=name,
             username=username,
             password=password,
-            store_file=store_file,
-            units=units,
             sensors=sensors,
             binary_sensors=binary_sensors,
             switches=switches,
             selectors=selectors,
-            polling=polling,
-            logging=logging,
             gw=gw,
-            zones=zones
+            logging=device.get(CONF_LOG),
+            period_set=device.get(CONF_PERIOD_SET),
+            period_get=device.get(CONF_PERIOD_GET),
+            retries=device.get(CONF_MAX_SET_RETRIES)
         )
 
         api_list.append(api)
@@ -295,23 +206,7 @@ def setup(hass, config):
 
         # load all devices
         hass.data[DATA_ARISTON][DEVICES][name] = AristonDevice(api, device)
-
-        climate_entities = [name]
-        if zones > 1:
-            for zone in range(2, zones + 1):
-                climate_entities.append(ZONE_NAME_TEMPLATE.format(name, zone))
-                for param in ZONE_PARAMETERS:
-                    if param in switches:
-                        switches.append(ZONE_TEMPLATE.format(param, zone))
-                    if param in sensors:
-                        sensors.append(ZONE_TEMPLATE.format(param, zone))
-                    if param in selectors:
-                        selectors.append(ZONE_TEMPLATE.format(param, zone))
-                    if param in binary_sensors:
-                        binary_sensors.append(ZONE_TEMPLATE.format(param, zone))
-
-        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name, CONF_CLIMATES: climate_entities}, config)
-
+        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name, CLIMATES: [name]}, config)
         discovery.load_platform(hass, WATER_HEATER, DOMAIN, {CONF_NAME: name}, config)
 
         if switches:
@@ -379,32 +274,20 @@ def setup(hass, config):
                     PARAM_MODE,
                     PARAM_CH_MODE,
                     PARAM_CH_SET_TEMPERATURE,
-                    PARAM_CH_COMFORT_TEMPERATURE,
-                    PARAM_CH_ECONOMY_TEMPERATURE,
                     PARAM_CH_AUTO_FUNCTION,
                     PARAM_CH_WATER_TEMPERATURE,
-                    PARAM_DHW_MODE,
                     PARAM_DHW_SET_TEMPERATURE,
-                    PARAM_DHW_COMFORT_TEMPERATURE,
-                    PARAM_DHW_ECONOMY_TEMPERATURE,
                     PARAM_DHW_COMFORT_FUNCTION,
-                    PARAM_INTERNET_TIME,
-                    PARAM_INTERNET_WEATHER,
-                    PARAM_UNITS,
                     PARAM_THERMAL_CLEANSE_CYCLE,
                     PARAM_THERMAL_CLEANSE_FUNCTION,
-                    PARAM_CH_FIXED_TEMP,
+                    PARAM_INTERNET_TIME,
+                    PARAM_INTERNET_WEATHER,
                 }
-                for param in ZONE_PARAMETERS:
-                    if param in params_to_set:
-                        for zone in range(2, 4):
-                            params_to_set.add(ZONE_TEMPLATE.format(param, zone))
-                
 
                 for param in params_to_set:
                     data = call.data.get(param, "")
                     if data != "":
-                        parameter_list[param] = str(data).lower()
+                        parameter_list[param] = str(data)
 
                 _LOGGER.debug("Ariston device found, data to check and send")
 
