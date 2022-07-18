@@ -28,11 +28,20 @@ set_data:
     ch_fixed_temperature:
       description: "(Optional) Set CH fixed water temperature in steps of '1.0'. Value range depends on model."
       example: -4
+    dhw_mode:
+      description: "(Optional) CH mode: 'Disabled' or 'Time Based' or 'Always active'."
+      example: "Time Based"
     dhw_comfort_function:
-      description: "(Optional) DHW Comfort Function: 'Disabled', 'Time Based', 'Always active'"
+      description: "(Optional) DHW Comfort Function: 'Disabled' or 'Time Based' or 'Always active'"
       example: "Time Based"
     dhw_set_temperature:
       description: "(Optional) Set currently used DHW temperature in steps of '1.0'. Value range depends on model."
+      example: 46
+    dhw_comfort_temperature:
+      description: "(Optional) Set DHW Comfort temperature in steps of '1.0'. Value range depends on model."
+      example: 46
+    dhw_economy_temperature:
+      description: "(Optional) Set DHW Economy temperature in steps of '1.0'. Value range depends on model."
       example: 46
     dhw_thermal_cleanse_cycle:
       description: "(Optional) Thermal Cleanse Cycle in hours."

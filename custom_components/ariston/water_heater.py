@@ -27,7 +27,7 @@ from .const import (
     VAL_SUMMER,
     VAL_WINTER,
     VAL_OFFLINE,
-    VAL_ONLINE,
+    VAL_DISABLED,
     VALUE,
     UNITS,
     MIN,
@@ -200,7 +200,7 @@ class AristonWaterHeater(WaterHeaterEntity):
             current_op = self._api.sensor_values[PARAM_DHW_MODE][VALUE]
         except KeyError:
             if self._api.dhw_available:
-                return VAL_ONLINE
+                return VAL_DISABLED
             else:
                 return VAL_OFFLINE
         return current_op

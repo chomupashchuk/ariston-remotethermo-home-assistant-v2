@@ -78,7 +78,10 @@ PARAM_ONLINE_VERSION = "online_version"
 PARAM_PRESSURE = "pressure"
 PARAM_CH_FLOW_TEMP = 'ch_flow_temperature'
 PARAM_CH_FIXED_TEMP = 'ch_fixed_temperature'
-
+PARAM_CH_LAST_MONTH_GAS = 'ch_gas_last_month'
+PARAM_CH_LAST_MONTH_ELECTRICITY = 'ch_electricity_last_month'
+PARAM_DHW_LAST_MONTH_GAS = 'dhw_gas_last_month'
+PARAM_DHW_LAST_MONTH_ELECTRICITY = 'dhw_electricity_last_month'
 
 VAL_MANUAL = "Manual"
 VAL_PROGRAM = "Time program"
@@ -88,8 +91,8 @@ VAL_COOLING = "Cooling"
 VAL_OFF = "OFF"
 VAL_ON = "ON"
 VAL_OFFLINE = "Offline"
-VAL_ONLINE = "Online"
-VAL_HEATING_ONLY = "Heating Only"
+VAL_DISABLED = "Disabled"
+VAL_HEATING_ONLY = "Heating only"
 VAL_HOLIDAY = "Holiday"
 
 CONF_LOG = "logging"

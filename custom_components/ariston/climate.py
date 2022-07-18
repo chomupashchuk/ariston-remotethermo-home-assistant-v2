@@ -273,7 +273,7 @@ class AristonThermostat(ClimateEntity):
                     **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
                 )
             else:
-                # hvac is OFF, so use heating only, if not supported then winter
+                # hvac is OFF, so use Heating only, if not supported then winter
                 if VAL_HEATING_ONLY in supported_modes:
                     self._api.set_http_data(
                         **{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode}
@@ -293,7 +293,7 @@ class AristonThermostat(ClimateEntity):
                     **{PARAM_MODE: VAL_WINTER, PARAM_CH_MODE: ch_mode}
                 )
             else:
-                # hvac is OFF, so use heating only, if not supported then winter
+                # hvac is OFF, so use Heating only, if not supported then winter
                 if VAL_HEATING_ONLY in supported_modes:
                     self._api.set_http_data(
                         **{PARAM_MODE: VAL_HEATING_ONLY, PARAM_CH_MODE: ch_mode}

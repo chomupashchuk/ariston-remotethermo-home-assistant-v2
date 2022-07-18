@@ -71,10 +71,6 @@ Order of Installation:
 
 #### Sensors
 **Some parameters are not supported on all models**
-  - `account_ch_gas` - gas use summary for CH. Not supported on all models.
-  - `account_ch_electricity` - electricity use summary for CH. Not supported on all models.
-  - `account_dhw_gas` - gas use summary for DHW. Not supported on all models.
-  - `account_dhw_electricity` - electricity use summary for DHW. Not supported on all models.
   - `ch_antifreeze_temperature` - CH antifreeze temperature.
   - `ch_detected_temperature` - temperature measured by thermostat.
   - `ch_mode` - mode of CH (`manual` or `scheduled` and others).
@@ -85,11 +81,6 @@ Order of Installation:
   - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `ch_fixed_temperature` - CH Fixed Temperature.
   - `ch_flow_temperature` - CH Flow Setpoint Temperature.
-  - `cooling_last_24h` - energy use for pump cooling in a day. Not supported on all models.
-  - `cooling_last_7d` - energy use for pump cooling in a week. Not supported on all models.
-  - `cooling_last_30d` - energy use for pump cooling in a month. Not supported on all models.
-  - `cooling_last_365d` - energy use for pump cooling in a year. Not supported on all models.
-  - `cooling_today` - energy use for pump cooling today. Not supported on all models.
   - `dhw_program` - DHW Time Program.
   - `dhw_comfort_function` - DHW comfort function.
   - `dhw_mode` - mode of DHW. Not supported on all models.
@@ -98,25 +89,16 @@ Order of Installation:
   - `dhw_set_temperature` - set DHW temperature.
   - `dhw_storage_temperature` - DHW storage temperature. Not supported on all models.
   - `dhw_thermal_cleanse_cycle` - DHW thermal cleanse cycle.
-  - `electricity_cost` - Electricity cost.
   - `errors_count` - active errors (no actual errors to test on).
-  - `gas_type` - Gas type.
-  - `gas_cost` - Gas cost.
-  - `heating_last_24h` - energy use for heating in last 24 hours. Not supported on all models.
-  - `heating_last_30d` - energy use for heating in last 7 days. Not supported on all models.
-  - `heating_last_365d` - energy use for heating in last 30 days. Not supported on all models.
-  - `heating_last_7d` - energy use for heating in last 365 days. Not supported on all models.
-  - `heating_today` - energy use for heating today. Not supported on all models.
   - `mode` - mode of boiler (`off` or `summer` or `winter` and others).
   - `outside_temperature` - outside temperature. Not supported on all models.
   - `pressure` - Water Pressure.
   - `signal_strength` - Wifi signal strength.
   - `units` - Units of measurement.
-  - `water_last_24h` - energy use for water in last 24 hours. Not supported on all models.
-  - `water_last_30d` - energy use for water in last 7 days. Not supported on all models.
-  - `water_last_365d` - energy use for water in last 30 days. Not supported on all models.
-  - `water_last_7d` - energy use for water in last 365 days. Not supported on all models.
-  - `water_today` - energy use for water today. Not supported on all models.
+  - `ch_gas_last_month` - gas use last month for CH.
+  - `ch_electricity_last_month` - electricity use last month for CH.
+  - `dhw_gas_last_month` - gas use last month for DHW.
+  - `dhw_electricity_last_month` - electricity use last month for DHW.
 
 #### Binary sensors
 **Some parameters are not supported on all models**
