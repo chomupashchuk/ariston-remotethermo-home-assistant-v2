@@ -27,7 +27,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.1"
+    _VERSION = "2.0.3"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -1035,26 +1035,33 @@ class AristonHandler:
 
             self._last_month_data = copy.deepcopy(resp.json())
             units = 'kWh'
+            self._reset_sensor(self._PARAM_CH_LAST_MONTH_GAS)
+            self._reset_sensor(self._PARAM_CH_LAST_MONTH_ELECTRICITY)
+            self._reset_sensor(self._PARAM_DHW_LAST_MONTH_GAS)
+            self._reset_sensor(self._PARAM_DHW_LAST_MONTH_ELECTRICITY)
             for item in self._last_month_data["LastMonth"]:
                 try:
                     if item["use"] == 1:
                         if "gas" in item:
-                            self._ariston_sensors[self._PARAM_CH_LAST_MONTH_GAS][self._VALUE] = item["gas"]
-                            self._ariston_sensors[self._PARAM_CH_LAST_MONTH_GAS][self._UNITS] = units
+                            sensor = self._PARAM_CH_LAST_MONTH_GAS
+                            self._ariston_sensors[sensor][self._VALUE] = item["gas"]
+                            self._ariston_sensors[sensor][self._UNITS] = units
                         if "elect" in item:
-                            self._ariston_sensors[self._PARAM_CH_LAST_MONTH_ELECTRICITY][self._VALUE] = item["elect"]
-                            self._ariston_sensors[self._PARAM_CH_LAST_MONTH_ELECTRICITY][self._UNITS] = units
+                            sensor = self._PARAM_CH_LAST_MONTH_ELECTRICITY
+                            self._ariston_sensors[sensor][self._VALUE] = item["elect"]
+                            self._ariston_sensors[sensor][self._UNITS] = units
                     if item["use"] == 2:
                         if "gas" in item:
-                            self._ariston_sensors[self._PARAM_DHW_LAST_MONTH_GAS][self._VALUE] = item["gas"]
-                            self._ariston_sensors[self._PARAM_DHW_LAST_MONTH_GAS][self._UNITS] = units
+                            sensor = self._PARAM_DHW_LAST_MONTH_GAS
+                            self._ariston_sensors[sensor][self._VALUE] = item["gas"]
+                            self._ariston_sensors[sensor][self._UNITS] = units
                         if "elect" in item:
-                            self._ariston_sensors[self._PARAM_DHW_LAST_MONTH_ELECTRICITY][self._VALUE] = item["elect"]
-                            self._ariston_sensors[self._PARAM_DHW_LAST_MONTH_ELECTRICITY][self._UNITS] = units
+                            sensor = self._PARAM_DHW_LAST_MONTH_ELECTRICITY
+                            self._ariston_sensors[sensor][self._VALUE] = item["elect"]
+                            self._ariston_sensors[sensor][self._UNITS] = units
                 except Exception as ex:
                     self._LOGGER.warn(f'Issue reading {item["use"]} for last month, {ex}')
                     continue
-
 
         self._subscribers_sensors_inform()
 

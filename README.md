@@ -68,6 +68,8 @@ Order of Installation:
   - `ch_water_temperature` - CH Water Temperature. **WORKS ONLY ON SPECIFIC MODELS WHILE ON OTHERS CAUSES CRASHES**
   - `ch_fixed_temperature` - CH Fixed Temperature.
   - `dhw_set_temperature` - set DHW temperature.
+  - `dhw_comfort_temperature` - DHW storage comfort temperature. Not supported on all models.
+  - `dhw_economy_temperature` - DHW storage economy temperature. Not supported on all models.
 
 #### Sensors
 **Some parameters are not supported on all models**
