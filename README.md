@@ -101,6 +101,22 @@ Order of Installation:
   - `ch_electricity_last_month` - electricity use last month for CH.
   - `dhw_gas_last_month` - gas use last month for DHW.
   - `dhw_electricity_last_month` - electricity use last month for DHW.
+  - `ch_energy_today` - Energy use for CH today
+  - `ch_energy_yesterday` - Energy use for CH yesterday
+  - `dhw_energy_today` - Energy use for DHW today
+  - `dhw_energy_yesterday` - Energy use for DHW yesterday
+  - `ch_energy_this_week` - Energy use for CH this week
+  - `ch_energy_last_week` - Energy use for CH last week
+  - `dhw_energy_this_week` - Energy use for DHW this week
+  - `dhw_energy_last_week` - Energy use for DHW last week
+  - `ch_energy_this_month` - Energy use for CH this month
+  - `ch_energy_last_month` - Energy use for CH last month
+  - `dhw_energy_this_month` - Energy use for DHW this month
+  - `dhw_energy_last_month` - Energy use for DHW last month
+  - `ch_energy_this_year` - Energy use for CH this year
+  - `ch_energy_last_year` - Energy use for CH last year
+  - `dhw_energy_this_year` - Energy use for DHW this year
+  - `dhw_energy_last_year` - Energy use for DHW last year
 
 #### Binary sensors
 **Some parameters are not supported on all models**
