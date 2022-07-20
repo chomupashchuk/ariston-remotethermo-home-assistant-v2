@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.5"
+    _VERSION = "2.0.6"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -113,10 +113,8 @@ class AristonHandler:
     _PARAM_CH_ENERGY_YESTERDAY = 'ch_energy_yesterday'
     _PARAM_DHW_ENERGY_TODAY = 'dhw_energy_today'
     _PARAM_DHW_ENERGY_YESTERDAY = 'dhw_energy_yesterday'
-    _PARAM_CH_ENERGY_THIS_WEEK = 'ch_energy_this_week'
-    _PARAM_CH_ENERGY_LAST_WEEK = 'ch_energy_last_week'
-    _PARAM_DHW_ENERGY_THIS_WEEK = 'dhw_energy_this_week'
-    _PARAM_DHW_ENERGY_LAST_WEEK = 'dhw_energy_last_week'
+    _PARAM_CH_ENERGY_LAST_7_DAYS = 'ch_energy_last_7_days'
+    _PARAM_DHW_ENERGY_LAST_7_DAYS = 'dhw_energy_last_7_days'
     _PARAM_CH_ENERGY_THIS_MONTH = 'ch_energy_this_month'
     _PARAM_CH_ENERGY_LAST_MONTH = 'ch_energy_last_month'
     _PARAM_DHW_ENERGY_THIS_MONTH = 'dhw_energy_this_month'
@@ -271,10 +269,8 @@ class AristonHandler:
         _PARAM_CH_ENERGY_YESTERDAY,
         _PARAM_DHW_ENERGY_TODAY,
         _PARAM_DHW_ENERGY_YESTERDAY,
-        _PARAM_CH_ENERGY_THIS_WEEK,
-        _PARAM_CH_ENERGY_LAST_WEEK,
-        _PARAM_DHW_ENERGY_THIS_WEEK,
-        _PARAM_DHW_ENERGY_LAST_WEEK,
+        _PARAM_CH_ENERGY_LAST_7_DAYS,
+        _PARAM_DHW_ENERGY_LAST_7_DAYS,
         _PARAM_CH_ENERGY_THIS_MONTH,
         _PARAM_CH_ENERGY_LAST_MONTH,
         _PARAM_DHW_ENERGY_THIS_MONTH,
@@ -494,9 +490,6 @@ class AristonHandler:
         self._timer_queue_delay = threading.Timer(0, self._control_availability_state, [self._REQUEST_MAIN])
         self._timer_set_delay = threading.Timer(0, self._preparing_setting_http_data)
 
-        self._last_request = self._REQUEST_MAIN
-        self._last_request_low_prio = self._REQUEST_CH_SCHEDULE
-
         self._other_parameters = []
         for sensor in self._MAP_ARISTON_WEB_MENU_PARAMS:
             if sensor in sensors:
@@ -525,6 +518,12 @@ class AristonHandler:
         if not any(item in sensors for item in self._LIST_ENERGY):
             # No sensor for last month 
             self._requests_lists[1].remove(self._REQUEST_ENERGY)
+
+        self._last_request = self._requests_lists[0][0]
+        if self._requests_lists[1]:
+            self._last_request_low_prio = self._requests_lists[1][0]
+        else:
+            self._last_request_low_prio = None
 
         self._subscribed = list()
         self._subscribed_args = list()
@@ -1106,6 +1105,8 @@ class AristonHandler:
             this_day = datetime.date.today().day
             this_day_week = datetime.date.today().weekday()
             this_hour = datetime.datetime.now().hour
+            CH_ENERGY = 7
+            DHW_ENERGY = 10
             # 2hour during scanning is decreased by 2 at the beginning
             if this_hour % 2 == 1:
                 # odd value means we calculate even value and add 2 hours due to following decrease
@@ -1117,22 +1118,20 @@ class AristonHandler:
                 (
                     self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_YESTERDAY][self._VALUE],
-                    self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_WEEK][self._VALUE],
-                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_WEEK][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_7_DAYS][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_MONTH][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_YEAR][self._VALUE],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_YESTERDAY][self._ATTRIBUTES],
-                    self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_WEEK][self._ATTRIBUTES],
-                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_WEEK][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_7_DAYS][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_YEAR][self._ATTRIBUTES],
                 ) = self._get_energy_data(
-                    1,
+                    CH_ENERGY,
                     this_year=this_year,
                     this_month=this_month,
                     this_day=this_day,
@@ -1140,8 +1139,7 @@ class AristonHandler:
                     this_2hour=this_2hour)
                 self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_CH_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_WEEK][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_WEEK][self._UNITS] = self._UNIT_KWH
+                self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
@@ -1150,8 +1148,7 @@ class AristonHandler:
                 self._LOGGER.warn(f'Issue handling energy used for CH, {ex}')
                 self._reset_sensor(self._PARAM_CH_ENERGY_TODAY)
                 self._reset_sensor(self._PARAM_CH_ENERGY_YESTERDAY)
-                self._reset_sensor(self._PARAM_CH_ENERGY_THIS_WEEK)
-                self._reset_sensor(self._PARAM_CH_ENERGY_LAST_WEEK)
+                self._reset_sensor(self._PARAM_CH_ENERGY_LAST_7_DAYS)
                 self._reset_sensor(self._PARAM_CH_ENERGY_THIS_MONTH)
                 self._reset_sensor(self._PARAM_CH_ENERGY_LAST_MONTH)
                 self._reset_sensor(self._PARAM_CH_ENERGY_THIS_YEAR)
@@ -1160,22 +1157,20 @@ class AristonHandler:
                 (
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_TODAY][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_YESTERDAY][self._VALUE],
-                    self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_WEEK][self._VALUE],
-                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_WEEK][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_7_DAYS][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_MONTH][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_YEAR][self._VALUE],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_TODAY][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_YESTERDAY][self._ATTRIBUTES],
-                    self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_WEEK][self._ATTRIBUTES],
-                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_WEEK][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_7_DAYS][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_YEAR][self._ATTRIBUTES],
                 ) = self._get_energy_data(
-                    2,
+                    DHW_ENERGY,
                     this_year=this_year,
                     this_month=this_month,
                     this_day=this_day,
@@ -1183,8 +1178,7 @@ class AristonHandler:
                     this_2hour=this_2hour)
                 self._ariston_sensors[self._PARAM_DHW_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_DHW_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_WEEK][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_WEEK][self._UNITS] = self._UNIT_KWH
+                self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
                 self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
@@ -1193,8 +1187,7 @@ class AristonHandler:
                 self._LOGGER.warn(f'Issue handling energy used for DHW, {ex}')
                 self._reset_sensor(self._PARAM_DHW_ENERGY_TODAY)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_YESTERDAY)
-                self._reset_sensor(self._PARAM_DHW_ENERGY_THIS_WEEK)
-                self._reset_sensor(self._PARAM_DHW_ENERGY_LAST_WEEK)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_LAST_7_DAYS)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_THIS_MONTH)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_LAST_MONTH)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_THIS_YEAR)
@@ -1206,16 +1199,14 @@ class AristonHandler:
     def _get_energy_data(self, k_num, this_year, this_month, this_day, this_day_week, this_2hour):
         energy_today = 0
         energy_yesterday = 0
-        energy_this_week = 0
-        energy_last_week = 0
+        energy_last_7_days = 0
         energy_this_month = 0
         energy_last_month = 0
         energy_this_year = 0
         energy_last_year = 0
         energy_today_attr = {}
         energy_yesterday_attr = {}
-        energy_this_week_attr = {}
-        energy_last_week_attr = {}
+        energy_last_7_days_attr = {}
         energy_this_month_attr = {}
         energy_last_month_attr = {}
         energy_this_year_attr = {}
@@ -1232,36 +1223,37 @@ class AristonHandler:
                 scan_day = this_day
                 scan_day_week = this_day_week
                 scan_2hour = this_2hour
-                scan_break = False
+                scan_break = 0
                 if item['p'] == 1:
-                    prev_day, prev_month, prev_year, _ = self._get_prev_day(day=this_day, month=this_month, year=this_year, scan_break=False)
-                    break_two = False
+                    prev_day, prev_month, prev_year, _ = self._get_prev_day(day=this_day, month=this_month, year=this_year, scan_break=0)
+                    prev_day_2, prev_month_2, prev_year_2, _ = self._get_prev_day(day=prev_day, month=prev_month, year=prev_year, scan_break=0)
+                    use_day, use_month, use_year = this_day, this_month, this_year
+                    first_scan = True
                     for value in reversed(item['v']):
-                        scan_2hour, scan_break, break_two = self._get_prev_hour(hour=scan_2hour, scan_break=scan_break, break_two=break_two)
-                        if not scan_break:
-                            energy_today_attr[hour_text.format(this_year, calendar.month_abbr[this_month], this_day, scan_2hour)] = value
+                        scan_2hour, scan_break = self._get_prev_hour(hour=scan_2hour, scan_break=scan_break)
+                        if first_scan and scan_break == 1:
+                            first_scan = False
+                            scan_break = 0
+                            use_day, use_month, use_year = prev_day, prev_month, prev_year
+                            prev_day, prev_month, prev_year = prev_day_2, prev_month_2, prev_year_2
+                        if scan_break == 0:
+                            energy_today_attr[hour_text.format(use_year, calendar.month_abbr[use_month], use_day, scan_2hour)] = value
                             energy_today += value
-                        elif not break_two:
+                        else:
                             energy_yesterday_attr[hour_text.format(prev_year, calendar.month_abbr[prev_month], prev_day, scan_2hour)] = value
                             energy_yesterday += value
                 if item['p'] == 2:
-                    energy_this_week_attr[weekday_text.format(this_year, calendar.month_abbr[this_month], this_day, calendar.day_abbr[this_day_week])] = energy_today
-                    energy_this_week += energy_today
                     for value in reversed(item['v']):
-                        scan_day, scan_month, scan_year, scan_break = self._get_prev_day(day=scan_day, month=scan_month, year=scan_year, scan_break=scan_break)
-                        scan_day_week, scan_break = self._get_prev_day_week(day=scan_day_week, scan_break=scan_break)
-                        if not scan_break:
-                            energy_this_week_attr[weekday_text.format(scan_year, calendar.month_abbr[scan_month], scan_day, calendar.day_abbr[scan_day_week])] = value
-                            energy_this_week += value
-                        else:
-                            energy_last_week_attr[weekday_text.format(scan_year, calendar.month_abbr[scan_month], scan_day, calendar.day_abbr[scan_day_week])] = value
-                            energy_last_week += value
+                        scan_day, scan_month, scan_year, _ = self._get_prev_day(day=scan_day, month=scan_month, year=scan_year, scan_break=0)
+                        scan_day_week = self._get_prev_day_week(day=scan_day_week)
+                        energy_last_7_days_attr[weekday_text.format(scan_year, calendar.month_abbr[scan_month], scan_day, calendar.day_abbr[scan_day_week])] = value
+                        energy_last_7_days += value
                 if item['p'] == 3:
                     energy_this_month_attr[month_text.format(this_year, calendar.month_abbr[this_month], this_day)] = energy_today
                     energy_this_month += energy_today
                     for value in reversed(item['v']):
                         scan_day, scan_month, scan_year, scan_break = self._get_prev_day(day=scan_day, month=scan_month, year=scan_year, scan_break=scan_break)
-                        if not scan_break:
+                        if scan_break == 0:
                             energy_this_month_attr[month_text.format(scan_year, calendar.month_abbr[scan_month], scan_day)] = value
                             energy_this_month += value
                         else:
@@ -1272,7 +1264,7 @@ class AristonHandler:
                     energy_this_year += energy_this_month
                     for value in reversed(item['v']):
                         scan_month, scan_year, scan_break = self._get_prev_month(month=scan_month, year=scan_year, scan_break=scan_break)
-                        if not scan_break:
+                        if scan_break == 0:
                             energy_this_year_attr[year_text.format(scan_year, calendar.month_abbr[scan_month])] = value
                             energy_this_year += value
                         else:
@@ -1281,16 +1273,14 @@ class AristonHandler:
         return (
             energy_today,
             energy_yesterday,
-            energy_this_week,
-            energy_last_week,
+            energy_last_7_days,
             energy_this_month,
             energy_last_month,
             energy_this_year,
             energy_last_year,
             energy_today_attr,
             energy_yesterday_attr,
-            energy_this_week_attr,
-            energy_last_week_attr,
+            energy_last_7_days_attr,
             energy_this_month_attr,
             energy_last_month_attr,
             energy_this_year_attr,
@@ -1302,7 +1292,7 @@ class AristonHandler:
         if month > 1:
             return month - 1, year, scan_break
         else:
-            return 12, year - 1, True
+            return 12, year - 1, scan_break + 1
 
 
     def _get_prev_day(self, day, month, year, scan_break):
@@ -1310,27 +1300,23 @@ class AristonHandler:
             return day - 1, month, year, scan_break
         else:
             if month > 1:
-                return calendar.monthrange(year=year, month=month - 1)[1], month - 1, year, True
+                return calendar.monthrange(year=year, month=month - 1)[1], month - 1, year, scan_break + 1
             else:
-                return calendar.monthrange(year=year, month=12)[1], 12, year - 1, True
+                return calendar.monthrange(year=year, month=12)[1], 12, year - 1, scan_break + 1
 
 
-    def _get_prev_day_week(self, day, scan_break):
+    def _get_prev_day_week(self, day):
         if day > 0:
-            return day - 1, scan_break
+            return day - 1
         else:
-            return 6, True
+            return 6
 
 
-    def _get_prev_hour(self, hour, scan_break, break_two):
+    def _get_prev_hour(self, hour, scan_break):
         if hour > 0:
-            return hour - 2, scan_break, break_two
+            return hour - 2, scan_break
         else:
-            if scan_break:
-                break_two = True
-            else:
-                break_two = False
-            return 22, True, break_two
+            return 22, scan_break + 1
 
 
     def _get_http_data(self, request_type=""):

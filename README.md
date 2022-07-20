@@ -105,10 +105,8 @@ Order of Installation:
   - `ch_energy_yesterday` - Energy use for CH yesterday
   - `dhw_energy_today` - Energy use for DHW today
   - `dhw_energy_yesterday` - Energy use for DHW yesterday
-  - `ch_energy_this_week` - Energy use for CH this week
-  - `ch_energy_last_week` - Energy use for CH last week
-  - `dhw_energy_this_week` - Energy use for DHW this week
-  - `dhw_energy_last_week` - Energy use for DHW last week
+  - `ch_energy_last_7_days` - Energy use for CH last 7 days
+  - `dhw_energy_last_7_days` - Energy use for DHW last 7 days
   - `ch_energy_this_month` - Energy use for CH this month
   - `ch_energy_last_month` - Energy use for CH last month
   - `dhw_energy_this_month` - Energy use for DHW this month
