@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.6"
+    _VERSION = "2.0.7"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -491,7 +491,7 @@ class AristonHandler:
         self._timer_set_delay = threading.Timer(0, self._preparing_setting_http_data)
 
         self._other_parameters = []
-        for sensor in self._MAP_ARISTON_WEB_MENU_PARAMS:
+        for sensor in self._LIST_ARISTON_WEB_PARAMS:
             if sensor in sensors:
                 self._other_parameters.append(self._MAP_ARISTON_WEB_MENU_PARAMS[sensor])
         
@@ -500,29 +500,22 @@ class AristonHandler:
         self._requests_lists = copy.deepcopy(self._REQUESTS_SEQUENCE)
 
         # If no sensors specified then no need to send the requests thus increasing frequency of fetching data for wanted sensors
-        if not self._other_parameters:
-            # No sensors from other parameters
-            self._requests_lists[0].remove(self._REQUEST_ADDITIONAL)
-        if not any(item in sensors for item in self._LIST_ERROR_PARAMS):
-            # No sensor for error count
-            self._requests_lists[0].remove(self._REQUEST_ERRORS)
-        if not any(item in sensors for item in self._LIST_CH_PROGRAM_PARAMS):
-            # No sensor for CH schedule 
-            self._requests_lists[1].remove(self._REQUEST_CH_SCHEDULE)
-        if not any(item in sensors for item in self._LIST_DHW_PROGRAM_PARAMS):
-            # No sensor for DHW schedule 
-            self._requests_lists[1].remove(self._REQUEST_DHW_SCHEDULE)
-        if not any(item in sensors for item in self._LIST_LAST_MONTH):
-            # No sensor for last month 
-            self._requests_lists[1].remove(self._REQUEST_LAST_MONTH)
-        if not any(item in sensors for item in self._LIST_ENERGY):
-            # No sensor for last month 
-            self._requests_lists[1].remove(self._REQUEST_ENERGY)
+        for request, sensor_list in self._MAP_REQUEST.items():
+            if request != self._REQUEST_MAIN:
+                # Main requests cannot be removed
+                if not any(item in sensors for item in sensor_list):
+                    if request in self._requests_lists[0]:
+                        self._requests_lists[0].remove(request)
+                    if request in self._requests_lists[1]:
+                        self._requests_lists[1].remove(request)
 
-        self._last_request = self._requests_lists[0][0]
+        # At least 1 main request is present
+        self._last_request = self._requests_lists[0][-1]
         if self._requests_lists[1]:
-            self._last_request_low_prio = self._requests_lists[1][0]
+            # there are requests in low prio
+            self._last_request_low_prio = self._requests_lists[1][-1]
         else:
+            # no requests in low prio
             self._last_request_low_prio = None
 
         self._subscribed = list()
