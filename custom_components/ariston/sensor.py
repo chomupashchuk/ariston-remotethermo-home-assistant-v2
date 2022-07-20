@@ -73,6 +73,7 @@ from .const import (
     PARAM_CH_ENERGY_LAST_YEAR,
     PARAM_DHW_ENERGY_THIS_YEAR,
     PARAM_DHW_ENERGY_LAST_YEAR,
+    PARAM_VERSION,
     VALUE,
     UNITS,
     ATTRIBUTES,
@@ -117,7 +118,6 @@ SENSOR_CH_LAST_MONTH_ELECTRICITY = "Electricity use for CH Last Month"
 SENSOR_CH_LAST_MONTH_GAS = "Gas use for CH Last Month"
 SENSOR_DHW_LAST_MONTH_ELECTRICITY = "Electricity use for DHW Last Month"
 SENSOR_DHW_LAST_MONTH_GAS = "Gas use for DHW Last Month"
-
 SENSOR_CH_ENERGY_TODAY = 'CH energy today'
 SENSOR_CH_ENERGY_YESTERDAY = 'CH energy yesterday'
 SENSOR_DHW_ENERGY_TODAY = 'DHW energy today'
@@ -134,6 +134,7 @@ SENSOR_CH_ENERGY_THIS_YEAR = 'CH energy this year'
 SENSOR_CH_ENERGY_LAST_YEAR = 'CH energy last year'
 SENSOR_DHW_ENERGY_THIS_YEAR = 'DHW energy this year'
 SENSOR_DHW_ENERGY_LAST_YEAR = 'DHW energy last year'
+SENSOR_VERSION = 'Integration local version'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -183,6 +184,7 @@ SENSORS = {
     PARAM_CH_ENERGY_LAST_YEAR: [SENSOR_CH_ENERGY_LAST_YEAR, DEVICE_CLASS_ENERGY, "mdi:cash", None],
     PARAM_DHW_ENERGY_THIS_YEAR: [SENSOR_DHW_ENERGY_THIS_YEAR, DEVICE_CLASS_ENERGY, "mdi:cash", None],
     PARAM_DHW_ENERGY_LAST_YEAR: [SENSOR_DHW_ENERGY_LAST_YEAR, DEVICE_CLASS_ENERGY, "mdi:cash", None],
+    PARAM_VERSION: [SENSOR_VERSION, None, "mdi:package-down", None],
 }
 
 
@@ -282,6 +284,8 @@ class AristonSensor(Entity):
     @property
     def available(self):
         """Return True if entity is available."""
+        if self._sensor_type == PARAM_VERSION:
+            return True
         return (
             self._api.available
             and not self._api.sensor_values[self._sensor_type][VALUE] is None
@@ -291,6 +295,9 @@ class AristonSensor(Entity):
     def update(self):
         """Get the latest data and updates the state."""
         try:
+            if self._sensor_type == PARAM_VERSION:
+                self._state = self._api.version
+                return
             if not self._api.available:
                 return
             self._state = self._api.sensor_values[self._sensor_type][VALUE]

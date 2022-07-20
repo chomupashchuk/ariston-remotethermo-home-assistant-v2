@@ -117,6 +117,7 @@ Order of Installation:
   - `ch_energy_last_year` - Energy use for CH last year
   - `dhw_energy_this_year` - Energy use for DHW this year
   - `dhw_energy_last_year` - Energy use for DHW last year
+  - `integration_version` - version of the integration
 
 #### Binary sensors
 **Some parameters are not supported on all models**

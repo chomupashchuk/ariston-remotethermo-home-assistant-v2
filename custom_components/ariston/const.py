@@ -98,6 +98,7 @@ PARAM_CH_ENERGY_THIS_YEAR = 'ch_energy_this_year'
 PARAM_CH_ENERGY_LAST_YEAR = 'ch_energy_last_year'
 PARAM_DHW_ENERGY_THIS_YEAR = 'dhw_energy_this_year'
 PARAM_DHW_ENERGY_LAST_YEAR = 'dhw_energy_last_year'
+PARAM_VERSION = 'integration_version'
 
 VAL_MANUAL = "Manual"
 VAL_PROGRAM = "Time program"

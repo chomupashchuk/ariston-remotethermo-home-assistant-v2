@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.4"
+    _VERSION = "2.0.5"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -1105,7 +1105,14 @@ class AristonHandler:
             this_year = datetime.date.today().year
             this_day = datetime.date.today().day
             this_day_week = datetime.date.today().weekday()
-            this_2hour = (datetime.datetime.now().hour // 2) * 2 + 2
+            this_hour = datetime.datetime.now().hour
+            # 2hour during scanning is decreased by 2 at the beginning
+            if this_hour % 2 == 1:
+                # odd value means we calculate even value and add 2 hours due to following decrease
+                this_2hour = (this_hour // 2) * 2 + 2
+            else:
+                # we assume that previous 2 hours would be used
+                this_2hour = this_hour
             try:
                 (
                     self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._VALUE],
