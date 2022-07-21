@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.8"
+    _VERSION = "2.0.9"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -1225,14 +1225,14 @@ class AristonHandler:
                     for value in reversed(item['v']):
                         scan_2hour, scan_break = self._get_prev_hour(hour=scan_2hour, scan_break=scan_break)
                         if first_scan and scan_break == 1:
-                            first_scan = False
                             scan_break = 0
                             use_day, use_month, use_year = prev_day, prev_month, prev_year
                             prev_day, prev_month, prev_year = prev_day_2, prev_month_2, prev_year_2
+                        first_scan = False
                         if scan_break == 0:
                             energy_today_attr[hour_text.format(use_year, calendar.month_abbr[use_month], use_day, scan_2hour)] = value
                             energy_today += value
-                        else:
+                        elif scan_break == 1:
                             energy_yesterday_attr[hour_text.format(prev_year, calendar.month_abbr[prev_month], prev_day, scan_2hour)] = value
                             energy_yesterday += value
                 if item['p'] == 2:
@@ -1249,7 +1249,7 @@ class AristonHandler:
                         if scan_break == 0:
                             energy_this_month_attr[month_text.format(scan_year, calendar.month_abbr[scan_month], scan_day)] = value
                             energy_this_month += value
-                        else:
+                        elif scan_break == 1:
                             energy_last_month_attr[month_text.format(scan_year, calendar.month_abbr[scan_month], scan_day)] = value
                             energy_last_month += value
                 if item['p'] == 4:
@@ -1260,7 +1260,7 @@ class AristonHandler:
                         if scan_break == 0:
                             energy_this_year_attr[year_text.format(scan_year, calendar.month_abbr[scan_month])] = value
                             energy_this_year += value
-                        else:
+                        elif scan_break == 1:
                             energy_last_year_attr[year_text.format(scan_year, calendar.month_abbr[scan_month])] = value
                             energy_last_year += value
         return (
