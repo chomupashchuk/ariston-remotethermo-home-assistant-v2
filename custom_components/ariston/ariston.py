@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.7"
+    _VERSION = "2.0.8"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -916,12 +916,12 @@ class AristonHandler:
             if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] in self._OFF_ON_TEXT and \
                 self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] in self._OFF_ON_TEXT:
                 if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] == self._OFF:
-                    value == self._OFF
+                    value = self._OFF
                 elif self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] == self._OFF:
-                    value == self._ON
+                    value = self._ON
                 else:
                     # Unknown state of DHW
-                    value == increase_dhw_temp
+                    value = increase_dhw_temp
         return value
 
 
