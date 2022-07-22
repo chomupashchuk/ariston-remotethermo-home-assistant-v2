@@ -101,20 +101,34 @@ Order of Installation:
   - `ch_electricity_last_month` - electricity use last month for CH.
   - `dhw_gas_last_month` - gas use last month for DHW.
   - `dhw_electricity_last_month` - electricity use last month for DHW.
-  - `ch_energy_today` - Energy use for CH today
-  - `ch_energy_yesterday` - Energy use for CH yesterday
-  - `dhw_energy_today` - Energy use for DHW today
-  - `dhw_energy_yesterday` - Energy use for DHW yesterday
-  - `ch_energy_last_7_days` - Energy use for CH last 7 days
-  - `dhw_energy_last_7_days` - Energy use for DHW last 7 days
-  - `ch_energy_this_month` - Energy use for CH this month
-  - `ch_energy_last_month` - Energy use for CH last month
-  - `dhw_energy_this_month` - Energy use for DHW this month
-  - `dhw_energy_last_month` - Energy use for DHW last month
-  - `ch_energy_this_year` - Energy use for CH this year
-  - `ch_energy_last_year` - Energy use for CH last year
-  - `dhw_energy_this_year` - Energy use for DHW this year
-  - `dhw_energy_last_year` - Energy use for DHW last year
+  - `ch_energy_today` - Energy use for CH today (seems to be more accurate for some models, not available for others)
+  - `ch_energy_yesterday` - Energy use for CH yesterday (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_today` - Energy use for DHW today (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_yesterday` - Energy use for DHW yesterday (seems to be more accurate for some models, not available for others)
+  - `ch_energy_last_7_days` - Energy use for CH last 7 days (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_last_7_days` - Energy use for DHW last 7 days (seems to be more accurate for some models, not available for others)
+  - `ch_energy_this_month` - Energy use for CH this month (seems to be more accurate for some models, not available for others)
+  - `ch_energy_last_month` - Energy use for CH last month (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_this_month` - Energy use for DHW this month (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_last_month` - Energy use for DHW last month (seems to be more accurate for some models, not available for others)
+  - `ch_energy_this_year` - Energy use for CH this year (seems to be more accurate for some models, not available for others)
+  - `ch_energy_last_year` - Energy use for CH last year (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_this_year` - Energy use for DHW this year (seems to be more accurate for some models, not available for others)
+  - `dhw_energy_last_year` - Energy use for DHW last year (seems to be more accurate for some models, not available for others)
+  - `ch_energy2_today` - Energy use for CH today (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_yesterday` - Energy use for CH yesterday (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_today` - Energy use for DHW today (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_yesterday` - Energy use for DHW yesterday (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_last_7_days` - Energy use for CH last 7 days (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_last_7_days` - Energy use for DHW last 7 days (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_this_month` - Energy use for CH this month (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_last_month` - Energy use for CH last month (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_this_month` - Energy use for DHW this month (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_last_month` - Energy use for DHW last month (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_this_year` - Energy use for CH this year (seems to be supported for most models, but less accurate for some)
+  - `ch_energy2_last_year` - Energy use for CH last year (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_this_year` - Energy use for DHW this year (seems to be supported for most models, but less accurate for some)
+  - `dhw_energy2_last_year` - Energy use for DHW last year (seems to be supported for most models, but less accurate for some)
   - `integration_version` - version of the integration
 
 #### Binary sensors

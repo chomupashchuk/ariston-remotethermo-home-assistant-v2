@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.9"
+    _VERSION = "2.0.10"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -42,6 +42,7 @@ class AristonHandler:
     _TIMEOUT_MIN = 5
     _TIMEOUT_AV = 15
     _TIMEOUT_MAX = 25
+    _TIME_SPLIT = 0.1
 
     # Log levels
     _LEVEL_CRITICAL = "CRITICAL"
@@ -123,6 +124,20 @@ class AristonHandler:
     _PARAM_CH_ENERGY_LAST_YEAR = 'ch_energy_last_year'
     _PARAM_DHW_ENERGY_THIS_YEAR = 'dhw_energy_this_year'
     _PARAM_DHW_ENERGY_LAST_YEAR = 'dhw_energy_last_year'
+    _PARAM_CH_ENERGY2_TODAY = 'ch_energy2_today'
+    _PARAM_CH_ENERGY2_YESTERDAY = 'ch_energy2_yesterday'
+    _PARAM_DHW_ENERGY2_TODAY = 'dhw_energy2_today'
+    _PARAM_DHW_ENERGY2_YESTERDAY = 'dhw_energy2_yesterday'
+    _PARAM_CH_ENERGY2_LAST_7_DAYS = 'ch_energy2_last_7_days'
+    _PARAM_DHW_ENERGY2_LAST_7_DAYS = 'dhw_energy2_last_7_days'
+    _PARAM_CH_ENERGY2_THIS_MONTH = 'ch_energy2_this_month'
+    _PARAM_CH_ENERGY2_LAST_MONTH = 'ch_energy2_last_month'
+    _PARAM_DHW_ENERGY2_THIS_MONTH = 'dhw_energy2_this_month'
+    _PARAM_DHW_ENERGY2_LAST_MONTH = 'dhw_energy2_last_month'
+    _PARAM_CH_ENERGY2_THIS_YEAR = 'ch_energy2_this_year'
+    _PARAM_CH_ENERGY2_LAST_YEAR = 'ch_energy2_last_year'
+    _PARAM_DHW_ENERGY2_THIS_YEAR = 'dhw_energy2_this_year'
+    _PARAM_DHW_ENERGY2_LAST_YEAR = 'dhw_energy2_last_year'
 
     # Ariston parameter codes in the menu
     _ARISTON_DHW_COMFORT_TEMP = "U6_9_0"
@@ -279,6 +294,20 @@ class AristonHandler:
         _PARAM_CH_ENERGY_LAST_YEAR,
         _PARAM_DHW_ENERGY_THIS_YEAR,
         _PARAM_DHW_ENERGY_LAST_YEAR,
+        _PARAM_CH_ENERGY2_TODAY,
+        _PARAM_CH_ENERGY2_YESTERDAY,
+        _PARAM_DHW_ENERGY2_TODAY,
+        _PARAM_DHW_ENERGY2_YESTERDAY,
+        _PARAM_CH_ENERGY2_LAST_7_DAYS,
+        _PARAM_DHW_ENERGY2_LAST_7_DAYS,
+        _PARAM_CH_ENERGY2_THIS_MONTH,
+        _PARAM_CH_ENERGY2_LAST_MONTH,
+        _PARAM_DHW_ENERGY2_THIS_MONTH,
+        _PARAM_DHW_ENERGY2_LAST_MONTH,
+        _PARAM_CH_ENERGY2_THIS_YEAR,
+        _PARAM_CH_ENERGY2_LAST_YEAR,
+        _PARAM_DHW_ENERGY2_THIS_YEAR,
+        _PARAM_DHW_ENERGY2_LAST_YEAR,
     ]
 
     # reverse mapping of Android api to sensor names
@@ -577,7 +606,7 @@ class AristonHandler:
         if changed_data:
             for iteration in range(len(self._subscribed)):
                 self._subscribed_thread = threading.Timer(
-                    0, self._subscribed[iteration], args=(changed_data, *self._subscribed_args[iteration]), kwargs=self._subscribed_kwargs[iteration])
+                    self._TIME_SPLIT, self._subscribed[iteration], args=(changed_data, *self._subscribed_args[iteration]), kwargs=self._subscribed_kwargs[iteration])
                 self._subscribed_thread.start()
 
 
@@ -624,7 +653,7 @@ class AristonHandler:
         if changed_data:
             for iteration in range(len(self._subscribed2)):
                 self._subscribed2_thread = threading.Timer(
-                    0, self._subscribed2[iteration], args=(changed_data, *self._subscribed2_args[iteration]), kwargs=self._subscribed2_kwargs[iteration])
+                    self._TIME_SPLIT, self._subscribed2[iteration], args=(changed_data, *self._subscribed2_args[iteration]), kwargs=self._subscribed2_kwargs[iteration])
                 self._subscribed2_thread.start()
 
 
@@ -1100,6 +1129,8 @@ class AristonHandler:
             this_hour = datetime.datetime.now().hour
             CH_ENERGY = 7
             DHW_ENERGY = 10
+            CH_ENERGY2 = 1
+            DHW_ENERGY2 = 2
             # 2hour during scanning is decreased by 2 at the beginning
             if this_hour % 2 == 1:
                 # odd value means we calculate even value and add 2 hours due to following decrease
@@ -1123,6 +1154,7 @@ class AristonHandler:
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
                 ) = self._get_energy_data(
                     CH_ENERGY,
                     this_year=this_year,
@@ -1130,13 +1162,14 @@ class AristonHandler:
                     this_day=this_day,
                     this_day_week=this_day_week,
                     this_2hour=this_2hour)
-                self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+                if found_key:
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_LAST_YEAR][self._UNITS] = self._UNIT_KWH
             except Exception as ex:
                 self._LOGGER.warn(f'Issue handling energy used for CH, {ex}')
                 self._reset_sensor(self._PARAM_CH_ENERGY_TODAY)
@@ -1162,6 +1195,7 @@ class AristonHandler:
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._ATTRIBUTES],
                     self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
                 ) = self._get_energy_data(
                     DHW_ENERGY,
                     this_year=this_year,
@@ -1169,13 +1203,14 @@ class AristonHandler:
                     this_day=this_day,
                     this_day_week=this_day_week,
                     this_2hour=this_2hour)
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
-                self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+                if found_key:
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_LAST_YEAR][self._UNITS] = self._UNIT_KWH
             except Exception as ex:
                 self._LOGGER.warn(f'Issue handling energy used for DHW, {ex}')
                 self._reset_sensor(self._PARAM_DHW_ENERGY_TODAY)
@@ -1185,6 +1220,88 @@ class AristonHandler:
                 self._reset_sensor(self._PARAM_DHW_ENERGY_LAST_MONTH)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_THIS_YEAR)
                 self._reset_sensor(self._PARAM_DHW_ENERGY_LAST_YEAR)
+            try:
+                (
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_TODAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_YESTERDAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_7_DAYS][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_TODAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_YESTERDAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_7_DAYS][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_YEAR][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
+                ) = self._get_energy_data(
+                    CH_ENERGY2,
+                    this_year=this_year,
+                    this_month=this_month,
+                    this_day=this_day,
+                    this_day_week=this_day_week,
+                    this_2hour=this_2hour)
+                if found_key:
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY2_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue handling energy used for CH 2, {ex}')
+                self._reset_sensor(self._PARAM_CH_ENERGY2_TODAY)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_YESTERDAY)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_LAST_7_DAYS)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_THIS_MONTH)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_LAST_MONTH)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_THIS_YEAR)
+                self._reset_sensor(self._PARAM_CH_ENERGY2_LAST_YEAR)
+            try:
+                (
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_TODAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_YESTERDAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_7_DAYS][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_TODAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_YESTERDAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_7_DAYS][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_YEAR][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
+                ) = self._get_energy_data(
+                    DHW_ENERGY2,
+                    this_year=this_year,
+                    this_month=this_month,
+                    this_day=this_day,
+                    this_day_week=this_day_week,
+                    this_2hour=this_2hour)
+                if found_key:
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY2_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue handling energy used for DHW 2, {ex}')
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_TODAY)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_YESTERDAY)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_LAST_7_DAYS)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_THIS_MONTH)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_LAST_MONTH)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_THIS_YEAR)
+                self._reset_sensor(self._PARAM_DHW_ENERGY2_LAST_YEAR)
 
         self._subscribers_sensors_inform()
 
@@ -1208,9 +1325,10 @@ class AristonHandler:
         weekday_text = "{}_{}_{:02}_{}"
         month_text = "{}_{}_{:02}"
         year_text = "{}_{}"
-        
+        found_key = False
         for item in self._energy_use_data:
             if item["k"] == k_num:
+                found_key = True
                 scan_month = this_month
                 scan_year = this_year
                 scan_day = this_day
@@ -1263,6 +1381,14 @@ class AristonHandler:
                         elif scan_break == 1:
                             energy_last_year_attr[year_text.format(scan_year, calendar.month_abbr[scan_month])] = value
                             energy_last_year += value
+        if not found_key:
+            energy_today = None
+            energy_yesterday = None
+            energy_last_7_days = None
+            energy_this_month = None
+            energy_last_month = None
+            energy_this_year = None
+            energy_last_year = None
         return (
             energy_today,
             energy_yesterday,
@@ -1277,7 +1403,8 @@ class AristonHandler:
             energy_this_month_attr,
             energy_last_month_attr,
             energy_this_year_attr,
-            energy_last_year_attr
+            energy_last_year_attr,
+            found_key
         )
 
 
@@ -1455,7 +1582,7 @@ class AristonHandler:
 
             if self._started:
                 self._LOGGER.info(f'Shall send next request in {retry_in} seconds, current request is {request_to_send}')
-                self._timer_queue_delay = threading.Timer(0, self._control_availability_state, [request_to_send])
+                self._timer_queue_delay = threading.Timer(self._TIME_SPLIT, self._control_availability_state, [request_to_send])
                 self._timer_queue_delay.start()
                 self._timer_periodic_read = threading.Timer(retry_in, self._queue_get_data)
                 self._timer_periodic_read.start()
@@ -1747,7 +1874,7 @@ class AristonHandler:
 
                 self._timer_set_delay.cancel()
                 if self._started:
-                    self._timer_set_delay = threading.Timer(1, self._preparing_setting_http_data)
+                    self._timer_set_delay = threading.Timer(self._TIME_SPLIT, self._preparing_setting_http_data)
                     self._timer_set_delay.start()
 
                 if bad_values:
@@ -1781,7 +1908,7 @@ class AristonHandler:
         """Start communication with the server."""
         self._started = True
         self._LOGGER.info("Connection started")
-        self._timer_periodic_read = threading.Timer(0, self._queue_get_data)
+        self._timer_periodic_read = threading.Timer(self._TIME_SPLIT, self._queue_get_data)
         self._timer_periodic_read.start()
 
 
