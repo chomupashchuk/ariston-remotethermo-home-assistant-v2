@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.10"
+    _VERSION = "2.0.11"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -138,6 +138,20 @@ class AristonHandler:
     _PARAM_CH_ENERGY2_LAST_YEAR = 'ch_energy2_last_year'
     _PARAM_DHW_ENERGY2_THIS_YEAR = 'dhw_energy2_this_year'
     _PARAM_DHW_ENERGY2_LAST_YEAR = 'dhw_energy2_last_year'
+    _PARAM_CH_ENERGY_DELTA_TODAY = 'ch_energy_delta_today'
+    _PARAM_CH_ENERGY_DELTA_YESTERDAY = 'ch_energy_delta_yesterday'
+    _PARAM_DHW_ENERGY_DELTA_TODAY = 'dhw_energy_delta_today'
+    _PARAM_DHW_ENERGY_DELTA_YESTERDAY = 'dhw_energy_delta_yesterday'
+    _PARAM_CH_ENERGY_DELTA_LAST_7_DAYS = 'ch_energy_delta_last_7_days'
+    _PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS = 'dhw_energy_delta_last_7_days'
+    _PARAM_CH_ENERGY_DELTA_THIS_MONTH = 'ch_energy_delta_this_month'
+    _PARAM_CH_ENERGY_DELTA_LAST_MONTH = 'ch_energy_delta_last_month'
+    _PARAM_DHW_ENERGY_DELTA_THIS_MONTH = 'dhw_energy_delta_this_month'
+    _PARAM_DHW_ENERGY_DELTA_LAST_MONTH = 'dhw_energy_delta_last_month'
+    _PARAM_CH_ENERGY_DELTA_THIS_YEAR = 'ch_energy_delta_this_year'
+    _PARAM_CH_ENERGY_DELTA_LAST_YEAR = 'ch_energy_delta_last_year'
+    _PARAM_DHW_ENERGY_DELTA_THIS_YEAR = 'dhw_energy_delta_this_year'
+    _PARAM_DHW_ENERGY_DELTA_LAST_YEAR = 'dhw_energy_delta_last_year'
 
     # Ariston parameter codes in the menu
     _ARISTON_DHW_COMFORT_TEMP = "U6_9_0"
@@ -308,6 +322,20 @@ class AristonHandler:
         _PARAM_CH_ENERGY2_LAST_YEAR,
         _PARAM_DHW_ENERGY2_THIS_YEAR,
         _PARAM_DHW_ENERGY2_LAST_YEAR,
+        _PARAM_CH_ENERGY_DELTA_TODAY,
+        _PARAM_CH_ENERGY_DELTA_YESTERDAY,
+        _PARAM_DHW_ENERGY_DELTA_TODAY,
+        _PARAM_DHW_ENERGY_DELTA_YESTERDAY,
+        _PARAM_CH_ENERGY_DELTA_LAST_7_DAYS,
+        _PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS,
+        _PARAM_CH_ENERGY_DELTA_THIS_MONTH,
+        _PARAM_CH_ENERGY_DELTA_LAST_MONTH,
+        _PARAM_DHW_ENERGY_DELTA_THIS_MONTH,
+        _PARAM_DHW_ENERGY_DELTA_LAST_MONTH,
+        _PARAM_CH_ENERGY_DELTA_THIS_YEAR,
+        _PARAM_CH_ENERGY_DELTA_LAST_YEAR,
+        _PARAM_DHW_ENERGY_DELTA_THIS_YEAR,
+        _PARAM_DHW_ENERGY_DELTA_LAST_YEAR,
     ]
 
     # reverse mapping of Android api to sensor names
@@ -1131,6 +1159,8 @@ class AristonHandler:
             DHW_ENERGY = 10
             CH_ENERGY2 = 1
             DHW_ENERGY2 = 2
+            CH_ENERGY_DELTA = 20
+            DHW_ENERGY_DELTA = 21
             # 2hour during scanning is decreased by 2 at the beginning
             if this_hour % 2 == 1:
                 # odd value means we calculate even value and add 2 hours due to following decrease
@@ -1302,6 +1332,88 @@ class AristonHandler:
                 self._reset_sensor(self._PARAM_DHW_ENERGY2_LAST_MONTH)
                 self._reset_sensor(self._PARAM_DHW_ENERGY2_THIS_YEAR)
                 self._reset_sensor(self._PARAM_DHW_ENERGY2_LAST_YEAR)
+            try:
+                (
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_TODAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_YESTERDAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_7_DAYS][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_TODAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_YESTERDAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_7_DAYS][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_YEAR][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
+                ) = self._get_energy_data(
+                    CH_ENERGY_DELTA,
+                    this_year=this_year,
+                    this_month=this_month,
+                    this_day=this_day,
+                    this_day_week=this_day_week,
+                    this_2hour=this_2hour)
+                if found_key:
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_CH_ENERGY_DELTA_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue handling energy used for CH 2, {ex}')
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_TODAY)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_YESTERDAY)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_LAST_7_DAYS)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_THIS_MONTH)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_LAST_MONTH)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_THIS_YEAR)
+                self._reset_sensor(self._PARAM_CH_ENERGY_DELTA_LAST_YEAR)
+            try:
+                (
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_TODAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_YESTERDAY][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_MONTH][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_YEAR][self._VALUE],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_TODAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_YESTERDAY][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_MONTH][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_YEAR][self._ATTRIBUTES],
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_YEAR][self._ATTRIBUTES],
+                    found_key,
+                ) = self._get_energy_data(
+                    DHW_ENERGY_DELTA,
+                    this_year=this_year,
+                    this_month=this_month,
+                    this_day=this_day,
+                    this_day_week=this_day_week,
+                    this_2hour=this_2hour)
+                if found_key:
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_TODAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_YESTERDAY][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_MONTH][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_THIS_YEAR][self._UNITS] = self._UNIT_KWH
+                    self._ariston_sensors[self._PARAM_DHW_ENERGY_DELTA_LAST_YEAR][self._UNITS] = self._UNIT_KWH
+            except Exception as ex:
+                self._LOGGER.warn(f'Issue handling energy used for DHW 2, {ex}')
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_TODAY)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_YESTERDAY)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_LAST_7_DAYS)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_THIS_MONTH)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_LAST_MONTH)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_THIS_YEAR)
+                self._reset_sensor(self._PARAM_DHW_ENERGY_DELTA_LAST_YEAR)
 
         self._subscribers_sensors_inform()
 
