@@ -1,5 +1,6 @@
 """Suppoort for Ariston."""
 import logging
+import re
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -22,8 +23,9 @@ from homeassistant.const import (
 from homeassistant.helpers import discovery
 
 from .ariston import AristonHandler
+from .const import param_zoned
 
-from .binary_sensor import BINARY_SENSORS
+from .binary_sensor import binary_sensors_default
 from .const import (
     DOMAIN,
     DATA_ARISTON,
@@ -36,6 +38,8 @@ from .const import (
     CONF_PERIOD_SET,
     CONF_PERIOD_GET,
     CONF_MAX_SET_RETRIES,
+    CONF_CH_ZONES,
+    ZONED_PARAMS,
     PARAM_CH_MODE,
     PARAM_CH_SET_TEMPERATURE,
     PARAM_CH_WATER_TEMPERATURE,
@@ -51,9 +55,9 @@ from .const import (
     PARAM_VERSION,
     PARAM_THERMAL_CLEANSE_FUNCTION,
 )
-from .sensor import SENSORS
-from .switch import SWITCHES
-from .select import SELECTS
+from .sensor import sensors_default
+from .switch import switches_default
+from .select import selects_deafult
 
 DEFAULT_NAME = "Ariston"
 DEFAULT_MAX_RETRIES = 5
@@ -69,15 +73,15 @@ ARISTON_SCHEMA = vol.Schema(
         vol.Optional(CONF_GW, default=""): cv.string,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         vol.Optional(CONF_BINARY_SENSORS): vol.All(
-            cv.ensure_list, [vol.In(BINARY_SENSORS)]
+            cv.ensure_list, [vol.In(binary_sensors_default)]
         ),
-        vol.Optional(CONF_SENSORS): vol.All(cv.ensure_list, [vol.In(SENSORS)]),
+        vol.Optional(CONF_SENSORS): vol.All(cv.ensure_list, [vol.In(sensors_default)]),
 
         vol.Optional(CONF_MAX_SET_RETRIES, default=DEFAULT_MAX_RETRIES): vol.All(
             int, vol.Range(min=1, max=10)
         ),
-        vol.Optional(CONF_SWITCHES): vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
-        vol.Optional(CONF_SELECTOR): vol.All(cv.ensure_list, [vol.In(SELECTS)]),
+        vol.Optional(CONF_SWITCHES): vol.All(cv.ensure_list, [vol.In(switches_default)]),
+        vol.Optional(CONF_SELECTOR): vol.All(cv.ensure_list, [vol.In(selects_deafult)]),
 
         vol.Optional(CONF_PERIOD_GET, default=DEFAULT_PERIOD_GET): vol.All(
             int, vol.Range(min=30, max=3600)
@@ -88,6 +92,10 @@ ARISTON_SCHEMA = vol.Schema(
         vol.Optional(CONF_LOG, default="WARNING"): vol.In(
             ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
         ),
+        vol.Optional(CONF_CH_ZONES, default=1): vol.All(
+            int, vol.Range(min=1, max=6)
+        ),
+
     }
 )
 
@@ -177,6 +185,7 @@ def setup(hass, config):
         sensors = device.get(CONF_SENSORS)
         switches = device.get(CONF_SWITCHES)
         selectors =  device.get(CONF_SELECTOR)
+        num_ch_zones = device.get(CONF_CH_ZONES)
         if gw in dev_gateways:
             _LOGGER.error(f"Duplicate value of 'gw': {gw}")
             raise Exception(f"Duplicate value of 'gw': {gw}")
@@ -207,9 +216,26 @@ def setup(hass, config):
         # start api execution
         api.ariston_api.start()
 
+        climates = []
+        for zone in range(1, num_ch_zones + 1):
+            climates.append(f'{name} Zone{zone}')
+        
+        def update_list(updated_list):
+            if param in updated_list:
+                updated_list.remove(param)
+                for zone in range(1, num_ch_zones + 1):
+                    updated_list.append(param_zoned(param, zone))
+
+        params = {*sensors, *binary_sensors, *switches, *selectors}.intersection(ZONED_PARAMS)
+        for param in params:
+            update_list(switches)
+            update_list(binary_sensors)
+            update_list(sensors)
+            update_list(selectors)
+
         # load all devices
         hass.data[DATA_ARISTON][DEVICES][name] = AristonDevice(api, device)
-        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name, CLIMATES: [name]}, config)
+        discovery.load_platform(hass, CLIMATE, DOMAIN, {CONF_NAME: name, CLIMATES: climates}, config)
         discovery.load_platform(hass, WATER_HEATER, DOMAIN, {CONF_NAME: name}, config)
 
         if switches:
@@ -269,7 +295,8 @@ def setup(hass, config):
             raise Exception("Invalid entity_id device for Ariston")
 
         for api in api_list:
-            if api.name.replace(' ', '_').lower() == device_id.lower():
+            api_name = api.name.replace(' ', '_').lower()
+            if re.search(f'{api_name}_zone[1-9]$', device_id.lower()) or api_name == device_id.lower():
                 # climate entity is found
                 parameter_list = {}
 
@@ -286,8 +313,16 @@ def setup(hass, config):
                     PARAM_INTERNET_TIME,
                     PARAM_INTERNET_WEATHER,
                 }
-
+                
+                set_zoned_params = []
                 for param in params_to_set:
+                    if param in ZONED_PARAMS:
+                        for zone in range(1, 7):
+                            set_zoned_params.append(param_zoned(param, zone))
+                    else:
+                        set_zoned_params.append(param)
+
+                for param in set_zoned_params:
                     data = call.data.get(param, "")
                     if data != "":
                         parameter_list[param] = str(data)

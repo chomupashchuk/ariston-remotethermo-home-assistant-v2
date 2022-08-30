@@ -25,6 +25,7 @@ from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING
 )
 
+from .const import param_zoned
 from .const import (
     DATA_ARISTON,
     DEVICES,
@@ -107,6 +108,7 @@ from .const import (
     MAX,
     STEP,
     OPTIONS_TXT,
+    ZONED_PARAMS
 )
 
 SCAN_INTERVAL = timedelta(seconds=2)
@@ -191,7 +193,7 @@ SENSOR_VERSION = 'Integration local version'
 _LOGGER = logging.getLogger(__name__)
 
 # Sensor types are defined like: Name, units, icon
-SENSORS = {
+sensors_default = {
     PARAM_CH_ANTIFREEZE_TEMPERATURE: [SENSOR_CH_ANTIFREEZE_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:radiator", None],
     PARAM_CH_DETECTED_TEMPERATURE: [SENSOR_CH_DETECTED_TEMPERATURE, DEVICE_CLASS_TEMPERATURE, "mdi:thermometer", None],
     PARAM_CH_MODE: [SENSOR_CH_MODE, None, "mdi:radiator", None],
@@ -264,6 +266,17 @@ SENSORS = {
     PARAM_DHW_ENERGY_DELTA_LAST_YEAR: [SENSOR_DHW_ENERGY_DELTA_LAST_YEAR, DEVICE_CLASS_ENERGY, "mdi:cash", None],
     PARAM_VERSION: [SENSOR_VERSION, None, "mdi:package-down", None],
 }
+SENSORS = deepcopy(sensors_default)
+for param in sensors_default:
+    if param in ZONED_PARAMS:
+        for zone in range (1, 7):
+            SENSORS[param_zoned(param, zone)] = (
+                SENSORS[param][0] + f' Zone{zone}',
+                SENSORS[param][1],
+                SENSORS[param][2],
+                SENSORS[param][3],
+            )
+        del SENSORS[param]
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):

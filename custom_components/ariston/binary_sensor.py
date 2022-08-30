@@ -1,6 +1,7 @@
 """Suppoort for Ariston binary sensors."""
 import logging
 from datetime import timedelta
+from copy import deepcopy
 from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_HEAT,
@@ -8,6 +9,7 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.const import CONF_BINARY_SENSORS, CONF_NAME
 
+from .const import param_zoned
 from .const import (
     DATA_ARISTON,
     DEVICES,
@@ -24,7 +26,8 @@ from .const import (
     PARAM_THERMAL_CLEANSE_FUNCTION,
     PARAM_CH_PILOT,
     VALUE,
-    VAL_ON
+    VAL_ON,
+    ZONED_PARAMS
 )
 
 BINARY_SENSOR_CH_FLAME = "CH Flame"
@@ -45,7 +48,7 @@ SCAN_INTERVAL = timedelta(seconds=2)
 _LOGGER = logging.getLogger(__name__)
 
 # Binary sensor types are defined like: Name, device class
-BINARY_SENSORS = {
+binary_sensors_default = {
     PARAM_CH_AUTO_FUNCTION: (BINARY_SENSOR_CH_AUTO_FUNCTION, None, "mdi:radiator"),
     PARAM_CH_FLAME: (BINARY_SENSOR_CH_FLAME, None, "mdi:fire"),
     PARAM_DHW_FLAME: (BINARY_SENSOR_DHW_FLAME, None, "mdi:fire"),
@@ -67,6 +70,16 @@ BINARY_SENSORS = {
     ),
     PARAM_CH_PILOT: (BINARY_SENSOR_CH_PILOT, None, "mdi:head-cog-outline"),
 }
+BINARY_SENSORS = deepcopy(binary_sensors_default)
+for param in binary_sensors_default:
+    if param in ZONED_PARAMS:
+        for zone in range (1, 7):
+            BINARY_SENSORS[param_zoned(param, zone)] = (
+                BINARY_SENSORS[param][0] + f' Zone{zone}',
+                BINARY_SENSORS[param][1],
+                BINARY_SENSORS[param][2]
+            )
+        del BINARY_SENSORS[param]
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):

@@ -124,7 +124,27 @@ PARAM_CH_ENERGY_DELTA_THIS_YEAR = 'ch_energy_delta_this_year'
 PARAM_CH_ENERGY_DELTA_LAST_YEAR = 'ch_energy_delta_last_year'
 PARAM_DHW_ENERGY_DELTA_THIS_YEAR = 'dhw_energy_delta_this_year'
 PARAM_DHW_ENERGY_DELTA_LAST_YEAR = 'dhw_energy_delta_last_year'
+PARAM_HEATING_FLOW_TEMP = "ch_heating_flow_temp"
+PARAM_HEATING_FLOW_OFFSET = "ch_heating_flow_offset"
+PARAM_COOLING_FLOW_TEMP = "ch_cooling_flow_temp"
+PARAM_COOLING_FLOW_OFFSET = "ch_cooling_flow_offset"
+PARAM_CH_DEROGA_TEMPERATURE = "ch_deroga_temperature"
 PARAM_VERSION = 'integration_version'
+
+ZONED_PARAMS = [
+    PARAM_CH_FLAME,
+    PARAM_CH_MODE,
+    PARAM_CH_SET_TEMPERATURE,
+    PARAM_CH_DETECTED_TEMPERATURE,
+    PARAM_CH_DEROGA_TEMPERATURE,
+    PARAM_CH_COMFORT_TEMPERATURE,
+    PARAM_CH_PILOT,
+    PARAM_CH_ECONOMY_TEMPERATURE,
+    PARAM_HEATING_FLOW_TEMP,
+    PARAM_HEATING_FLOW_OFFSET,
+    PARAM_COOLING_FLOW_TEMP,
+    PARAM_COOLING_FLOW_OFFSET,
+]
 
 VAL_MANUAL = "Manual"
 VAL_PROGRAM = "Time program"
@@ -143,6 +163,7 @@ CONF_GW = "gw"
 CONF_PERIOD_SET = "period_set"
 CONF_PERIOD_GET = "period_get"
 CONF_MAX_SET_RETRIES = "max_set_retries"
+CONF_CH_ZONES = "num_ch_zones"
 
 VALUE = "value"
 UNITS = "units"
@@ -160,3 +181,9 @@ SERVICE_SET_DATA = "set_data"
 CLIMATES = "climates"
 WATER_HEATERS = "water_heaters"
 CONF_CLIMATES = "climates"
+
+def param_zoned(param, zone):
+    if param in ZONED_PARAMS:
+        return f'{param}_zone{zone}'
+    else:
+        return param

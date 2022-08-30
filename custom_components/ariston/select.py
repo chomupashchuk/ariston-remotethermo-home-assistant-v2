@@ -6,6 +6,7 @@ from copy import deepcopy
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import CONF_SELECTOR, CONF_NAME
 
+from .const import param_zoned
 from .const import (
     DATA_ARISTON,
     DEVICES,
@@ -27,6 +28,7 @@ from .const import (
     PARAM_CH_WATER_TEMPERATURE,
     PARAM_CH_FIXED_TEMP,
     PARAM_DHW_SET_TEMPERATURE,
+    ZONED_PARAMS
 )
 
 SELECT_MODE = "Boiler Mode"
@@ -45,7 +47,7 @@ SELECT_DHW_ECONOMY_TEMPERATURE = "DHW Economy Temperature"
 
 SCAN_INTERVAL = timedelta(seconds=2)
 
-SELECTS = {
+selects_deafult = {
     PARAM_MODE: (SELECT_MODE, "mdi:water-boiler"),
     PARAM_CH_MODE: (SELECT_CH_MODE, "mdi:radiator"),
     PARAM_DHW_MODE: (SELECT_DHW_MODE, "mdi:water-pump"),
@@ -59,6 +61,15 @@ SELECTS = {
     PARAM_DHW_COMFORT_TEMPERATURE: (SELECT_DHW_COMFORT_TEMPERATURE, "mdi:water-pump"),
     PARAM_DHW_ECONOMY_TEMPERATURE: (SELECT_DHW_ECONOMY_TEMPERATURE, "mdi:water-pump"),
 }
+SELECTS = deepcopy(selects_deafult)
+for param in selects_deafult:
+    if param in ZONED_PARAMS:
+        for zone in range (1, 7):
+            SELECTS[param_zoned(param, zone)] = (
+                SELECTS[param][0] + f' Zone{zone}',
+                SELECTS[param][1]
+            )
+        del SELECTS[param]
 
 _LOGGER = logging.getLogger(__name__)
 

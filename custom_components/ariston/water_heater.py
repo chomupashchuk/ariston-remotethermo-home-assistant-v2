@@ -34,6 +34,7 @@ from .const import (
     MAX,
     STEP,
     OPTIONS_TXT,
+    VAL_ON
 )
 
 ACTION_IDLE = "idle"
@@ -176,7 +177,7 @@ class AristonWaterHeater(WaterHeaterEntity):
         except KeyError:
             step = 1.0
         try:
-            if self._api.sensor_values[PARAM_DHW_FLAME][VALUE]:
+            if self._api.sensor_values[PARAM_DHW_FLAME][VALUE] == VAL_ON:
                 action = ACTION_HEATING
             else:
                 action = ACTION_IDLE

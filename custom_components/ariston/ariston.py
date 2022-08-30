@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.11"
+    _VERSION = "2.0.12"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -152,6 +152,10 @@ class AristonHandler:
     _PARAM_CH_ENERGY_DELTA_LAST_YEAR = 'ch_energy_delta_last_year'
     _PARAM_DHW_ENERGY_DELTA_THIS_YEAR = 'dhw_energy_delta_this_year'
     _PARAM_DHW_ENERGY_DELTA_LAST_YEAR = 'dhw_energy_delta_last_year'
+    _PARAM_HEATING_FLOW_TEMP = "ch_heating_flow_temp"
+    _PARAM_HEATING_FLOW_OFFSET = "ch_heating_flow_offset"
+    _PARAM_COOLING_FLOW_TEMP = "ch_cooling_flow_temp"
+    _PARAM_COOLING_FLOW_OFFSET = "ch_cooling_flow_offset"
 
     # Ariston parameter codes in the menu
     _ARISTON_DHW_COMFORT_TEMP = "U6_9_0"
@@ -220,6 +224,8 @@ class AristonHandler:
     _ARISTON_PAR_AUTO_HEATING = "AutomaticThermoregulation"
     _ARISTON_PAR_HEATING_FLOW_TEMP = "HeatingFlowTemp"
     _ARISTON_PAR_HEATING_FLOW_OFFSET = "HeatingFlowOffset"
+    _ARISTON_PAR_COOLING_FLOW_TEMP = "CoolingFlowTemp"
+    _ARISTON_PAR_COOLING_FLOW_OFFSET = "CoolingFlowOffset"
     _ARISTON_PAR_DHW_MODE = "DhwMode"
     _ARISTON_PAR_DHW_STORAGE_TEMP = "DhwStorageTemperature"
     _ARISTON_PAR_DHW_COMFORT_TEMP = "DhwTimeProgComfortTemp"
@@ -241,7 +247,7 @@ class AristonHandler:
         _PARAM_DHW_STORAGE_TEMPERATURE: _ARISTON_PAR_DHW_STORAGE_TEMP,
     }
     # Parameters in Android api within zone 1, mapping to parameter names
-    _MAP_ARISTON_ZONE_1_PARAMS = {
+    _MAP_ARISTON_MULTIZONE_PARAMS = {
         _PARAM_CH_FLAME: _ARISTON_PAR_ZONE_HEAT_REQUEST,
         _PARAM_CH_MODE: _ARIZTON_PAR_ZONE_MODE,
         _PARAM_CH_SET_TEMPERATURE: _ARISTON_PAR_ZONE_DESIRED_TEMP,
@@ -249,7 +255,11 @@ class AristonHandler:
         _PARAM_CH_DEROGA_TEMPERATURE: _ARISTON_PAR_ZONE_DEROGA_TEMP,
         _PARAM_CH_COMFORT_TEMPERATURE: _ARISTON_PAR_ZONE_CONFORT_TEMP,
         _PARAM_CH_PILOT: _ARISTON_PAR_ZONE_PILOT,
-        _PARAM_CH_ECONOMY_TEMPERATURE: _ARISTON_PAR_ZONE_ECONOMY_TEMP
+        _PARAM_CH_ECONOMY_TEMPERATURE: _ARISTON_PAR_ZONE_ECONOMY_TEMP,
+        _PARAM_HEATING_FLOW_TEMP: _ARISTON_PAR_HEATING_FLOW_TEMP,
+        _PARAM_HEATING_FLOW_OFFSET: _ARISTON_PAR_HEATING_FLOW_OFFSET,
+        _PARAM_COOLING_FLOW_TEMP: _ARISTON_PAR_COOLING_FLOW_TEMP,
+        _PARAM_COOLING_FLOW_OFFSET: _ARISTON_PAR_COOLING_FLOW_OFFSET,
     }
     # Parameters in Web menu, mapping to parameter names
     _MAP_ARISTON_WEB_MENU_PARAMS = {
@@ -261,13 +271,13 @@ class AristonHandler:
         _PARAM_SIGNAL_STRENGTH: _ARISTON_SIGNAL_STRENGHT,
         _PARAM_THERMAL_CLEANSE_CYCLE: _ARISTON_THERMAL_CLEANSE_CYCLE,
         _PARAM_CH_WATER_TEMPERATURE: _ARISTON_CH_WATER_TEMPERATURE,
-        _PARAM_DHW_COMFORT_TEMPERATURE: _ARISTON_DHW_TIME_PROG_COMFORT,
-        _PARAM_DHW_ECONOMY_TEMPERATURE: _ARISTON_DHW_TIME_PROG_ECONOMY,
+        # _PARAM_DHW_COMFORT_TEMPERATURE: _ARISTON_DHW_TIME_PROG_COMFORT,
+        # _PARAM_DHW_ECONOMY_TEMPERATURE: _ARISTON_DHW_TIME_PROG_ECONOMY,
         _PARAM_CH_FIXED_TEMP: _ARISTON_CH_FIXED_TEMP,
     }
     _LIST_ARISTON_API_PARAMS = [
         *_MAP_ARISTON_ZONE_0_PARAMS.keys(),
-        *_MAP_ARISTON_ZONE_1_PARAMS.keys(),
+        *_MAP_ARISTON_MULTIZONE_PARAMS.keys(),
         _PARAM_DHW_FLAME,
     ]
     _LIST_ARISTON_WEB_PARAMS = [
@@ -340,7 +350,7 @@ class AristonHandler:
 
     # reverse mapping of Android api to sensor names
     _MAP_ARISTON_API_TO_PARAM = {value:key for key, value in _MAP_ARISTON_ZONE_0_PARAMS.items()}
-    for key, value in _MAP_ARISTON_ZONE_1_PARAMS.items():
+    for key, value in _MAP_ARISTON_MULTIZONE_PARAMS.items():
         _MAP_ARISTON_API_TO_PARAM[value] = key
     # reverse mapping of Web menu items to sensor names
     _MAP_ARISTON_WEB_TO_PARAM = {value:key for key, value in _MAP_ARISTON_WEB_MENU_PARAMS.items()}
@@ -357,7 +367,7 @@ class AristonHandler:
         ]
     
     # List of sensors allowed to be changed
-    _SENSOR_SET_LIST = [
+    _SENSOR_SET_LIST_TEMP = [
         _PARAM_MODE,
         _PARAM_CH_MODE,
         _PARAM_CH_SET_TEMPERATURE,
@@ -377,6 +387,18 @@ class AristonHandler:
         _PARAM_DHW_MODE,
     ]
 
+    @staticmethod
+    def append_param(sensor, multizone_map, final_list):
+        if sensor in multizone_map:
+            for zone in range(1, 7):
+                final_list.append(f'{sensor}_zone{zone}')
+        else:
+            final_list.append(sensor)
+
+    _SENSOR_SET_LIST = []
+    for sensor in _SENSOR_SET_LIST_TEMP:
+        append_param(sensor, _MAP_ARISTON_MULTIZONE_PARAMS, _SENSOR_SET_LIST)
+
     # Requests
     _REQUEST_MAIN = "main"
     _REQUEST_CH_SCHEDULE = "ch_schedule"
@@ -386,9 +408,13 @@ class AristonHandler:
     _REQUEST_LAST_MONTH = "last_month"
     _REQUEST_ENERGY = "energy"
 
+    maim_sensors_list = []
+    for sensor in _LIST_ARISTON_API_PARAMS:
+        append_param(sensor, _MAP_ARISTON_MULTIZONE_PARAMS, maim_sensors_list)
+    
     # Mapping of sensors to requests
     _MAP_REQUEST = {
-        _REQUEST_MAIN: _LIST_ARISTON_API_PARAMS,
+        _REQUEST_MAIN: maim_sensors_list,
         _REQUEST_ADDITIONAL: _LIST_ARISTON_WEB_PARAMS,
         _REQUEST_CH_SCHEDULE: _LIST_CH_PROGRAM_PARAMS,
         _REQUEST_DHW_SCHEDULE: _LIST_DHW_PROGRAM_PARAMS,
@@ -396,6 +422,11 @@ class AristonHandler:
         _REQUEST_ENERGY: _LIST_ENERGY,
         _REQUEST_LAST_MONTH: _LIST_LAST_MONTH,
     }
+
+    _MAP_SENSOR_TO_REQUEST = {}
+    for request, sensor_list in _MAP_REQUEST.items():
+        for sensor in sensor_list:
+            _MAP_SENSOR_TO_REQUEST[sensor] = request
 
     # Priority lists of requests (first list is High prio and second is Low prio)
     _REQUESTS_SEQUENCE = [
@@ -436,11 +467,21 @@ class AristonHandler:
 
 
     def _get_request_for_parameter(self, sensor):
-        for request_group, parameter_list in self._MAP_REQUEST.items():
-            if sensor in parameter_list:
-                return request_group
-        raise Exception(f"Unexpected parameter {sensor}")
+        return self._MAP_SENSOR_TO_REQUEST[sensor]
 
+    def _zone_sensor_name(self, sensor, zone):
+        if sensor in self._MAP_ARISTON_MULTIZONE_PARAMS:
+            return f'{sensor}_zone{zone}'
+        else:
+            return sensor
+
+    def _zone_sensor_split(self, sensor):
+        match = re.search('_zone[1-9]$', sensor)
+        if match:
+            origial = re.sub('_zone[1-9]$', '', sensor)
+            if origial in self._MAP_ARISTON_MULTIZONE_PARAMS:
+                return origial, int(sensor[-1])
+        return sensor, 0
 
     def _reset_sensor(self, sensor):
         self._ariston_sensors[sensor] = dict()
@@ -513,8 +554,14 @@ class AristonHandler:
         self._ariston_sensors = dict()
         self._subscribed_sensors_old_value = dict()
         for sensor in self._SENSOR_LIST:
-            self._reset_sensor(sensor)
-            self._subscribed_sensors_old_value[sensor] = None
+            if sensor in self._MAP_ARISTON_MULTIZONE_PARAMS:
+                for zone in range(1, 7):
+                    ch_sensor = self._zone_sensor_name(sensor, zone=zone)
+                    self._reset_sensor(ch_sensor)
+                    self._subscribed_sensors_old_value[ch_sensor] = None
+            else:
+                self._reset_sensor(sensor)
+                self._subscribed_sensors_old_value[sensor] = None
         
         # clear configuration data
         self._set_param = {}
@@ -526,6 +573,7 @@ class AristonHandler:
         self._dhw_schedule_data = {}
         self._last_month_data = {}
         self._energy_use_data = {}
+        self._zones = []
 
         self._last_dhw_storage_temp = None
         self._reset_set_requests()
@@ -625,11 +673,10 @@ class AristonHandler:
 
         changed_data = dict()
 
-        for sensor in self._SENSOR_LIST:
-            if sensor in self._ariston_sensors:
-                if self._ariston_sensors[sensor][self._VALUE] != self._subscribed_sensors_old_value[sensor]:
-                    self._subscribed_sensors_old_value[sensor] = self._ariston_sensors[sensor][self._VALUE]
-                    changed_data[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
+        for sensor in self._ariston_sensors:
+            if self._ariston_sensors[sensor][self._VALUE] != self._subscribed_sensors_old_value[sensor]:
+                self._subscribed_sensors_old_value[sensor] = self._ariston_sensors[sensor][self._VALUE]
+                changed_data[sensor] = copy.deepcopy(self._ariston_sensors[sensor])
 
         if changed_data:
             for iteration in range(len(self._subscribed)):
@@ -650,7 +697,7 @@ class AristonHandler:
         self._available = self._errors <= self._MAX_ERRORS and self._login and self._plant_id != "" and self._main_data != {}
 
         if self._available and self._main_data != {} and \
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._VALUE] != None:
+            self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, 1)][self._VALUE] != None:
             self._ch_available = True
         else:
             self._ch_available = False
@@ -907,6 +954,8 @@ class AristonHandler:
             if plant_id:
                 with self._plant_id_lock:
                     self._features = copy.deepcopy(features)
+                    if self._features["zones"]:
+                        self._zones = [item["num"] for item in self._features["zones"]]
                     self._plant_id = plant_id
                     self._gw_name = plant_id + '_'
                     self._login = True
@@ -933,8 +982,9 @@ class AristonHandler:
         value = None
         request_type = self._get_request_for_parameter(sensor)
         if request_type == self._REQUEST_MAIN:
+            original_sensor, zone = self._zone_sensor_split(sensor)
             for item in self._main_data["items"]:
-                if sensor == self._MAP_ARISTON_API_TO_PARAM[item["id"]]:
+                if original_sensor == self._MAP_ARISTON_API_TO_PARAM[item["id"]] and zone == item["zone"]:
                     value = item["value"]
                     if "options" in item:
                         use_index = item["options"].index(int(item["value"]))
@@ -970,11 +1020,16 @@ class AristonHandler:
                         self._last_dhw_storage_temp = new_value
             except Exception:
                 increase_dhw_temp = None
-            if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] in self._OFF_ON_TEXT and \
-                self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] in self._OFF_ON_TEXT:
+            ch_flame = None
+            for zone in self._zones:
+                ch_flame_zone = self._ariston_sensors[self._zone_sensor_name(self._PARAM_FLAME, zone)][self._VALUE]
+                if ch_flame_zone in self._OFF_ON_TEXT:
+                    if ch_flame is None or ch_flame == self._OFF:
+                        ch_flame = ch_flame_zone
+            if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] in self._OFF_ON_TEXT and ch_flame in self._OFF_ON_TEXT:
                 if self._ariston_sensors[self._PARAM_FLAME][self._VALUE] == self._OFF:
                     value = self._OFF
-                elif self._ariston_sensors[self._PARAM_CH_FLAME][self._VALUE] == self._OFF:
+                elif ch_flame == self._OFF:
                     value = self._ON
                 else:
                     # Unknown state of DHW
@@ -1008,7 +1063,9 @@ class AristonHandler:
             self._main_data = copy.deepcopy(resp.json())
             for item in self._main_data["items"]:
                 try:
-                    sensor = self._MAP_ARISTON_API_TO_PARAM[item["id"]]
+                    original_sensor = self._MAP_ARISTON_API_TO_PARAM[item["id"]]
+                    zone = item["zone"]
+                    sensor = self._zone_sensor_name(original_sensor, zone=zone)
                     self._ariston_sensors[sensor]
                     try:
                         self._ariston_sensors[sensor][self._VALUE] = self._get_visible_sensor_value(sensor)
@@ -1027,11 +1084,11 @@ class AristonHandler:
                             elif item["options"] == self._OFF_ON_NUMERAL:
                                 self._ariston_sensors[sensor][self._OPTIONS_TXT] = self._OFF_ON_TEXT
                     except Exception as ex:
-                        self._LOGGER.warn(f"Issue reading {sensor} {ex}")
+                        self._LOGGER.warn(f"Issue reading {request_type} {sensor} {ex}")
                         self._reset_sensor(sensor)
                         continue
                 except Exception as ex:
-                    self._LOGGER.warn(f'Issue reading {item["id"]}, {ex}')
+                    self._LOGGER.warn(f'Issue reading {request_type} {item["id"]}, {ex}')
                     continue
 
             # Extrapolate DHW Flame
@@ -1046,9 +1103,13 @@ class AristonHandler:
                 self._ariston_sensors[sensor][self._OPTIONS_TXT] = None
 
             # Fix min and Max for CH set temperature
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._MIN] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._MIN]
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._MAX] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._MAX]
-            self._ariston_sensors[self._PARAM_CH_SET_TEMPERATURE][self._STEP] = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._STEP]
+            for zone in self._zones:
+                self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, zone)][self._MIN] = \
+                    self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone)][self._MIN]
+                self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, zone)][self._MAX] = \
+                    self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone)][self._MAX]
+                self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, zone)][self._STEP] = \
+                    self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone)][self._STEP]
 
         elif request_type == self._REQUEST_ERRORS:
 
@@ -1063,7 +1124,7 @@ class AristonHandler:
                     attributes[f'Error_{index+1}'] = f'{item["timestamp"]}, {item["errDex"]}'
                 self._ariston_sensors[sensor][self._ATTRIBUTES] = attributes
             except Exception as ex:
-                self._LOGGER.warn(f'Issue reading {sensor}, {ex}')
+                self._LOGGER.warn(f'Issue reading {request_type} {sensor}, {ex}')
                 self._reset_sensor(sensor)
 
         elif request_type == self._REQUEST_CH_SCHEDULE:
@@ -1074,7 +1135,7 @@ class AristonHandler:
                 self._ariston_sensors[sensor][self._VALUE] = "Available"
                 self._ariston_sensors[sensor][self._ATTRIBUTES] = self._schedule_attributes(self._ch_schedule_data["ChZn1"]["plans"])
             except Exception as ex:
-                self._LOGGER.warn(f'Issue reading {sensor}, {ex}')
+                self._LOGGER.warn(f'Issue reading {request_type} {sensor}, {ex}')
                 self._reset_sensor(sensor)
 
         elif request_type == self._REQUEST_DHW_SCHEDULE:
@@ -1085,7 +1146,7 @@ class AristonHandler:
                 self._ariston_sensors[sensor][self._VALUE] = "Available"
                 self._ariston_sensors[sensor][self._ATTRIBUTES] = self._schedule_attributes(self._dhw_schedule_data["Dhw"]["plans"])
             except Exception as ex:
-                self._LOGGER.warn(f'Issue reading {sensor}, {ex}')
+                self._LOGGER.warn(f'Issue reading {request_type} {sensor}, {ex}')
                 self._reset_sensor(sensor)
 
         elif request_type == self._REQUEST_ADDITIONAL:
@@ -1109,11 +1170,11 @@ class AristonHandler:
                             self._ariston_sensors[sensor][self._OPTIONS] = [option["value"] for option in item["dropDownOptions"]]
                             self._ariston_sensors[sensor][self._OPTIONS_TXT] = [option["text"] for option in item["dropDownOptions"]]
                     except Exception as ex:
-                        self._LOGGER.warn(f"Issue reading {sensor} {ex}")
+                        self._LOGGER.warn(f"Issue reading {request_type} {sensor} {ex}")
                         self._reset_sensor(sensor)
                         continue
                 except Exception as ex:
-                    self._LOGGER.warn(f'Issue reading {item["id"]}, {ex}')
+                    self._LOGGER.warn(f'Issue reading {request_type} {item["id"]}, {ex}')
                     continue
 
         elif request_type == self._REQUEST_LAST_MONTH:
@@ -1144,10 +1205,22 @@ class AristonHandler:
                             self._ariston_sensors[sensor][self._VALUE] = item["elect"]
                             self._ariston_sensors[sensor][self._UNITS] = self._UNIT_KWH
                 except Exception as ex:
-                    self._LOGGER.warn(f'Issue reading {item["use"]} for last month, {ex}')
+                    self._LOGGER.warn(f'Issue reading {request_type} {item["use"]} for last month, {ex}')
                     continue
 
         elif request_type == self._REQUEST_ENERGY:
+
+            if self._energy_use_data:
+                # old values are available
+                sum_energy_old = 0
+                sum_energy_new = 0
+                for item in self._energy_use_data:
+                    sum_energy_old += sum(item['v'])
+                for item in resp.json():
+                    sum_energy_new += sum(item['v'])
+                if sum_energy_old > 0 and sum_energy_new == 0:
+                    # if non-zero values are present and new value is zero - ignore it 
+                    return
 
             self._energy_use_data = copy.deepcopy(resp.json())
             this_month = datetime.date.today().month
@@ -1167,7 +1240,7 @@ class AristonHandler:
                 this_2hour = (this_hour // 2) * 2 + 2
             else:
                 # we assume that previous 2 hours would be used
-                this_2hour = this_hour
+                this_2hour = this_hour + 2
             try:
                 (
                     self._ariston_sensors[self._PARAM_CH_ENERGY_TODAY][self._VALUE],
@@ -1451,14 +1524,18 @@ class AristonHandler:
                     prev_day, prev_month, prev_year, _ = self._get_prev_day(day=this_day, month=this_month, year=this_year, scan_break=0)
                     prev_day_2, prev_month_2, prev_year_2, _ = self._get_prev_day(day=prev_day, month=prev_month, year=prev_year, scan_break=0)
                     use_day, use_month, use_year = this_day, this_month, this_year
-                    first_scan = True
+                    if this_2hour == 2:
+                        midnight = True
+                    else:
+                        midnight = False
                     for value in reversed(item['v']):
                         scan_2hour, scan_break = self._get_prev_hour(hour=scan_2hour, scan_break=scan_break)
-                        if first_scan and scan_break == 1:
+                        if midnight and scan_break == 1:
+                            # ignore first break
                             scan_break = 0
                             use_day, use_month, use_year = prev_day, prev_month, prev_year
                             prev_day, prev_month, prev_year = prev_day_2, prev_month_2, prev_year_2
-                        first_scan = False
+                            midnight = False
                         if scan_break == 0:
                             energy_today_attr[hour_text.format(use_year, calendar.month_abbr[use_month], use_day, scan_2hour)] = value
                             energy_today += value
@@ -1565,8 +1642,10 @@ class AristonHandler:
                     }
                 for param in self._MAP_ARISTON_ZONE_0_PARAMS.values():
                     request_data['items'].append({"id": param, "zn":0})
-                for param in self._MAP_ARISTON_ZONE_1_PARAMS.values():
-                    request_data['items'].append({"id": param, "zn":1})
+                if self._zones:
+                    for zone in self._zones:
+                        for param in self._MAP_ARISTON_MULTIZONE_PARAMS.values():
+                            request_data['items'].append({"id": param, "zn":zone})
                 with self._data_lock:
                     resp = self._request_post(
                         url=f'{self._ARISTON_URL}/api/v2/remote/dataItems/{self._plant_id}/get?umsys=si',
@@ -1750,10 +1829,11 @@ class AristonHandler:
 
                     try:
 
+                        original_parameter, zone = self._zone_sensor_split(parameter)
                         set_value = self._set_param[parameter][self._SET_VALUE]
                         self._LOGGER.info(f'Setting {parameter} new value {self._set_param[parameter][self._VALUE]} [{set_value}]')
                         
-                        if parameter == self._PARAM_MODE:
+                        if original_parameter == self._PARAM_MODE:
 
                             old_value = self._string_option_to_number(parameter, self._get_sensor_value(parameter))
                             self._request_post(
@@ -1764,18 +1844,18 @@ class AristonHandler:
                             )
                             break
 
-                        elif parameter == self._PARAM_CH_MODE:
+                        elif original_parameter == self._PARAM_CH_MODE:
 
                             old_value = self._string_option_to_number(parameter, self._get_sensor_value(parameter))
                             self._request_post(
-                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/mode',
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/{zone}/mode',
                                 json_data={"new": set_value,"old": old_value},
                                 error_msg='Set CH Mode',
                                 timeout=self._TIMEOUT_AV
                             )
                             break
 
-                        elif parameter == self._PARAM_DHW_MODE:
+                        elif original_parameter == self._PARAM_DHW_MODE:
 
                             old_value = self._string_option_to_number(parameter, self._get_sensor_value(parameter))
                             self._request_post(
@@ -1786,52 +1866,52 @@ class AristonHandler:
                             )
                             break
 
-                        elif parameter == self._PARAM_CH_SET_TEMPERATURE:
+                        elif original_parameter == self._PARAM_CH_SET_TEMPERATURE:
                             
-                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
-                            comfort_new = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE]
-                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
-                            economy_new = self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE]
-                            set_temp = self._get_sensor_value(self._PARAM_CH_SET_TEMPERATURE)
+                            comfort_old = self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone))
+                            comfort_new = self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone)][self._VALUE]
+                            economy_old= self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)) 
+                            economy_new = self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)][self._VALUE]
+                            set_temp = self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, zone))
                             if set_temp == economy_old and self._get_sensor_value(self._PARAM_CH_MODE) == "Time program":
                                 economy_new = set_value
                             else:
                                 comfort_new = set_value
                             self._request_post(
-                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/{zone}/temperatures?umsys=si',
                                 json_data={"new":{"comf": comfort_new, "econ": economy_new}, "old":{"comf": comfort_old, "econ": economy_old}},
                                 error_msg='Set CH Temperature',
                                 timeout=self._TIMEOUT_AV
                             )
                             break
 
-                        elif parameter == self._PARAM_CH_COMFORT_TEMPERATURE:
+                        elif original_parameter == self._PARAM_CH_COMFORT_TEMPERATURE:
                             
-                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
-                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
-                            economy_new = self._ariston_sensors[self._PARAM_CH_ECONOMY_TEMPERATURE][self._VALUE]
+                            comfort_old = self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone))
+                            economy_old= self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)) 
+                            economy_new = self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)][self._VALUE]
                             self._request_post(
-                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/{zone}/temperatures?umsys=si',
                                 json_data={"new":{"comf": set_value, "econ": economy_new}, "old":{"comf": comfort_old, "econ": economy_old}},
                                 error_msg='Set CH Temperature',
                                 timeout=self._TIMEOUT_AV
                             )
                             break
 
-                        elif parameter == self._PARAM_CH_ECONOMY_TEMPERATURE:
+                        elif original_parameter == self._PARAM_CH_ECONOMY_TEMPERATURE:
                             
-                            comfort_old = self._get_sensor_value(self._PARAM_CH_COMFORT_TEMPERATURE)
-                            comfort_new = self._ariston_sensors[self._PARAM_CH_COMFORT_TEMPERATURE][self._VALUE]
-                            economy_old= self._get_sensor_value(self._PARAM_CH_ECONOMY_TEMPERATURE) 
+                            comfort_old = self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone))
+                            comfort_new = self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_COMFORT_TEMPERATURE, zone)][self._VALUE]
+                            economy_old= self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)) 
                             self._request_post(
-                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/1/temperatures?umsys=si',
+                                url=f'{self._ARISTON_URL}/api/v2/remote/zones/{self._plant_id}/{zone}/temperatures?umsys=si',
                                 json_data={"new":{"comf": comfort_new, "econ": set_value}, "old":{"comf": comfort_old, "econ": economy_old}},
                                 error_msg='Set CH Temperature',
                                 timeout=self._TIMEOUT_AV
                             )
                             break
 
-                        elif parameter == self._PARAM_DHW_SET_TEMPERATURE:
+                        elif original_parameter == self._PARAM_DHW_SET_TEMPERATURE:
 
                             old_value = self._get_sensor_value(parameter) 
                             self._request_post(
@@ -1842,7 +1922,7 @@ class AristonHandler:
                             )
                             break
 
-                        elif parameter == self._PARAM_DHW_COMFORT_TEMPERATURE:
+                        elif original_parameter == self._PARAM_DHW_COMFORT_TEMPERATURE:
 
                             comfort_old = self._get_sensor_value(self._PARAM_DHW_COMFORT_TEMPERATURE) 
                             economy_old= self._get_sensor_value(self._PARAM_DHW_ECONOMY_TEMPERATURE) 
@@ -1855,7 +1935,7 @@ class AristonHandler:
                             )
                             break
 
-                        elif parameter == self._PARAM_DHW_ECONOMY_TEMPERATURE:
+                        elif original_parameter == self._PARAM_DHW_ECONOMY_TEMPERATURE:
 
                             comfort_old = self._get_sensor_value(self._PARAM_DHW_COMFORT_TEMPERATURE)
                             comfort_new = self._ariston_sensors[self._PARAM_DHW_COMFORT_TEMPERATURE][self._VALUE]
@@ -1868,7 +1948,7 @@ class AristonHandler:
                             )
                             break
 
-                        elif parameter in self._LIST_ARISTON_WEB_PARAMS:
+                        elif original_parameter in self._LIST_ARISTON_WEB_PARAMS:
 
                             # Many parameters in one request
                             
@@ -2010,7 +2090,8 @@ class AristonHandler:
         self._last_month_data = {}
         self._energy_use_data = {}
         self._last_dhw_storage_temp = None
-        for sensor in self._SENSOR_LIST:
+        self._zones = []
+        for sensor in self._ariston_sensors:
             self._reset_sensor(sensor)
         self._reset_set_requests()
         self._subscribers_sensors_inform()

@@ -10,16 +10,76 @@ set_data:
     ch_auto_function:
       description: "(Optional) CH AUTO function ('ON' or 'OFF')"
       example: "ON"
-    ch_mode:
+    ch_mode_zone1:
       description: "(Optional) CH mode: 'Manual' or 'Time program'."
       example: "Time program"
-    ch_set_temperature:
+    ch_mode_zone2:
+      description: "(Optional) CH mode: 'Manual' or 'Time program'."
+      example: "Time program"
+    ch_mode_zone3:
+      description: "(Optional) CH mode: 'Manual' or 'Time program'."
+      example: "Time program"
+    ch_mode_zone4:
+      description: "(Optional) CH mode: 'Manual' or 'Time program'."
+      example: "Time program"
+    ch_mode_zone5:
+      description: "(Optional) CH mode: 'Manual' or 'Time program'."
+      example: "Time program"
+    ch_mode_zone6:
+      description: "(Optional) CH mode: 'Manual' or 'Time program'."
+      example: "Time program"
+    ch_set_temperature_zone1:
       description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
       example: 23
-    ch_comfort_temperature:
+    ch_set_temperature_zone2:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone3:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone4:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone5:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_set_temperature_zone6:
+      description: "(Optional) Set currently used CH temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone1:
       description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
       example: 23
-    ch_economy_temperature:
+    ch_comfort_temperature_zone2:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone3:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone4:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone5:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_comfort_temperature_zone6:
+      description: "(Optional) Set CH Comfort temperature in steps of '0.5'. Value range depends on model."
+      example: 23
+    ch_economy_temperature_zone1:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone2:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone3:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone4:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone5:
+      description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
+      example: 23.5
+    ch_economy_temperature_zone6:
       description: "(Optional) Set CH Economy temperature in steps of '0.5'. Value range depends on model."
       example: 23.5
     ch_water_temperature:

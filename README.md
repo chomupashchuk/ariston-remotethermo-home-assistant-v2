@@ -1,3 +1,99 @@
+# Consider donations to support Ukraine (where I'm from) to one of mentioned below or some other of your choosing
+### Volunteering organization to help UA army
+ICF COME BACK ALIVE
+https://savelife.in.ua/en/donate-en/#desktop-donate-abroad-en
+
+#### IBAN Code Euro (EUR)
+UA093052990000026004025029786
+
+#### IBAN Code US Dollar (USD)
+UA173052990000026009035028620
+
+#### IBAN Code Swedish Krona (SEC)
+UA473052990000026009035019253
+
+#### IBAN Code Polish Zloty (PLN)
+UA933052990000026001045027448
+
+#### IBAN Code Norwegian Krone (NOK)
+UA173052990000026001005022621
+
+#### IBAN Code Pound Sterling (GBP)
+UA043052990000026002035022690
+
+#### IBAN Code Czech Koruna (CZK)
+UA503052990000026007015024657
+
+#### IBAN Code Swiss Franc (CHF)
+UA143052990000026009005017456
+
+### UA army
+https://bank.gov.ua/en/news/all/natsionalniy-bank-vidkriv-spetsrahunok-dlya-zboru-koshtiv-na-potrebi-armiyi
+
+#### In order to pay UA Army in USD:
+BENEFICIARY: National Bank of Ukraine
+BENEFICIARY BIC: NBUA UA UX
+BENEFICIARY ADDRESS: 9 Instytutska St, Kyiv, 01601, Ukraine
+ACCOUNT NUMBER: 804790258
+BENEFICIARY BANK NAME: JP MORGAN CHASE BANK, New York
+BENEFICIARY BANK BIC: CHASUS33
+ABA 0210 0002 1
+BENEFICIARY BANK ADDRESS: 383 Madison Avenue, New York, NY 10017, USA
+PURPOSE OF PAYMENT: for ac 47330992708 
+
+#### In order to pay UA Army in EUR:
+BENEFICIARY: National Bank of Ukraine
+IBAN DE05504000005040040066
+PURPOSE OF PAYMENT: for ac 47330992708
+BENEFICIARY BANK NAME: DEUTSCHE  BUNDESBANK, Frankfurt
+BENEFICIARY BANK BIC: MARKDEFF
+BENEFICIARY BANK ADDRESS: Wilhelm-Epstein-Strasse 14, 60431 Frankfurt Am Main, Germany
+
+#### In order to pay UA Army in GBP:
+BENEFICIARY/RECIPIENT NAME: National Bank of Ukraine
+ACCOUNT NUMBER: 80033041
+IBAN GB52CHAS60924280033041
+BENEFICIARY ADDRESS: 9 Instytutska St, Kyiv, 01601, Ukraine
+BENEFICIARY BANK NAME: JP MORGAN CHASE BANK NA, London
+BENEFICIARY BANK BIC: CHASGB2L
+SORT CODE: 60-92-42 
+BENEFICIARY BANK ADDRESS: 125 London Wall, London EC2Y 5AJ, UK
+PURPOSE OF PAYMENT: for ac 47330992708 
+
+#### In order to pay UA Army in AUD:
+BENEFICIARY: National Bank of Ukraine
+BENEFICIARY BIC: NBUA UA UX
+BENEFICIARY ADDRESS: 9 Instytutska St, Kyiv, 01601, Ukraine
+ACCOUNT NUMBER: 817532
+BSB code 092-002
+BENEFICIARY BANK NAME: RESERVE  BANK OF AUSTRALIA, Sydney
+BENEFICIARY BANK BIC: RSBKAU2S
+BENEFICIARY BANK ADDRESS: GPO Box 3947, Sydney NSW 2000, Australia
+PURPOSE OF PAYMENT: for ac 47330992708 
+
+#### In order to pay UA Army in CAD:
+BENEFICIARY: National Bank of Ukraine
+BENEFICIARY BIC: NBUA UA UX
+BENEFICIARY ADDRESS: 9 Instytutska St, Kyiv, 01601, Ukraine
+ACCOUNT NUMBER: 31441044166
+BENEFICIARY BANK NAME: BANK OF MONTREAL, Toronto
+BENEFICIARY BANK BIC: BOFMCAM2
+BENEFICIARY BANK ADDRESS: 100 King Street West, Toronto, Ontario, M5X 1A9, Canada
+PURPOSE OF PAYMENT: for ac 47330992708 
+
+#### In order to pay UA Army in PLN:
+BENEFICIARY: National Bank of Ukraine
+BENEFICIARY BIC: NBUA UA UX
+BENEFICIARY ADDRESS: 9 Instytutska St, Kyiv, 01601, Ukraine
+ACCOUNT NUMBER: PL91113000070080239435200002
+BENEFICIARY BANK NAME: Bank Gospodarstwa Krajowego
+BENEFICIARY BANK BIC: GOSKPLPW
+BENEFICIARY BANK ADDRESS: Al. Jerozolimskie 7, 00-955 Warszawa, Polska (temporary address: Chmielna 73, 00-801 Warszawa, Polska)
+PURPOSE OF PAYMENT: for ac 47330992708
+<br/>
+<br/>
+<br/>
+
 # Ariston NET remotethermo integration for Home Assistant
 Thin integration is a side project which works only with 1 zone climate configured. It logs in to Ariston website (https://www.ariston-net.remotethermo.com) and fetches/sets data on that site.
 You are free to modify and distribute it. It is distributed 'as is' with no liability for possible damage.
@@ -48,6 +144,7 @@ Order of Installation:
   - `period_set` - period in seconds between requests to read sensor values (integer, minimum is `30`). Default is `30`.
   - `period_get`- period in seconds between requests to set sensor values (integer, minimum is `30`). Default is `30`.
   - `max_set_retries` - attempts to set the value until giving up setting the value. Default is `5`.
+  - `num_ch_zones` - number of CH zones (`1`-`6`). Default is `1`.
 
 #### Switches
 **Some parameters are not supported on all models**

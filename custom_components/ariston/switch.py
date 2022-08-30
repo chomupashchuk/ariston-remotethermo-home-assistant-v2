@@ -1,8 +1,10 @@
 """Suppoort for Ariston switch."""
 from datetime import timedelta
+from copy import deepcopy
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import CONF_SWITCHES, CONF_NAME
 
+from .const import param_zoned
 from .const import (
     DATA_ARISTON,
     DEVICES,
@@ -12,7 +14,8 @@ from .const import (
     PARAM_THERMAL_CLEANSE_FUNCTION,
     VALUE,
     VAL_OFF,
-    VAL_ON
+    VAL_ON,
+    ZONED_PARAMS
 )
 
 SWITCH_CH_AUTO_FUNCTION = "CH Auto Function"
@@ -23,12 +26,22 @@ SWITCH_POWER = "Power"
 
 SCAN_INTERVAL = timedelta(seconds=2)
 
-SWITCHES = {
+switches_default = {
     PARAM_INTERNET_TIME: (SWITCH_INTERNET_TIME, "mdi:update"),
     PARAM_INTERNET_WEATHER: (SWITCH_INTERNET_WEATHER, "mdi:weather-partly-cloudy"),
     PARAM_CH_AUTO_FUNCTION: (SWITCH_CH_AUTO_FUNCTION, "mdi:radiator"),
     PARAM_THERMAL_CLEANSE_FUNCTION: (SWITCH_THERMAL_CLEANSE_FUNCTION, "mdi:allergy"),
 }
+SWITCHES = deepcopy(switches_default)
+for param in switches_default:
+    if param in ZONED_PARAMS:
+        for zone in range (1, 7):
+            SWITCHES[param_zoned(param, zone)] = (
+                SWITCHES[param][0] + f' Zone{zone}',
+                SWITCHES[param][1],
+                SWITCHES[param][2]
+            )
+        del SWITCHES[param]
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
