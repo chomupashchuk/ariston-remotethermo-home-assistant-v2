@@ -221,12 +221,21 @@ def setup(hass, config):
             climates.append(f'{name} Zone{zone}')
         
         def update_list(updated_list):
-            if param in updated_list:
-                updated_list.remove(param)
-                for zone in range(1, num_ch_zones + 1):
-                    updated_list.append(param_zoned(param, zone))
-
-        params = {*sensors, *binary_sensors, *switches, *selectors}.intersection(ZONED_PARAMS)
+            if updated_list:
+                if param in updated_list:
+                    updated_list.remove(param)
+                    for zone in range(1, num_ch_zones + 1):
+                        updated_list.append(param_zoned(param, zone))
+        params_temp = set()
+        if sensors:
+            params_temp.update(sensors)
+        if binary_sensors:
+            params_temp.update(binary_sensors)
+        if switches:
+            params_temp.update(switches)
+        if selectors:
+            params_temp.update(selectors)
+        params = params_temp.intersection(ZONED_PARAMS)
         for param in params:
             update_list(switches)
             update_list(binary_sensors)
