@@ -29,7 +29,7 @@ class AristonHandler:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    _VERSION = "2.0.12"
+    _VERSION = "2.0.14"
 
     _ARISTON_URL = "https://www.ariston-net.remotethermo.com"
 
@@ -230,6 +230,7 @@ class AristonHandler:
     _ARISTON_PAR_DHW_STORAGE_TEMP = "DhwStorageTemperature"
     _ARISTON_PAR_DHW_COMFORT_TEMP = "DhwTimeProgComfortTemp"
     _ARISTON_PAR_DHW_ECONOMY_TEMP = "DhwTimeProgEconomyTemp"
+    _ARISTON_PAR_HEAT_PUMP = 'IsHeatingPumpOn'
 
     # Parameters in Android api within zone 0, mapping to parameter names
     _MAP_ARISTON_ZONE_0_PARAMS = {
@@ -245,6 +246,7 @@ class AristonHandler:
         _PARAM_DHW_COMFORT_TEMPERATURE: _ARISTON_PAR_DHW_COMFORT_TEMP,
         _PARAM_DHW_ECONOMY_TEMPERATURE: _ARISTON_PAR_DHW_ECONOMY_TEMP,
         _PARAM_DHW_STORAGE_TEMPERATURE: _ARISTON_PAR_DHW_STORAGE_TEMP,
+        _PARAM_HEAT_PUMP: _ARISTON_PAR_HEAT_PUMP,
     }
     # Parameters in Android api within zone 1, mapping to parameter names
     _MAP_ARISTON_MULTIZONE_PARAMS = {
