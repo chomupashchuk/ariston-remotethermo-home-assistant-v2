@@ -1,0 +1,22 @@
+{
+    "state": {
+        "_": {
+            "Always active": "Activ întotdeauna",
+            "Available": "Disponibil",
+            "Disabled": "Dezactivat",
+            "Heating only": "Doar încălzire",
+            "imperial": "Imperial",
+            "intelligent": "inteligent",
+            "Manual": "Manual",
+            "metric": "Metric",
+            "OFF": "Oprit",
+            "Offline": "Offline",
+            "Time program": "Programare timp",
+            "Summer": "Vară",
+            "Time Based": "Bazat pe timp",
+            "Winter": "Iarnă",
+            "cooling": "Răcire",
+            "antifreeze": "Anti îngheț"
+        }
+    }
+}
