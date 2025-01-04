@@ -197,13 +197,13 @@ class AristonThermostat(ClimateEntity):
             if climate_mode in [VAL_WINTER, VAL_HEATING_ONLY]:
                 ch_flame = self._api.sensor_values[param_zoned(PARAM_CH_FLAME, self._zone)][VALUE]
                 if ch_flame == VAL_ON:
-                    curr_hvac_action = HVACAction.HEAT
+                    curr_hvac_action = HVACAction.HEATING
                 else:
                     curr_hvac_action = HVACAction.IDLE
             if climate_mode in [VAL_COOLING]:
                 ch_flame = self._api.sensor_values[param_zoned(PARAM_CH_FLAME, self._zone)][VALUE]
                 if ch_flame == VAL_ON:
-                    curr_hvac_action = HVACAction.COOL
+                    curr_hvac_action = HVACAction.COOLING
                 else:
                     curr_hvac_action = HVACAction.IDLE
         except KeyError:
