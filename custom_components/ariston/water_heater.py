@@ -3,15 +3,14 @@ import logging
 from datetime import timedelta
 
 from homeassistant.components.water_heater import (
-    SUPPORT_OPERATION_MODE,
-    SUPPORT_TARGET_TEMPERATURE,
     WaterHeaterEntity,
+    WaterHeaterEntityFeature
 )
+
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_NAME,
-    TEMP_CELSIUS,
-    TEMP_FAHRENHEIT,
+    UnitOfTemperature,
 )
 
 from .const import (
@@ -105,11 +104,11 @@ class AristonWaterHeater(WaterHeaterEntity):
         """Return the list of supported features."""
         try:
             if self._api.sensor_values[PARAM_DHW_MODE][OPTIONS_TXT]:
-                features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE
+                features = WaterHeaterEntityFeature.OPERATION_MODE | WaterHeaterEntityFeature.TARGET_TEMPERATURE
             else:
-                features = SUPPORT_TARGET_TEMPERATURE
+                features = WaterHeaterEntityFeature.TARGET_TEMPERATURE
         except KeyError:
-            return SUPPORT_TARGET_TEMPERATURE
+            return WaterHeaterEntityFeature.TARGET_TEMPERATURE
         return features
 
     @property
@@ -130,7 +129,7 @@ class AristonWaterHeater(WaterHeaterEntity):
         try:
             units = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][UNITS]
         except KeyError:
-            return TEMP_CELSIUS
+            return UnitOfTemperature.CELSIUS
         return units
 
     @property
@@ -219,3 +218,4 @@ class AristonWaterHeater(WaterHeaterEntity):
     def update(self):
         """Update all Node data from Hive."""
         return
+
