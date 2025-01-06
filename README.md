@@ -30,6 +30,7 @@ UA143052990000026009005017456
 ### UA army
 https://bank.gov.ua/en/news/all/natsionalniy-bank-vidkriv-spetsrahunok-dlya-zboru-koshtiv-na-potrebi-armiyi
 
+
 #### In order to pay UA Army in USD:
 BENEFICIARY: National Bank of Ukraine
 BENEFICIARY BIC: NBUA UA UX
