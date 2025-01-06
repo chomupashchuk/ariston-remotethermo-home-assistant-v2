@@ -10,8 +10,7 @@ from homeassistant.components.water_heater import (
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_NAME,
-    TEMP_CELSIUS,
-    TEMP_FAHRENHEIT,
+    UnitOfTemperature,
 )
 
 from .const import (
@@ -130,7 +129,7 @@ class AristonWaterHeater(WaterHeaterEntity):
         try:
             units = self._api.sensor_values[PARAM_DHW_SET_TEMPERATURE][UNITS]
         except KeyError:
-            return TEMP_CELSIUS
+            return UnitOfTemperature.CELSIUS
         return units
 
     @property
@@ -219,3 +218,4 @@ class AristonWaterHeater(WaterHeaterEntity):
     def update(self):
         """Update all Node data from Hive."""
         return
+
