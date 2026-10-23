@@ -1875,7 +1875,7 @@ class AristonHandler:
                             economy_old= self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)) 
                             economy_new = self._ariston_sensors[self._zone_sensor_name(self._PARAM_CH_ECONOMY_TEMPERATURE, zone)][self._VALUE]
                             set_temp = self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_SET_TEMPERATURE, zone))
-                            if set_temp == economy_old and self._get_sensor_value(self._PARAM_CH_MODE) == "Time program":
+                            if set_temp == economy_old and self._get_sensor_value(self._zone_sensor_name(self._PARAM_CH_MODE, zone)) == "Time program":
                                 economy_new = set_value
                             else:
                                 comfort_new = set_value
